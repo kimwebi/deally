@@ -1,0 +1,24 @@
+﻿        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #111827; line-height: 1.6; background: #fff; }
+        a { text-decoration: none; }
+        .header { border-bottom: 1px solid #e5e7eb; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+        .header-brand { font-size: 18px; font-weight: 700; color: #111827; }
+        .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .content { max-width: 720px; margin: 0 auto; padding: 64px 32px 80px; }
+        .content h1 { font-size: 40px; font-weight: 800; line-height: 1.1; margin-bottom: 24px; }
+        .content h2 { font-size: 24px; font-weight: 700; margin: 32px 0 12px; }
+        .content h3 { font-size: 20px; font-weight: 600; margin: 24px 0 10px; }
+        .content p { font-size: 17px; color: #374151; margin-bottom: 20px; }
+        .content ul, .content ol { margin: 0 0 20px 24px; font-size: 17px; color: #374151; }
+        .content li { margin-bottom: 8px; }
+        .content blockquote { border-left: 4px solid #e5e7eb; padding-left: 16px; color: #6b7280; font-style: italic; margin-bottom: 20px; }
+        .content img { max-width: 100%; border-radius: 8px; margin: 24px 0; }
+        .content a { color: #2563eb; text-decoration: underline; }
+        .footer { padding: 32px; text-align: center; color: #9ca3af; font-size: 14px; border-top: 1px solid #e5e7eb; }
+        @media (max-width: 768px) {
+            .content h1 { font-size: 28px; }
+            .content { padding: 40px 16px 60px; }
+            .header { padding: 16px; }
+        }
