@@ -11,6 +11,8 @@ class KnowledgeBaseController extends Controller
 {
     public function index()
     {
+        $this->authorizeDeally('deally.kb.view');
+
         return view('proposals::pages.knowledge-base', [
             'entries' => KnowledgeEntry::orderBy('type')->get(),
             'gaps' => KnowledgeGap::orderBy('created_at', 'desc')->get(),
@@ -19,6 +21,8 @@ class KnowledgeBaseController extends Controller
 
     public function storeEntry(Request $request)
     {
+        $this->authorizeDeally('deally.kb.manage');
+
         $data = $request->validate([
             'type' => ['required', 'string'],
             'title' => ['required', 'string'],

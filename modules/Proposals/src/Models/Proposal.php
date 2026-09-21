@@ -21,6 +21,7 @@ class Proposal extends Model
         'package',
         'quote',
         'line_items',
+        'owner_user_id',
     ];
 
     protected function casts(): array

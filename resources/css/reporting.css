@@ -1,0 +1,66 @@
+﻿/* ---- base keycap ---- */
+kbd {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; background: var(--surface-3); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 5px; padding: 2px 7px; color: var(--text-2);
+}
+
+.add-task-card.done {
+  background: linear-gradient(135deg, rgba(34, 139, 34, 0.12) 0%, rgba(0, 162, 237, 0.05) 100%);
+  border-color: rgba(34, 139, 34, 0.35);
+}
+.add-task-card.done::before { background: var(--success); }
+.add-task-card.done .add-task-icon { background: var(--success-soft); color: var(--success-bright); }
+
+/* ---- Reporting ---- */
+.report-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 20px; flex-wrap: wrap; }
+.report-hero-title { font-size: 20px; font-weight: 600; }
+.report-hero-sub { font-size: 13px; color: var(--text-3); margin-top: 4px; max-width: 560px; }
+.report-hero-actions { display: flex; gap: 10px; }
+
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.metric-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-lg); padding: 16px 20px; text-decoration: none; display: block; transition: background 0.15s, border-color 0.15s; }
+.metric-card:hover { background: var(--surface-2); border-color: var(--border-hover); }
+.metric-card.static { cursor: default; }
+.metric-card.static:hover { background: var(--surface); }
+.metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3); font-weight: 600; }
+.metric-value { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; margin: 8px 0 4px; color: var(--text); }
+.metric-warn { color: var(--warning); }
+.metric-bad { color: var(--red); }
+.metric-unit { font-size: 12px; color: var(--text-3); font-weight: 400; margin-left: 6px; }
+.metric-sub { font-size: 12px; color: var(--text-3); }
+
+.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; align-items: start; }
+@media (max-width: 980px) { .report-grid { grid-template-columns: 1fr; } }
+
+.report-panel { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-lg); padding: 18px 20px; }
+.report-panel-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.report-panel-sub { font-size: 12px; color: var(--text-3); margin-bottom: 12px; }
+
+.sentiment-strip { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.sentiment-chip { padding: 4px 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+.sentiment-pos { background: var(--green-soft); color: var(--green); }
+.sentiment-neg { background: var(--red-soft); color: var(--red); }
+.sentiment-neu { background: var(--surface-3); color: var(--text-3); }
+
+.risk-panel { background: rgba(204, 41, 54, 0.08); border: 1px solid rgba(204, 41, 54, 0.25); border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 18px; }
+.risk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.risk-item { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; }
+.risk-item::before { content: 'ï¿½'; position: absolute; left: 0; color: var(--red); }
+
+.story-convo { border-left: 2px solid var(--violet); padding: 4px 0 12px 14px; margin-bottom: 12px; }
+.story-convo-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-bottom: 3px; }
+.story-convo-name { font-weight: 600; }
+.story-convo-date { color: var(--text-3); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.story-convo-body { font-size: 13px; color: var(--text-2); }
+
+.moment-card { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px; text-decoration: none; }
+.moment-card:hover { border-color: var(--border-hover-strong); }
+.moment-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--violet-soft); font-size: 15px; flex-shrink: 0; }
+.moment-body { flex: 1; }
+.moment-label { font-size: 13px; font-weight: 600; }
+.moment-desc { font-size: 12px; color: var(--text-3); }
+.moment-link { font-size: 12px; color: var(--violet); white-space: nowrap; }
+
+.improve-list { margin-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.improve-list li { font-size: 13px; color: var(--text-2); }

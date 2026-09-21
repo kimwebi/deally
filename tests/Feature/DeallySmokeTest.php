@@ -103,6 +103,26 @@ class DeallySmokeTest extends TestCase
         $this->actingAs($user)->get(route('deally.settings.index'))->assertOk()->assertSee('Settings');
     }
 
+    public function test_ai_docs_is_public_and_linked_from_login_footer(): void
+    {
+        $this->get(route('docs.ai'))
+            ->assertOk()
+            ->assertSee('Live AI assistant')
+            ->assertSee(route('login'));
+
+        $this->get(route('docs.overview'))
+            ->assertOk()
+            ->assertSee('Product Overview')
+            ->assertSee('flagship feature');
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('AI setup docs')
+            ->assertSee('Product overview')
+            ->assertSee(route('docs.ai'))
+            ->assertSee(route('docs.overview'));
+    }
+
     public function test_call_pages_render(): void
     {
         $user = User::query()->where('email', 'alice@example.com')->firstOrFail();
@@ -113,7 +133,7 @@ class DeallySmokeTest extends TestCase
         $call = Call::query()->where('company', 'Acme Corp')->firstOrFail();
 
         $this->actingAs($user)->get(route('deally.calls.show', $call))->assertOk();
-        $this->actingAs($user)->get(route('deally.calls.live', $call))->assertOk()->assertSee('live-script');
+        $this->actingAs($user)->get(route('deally.calls.live', $call))->assertOk()->assertSee('live-mic-toggle')->assertSee('DeAlly is listening');
         $this->actingAs($user)->get(route('deally.calls.summary', $call))->assertOk()->assertSee('Call Summary');
     }
 

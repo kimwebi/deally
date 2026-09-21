@@ -3,6 +3,10 @@
     'pageSub' => 'Past recorded sessions · '.$calls->count().' total',
 ])
 
+@php
+    $retention = app(\Deally\Retention\Services\RetentionService::class);
+@endphp
+
 @section('content')
 <div class="list-page">
     <div class="list-header">
@@ -21,6 +25,19 @@
         </thead>
         <tbody>
             @forelse ($calls as $call)
+                @php
+                    $isArchived = $retention->isTranscriptArchived($call);
+                    $sentimentPill = match ($call->sentiment) {
+                        'positive' => 'live',
+                        'neutral' => 'pending',
+                        default => 'rejected',
+                    };
+                    $sentimentIcon = match ($call->sentiment) {
+                        'positive' => '😊',
+                        'neutral' => '😐',
+                        default => '😟',
+                    };
+                @endphp
                 <tr>
                     <td class="primary">{{ $call->name }}</td>
                     <td>{{ $call->company }}</td>
@@ -28,22 +45,14 @@
                     <td class="mono">{{ $call->date->format('M d') }}</td>
                     <td class="mono">{{ $call->duration ?: '—' }}</td>
                     <td>
-                        @php
-                            $sentimentPill = match ($call->sentiment) {
-                                'positive' => 'live',
-                                'neutral' => 'pending',
-                                default => 'rejected',
-                            };
-                            $sentimentIcon = match ($call->sentiment) {
-                                'positive' => '😊',
-                                'neutral' => '😐',
-                                default => '😟',
-                            };
-                        @endphp
                         <span class="status-pill {{ $sentimentPill }}">{{ $sentimentIcon }} {{ ucfirst($call->sentiment) }}</span>
                     </td>
                     <td style="text-align:right;">
-                        <a href="{{ route('deally.calls.show', $call) }}" class="row-action primary">View</a>
+                        @if ($isArchived)
+                            <span style="font-size: 12px; color: var(--amber);">🔒 Archived</span>
+                        @else
+                            <a href="{{ route('deally.calls.show', $call) }}" class="row-action primary">View</a>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -51,6 +60,15 @@
             @endforelse
         </tbody>
     </table>
+
+    @if ($calls->contains(fn ($call) => $retention->isTranscriptArchived($call)))
+        <div class="risk-panel" style="border-color: rgba(232, 162, 43, 0.3); background: rgba(232, 162, 43, 0.06);">
+            <div class="report-panel-title">Archive notice</div>
+            <div class="risk-list">
+                <div class="risk-item">Call transcripts and proposals archived. Contact admin to retrieve.</div>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
 

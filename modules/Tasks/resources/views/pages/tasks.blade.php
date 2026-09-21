@@ -23,7 +23,7 @@
             @forelse ($tasks as $task)
                 @php
                     $isClosed = $task->status === 'closed';
-                    $isOverdue = ! $isClosed && $task->due_at !== null && $task->due_at->isBefore(today());
+                    $isOverdue = ! $isClosed && $task->due_at !== null && $task->due_at->isPast();
                     $statusLabel = $isClosed ? 'Closed' : ($isOverdue ? 'Overdue' : 'To Do');
                     $statusPill = $isClosed ? 'closed' : ($isOverdue ? 'rejected' : 'pending');
                 @endphp
@@ -31,13 +31,14 @@
                     <td class="primary">{{ $task->title }}</td>
                     <td>{{ $task->linked_company ?: '—' }}</td>
                     <td class="mono" @if ($isOverdue) style="color: var(--red);" @endif>
-                        {{ $task->due_at ? $task->due_at->format('M d') : '—' }}{{ $isOverdue ? ' · Overdue' : '' }}
+                        {{ $task->due_at ? $task->due_at->format('M d, g:ia') : '—' }}{{ $isOverdue ? ' · Overdue' : '' }}
                     </td>
                     <td><span class="status-pill {{ $statusPill }}">{{ $statusLabel }}</span></td>
                     <td style="text-align:right; white-space: nowrap;">
                         <button class="row-action" data-open-modal="modal-task"
+                            data-review-url="{{ $reviewUrls[$task->linked_company] ?? '' }}"
                             data-title="{{ $task->title }}"
-                            data-subtitle="{{ $task->linked_company ?: 'Unlinked' }} · {{ $task->due_at ? $task->due_at->format('M d') : 'no due date' }}"
+                            data-subtitle="{{ $task->linked_company ?: 'Unlinked' }} · {{ $task->due_at ? $task->due_at->format('M d, g:ia') : 'no due date' }}"
                             data-desc="{{ $task->status === 'closed' ? 'This task is complete.' : 'Open follow-up for '.($task->linked_company ?: 'the deal').'.' }}">{{ $isClosed ? 'Reopen' : 'View' }}</button>
                         <form method="POST" action="{{ route('deally.tasks.toggle', $task) }}" style="display: inline;">
                             @csrf
@@ -74,12 +75,16 @@
                     <input class="input-field" name="title" placeholder="Send pricing to Globex" required>
                 </div>
                 <div class="field-block">
+                    <div class="field-label">Assignee</div>
+                    <input class="input-field" name="assignee" value="{{ auth()->user()?->name }}" placeholder="Who owns this task?">
+                </div>
+                <div class="field-block">
                     <div class="field-label">Linked to</div>
                     <input class="input-field" name="linked_company" placeholder="Acme Corp">
                 </div>
                 <div class="field-block">
-                    <div class="field-label">Due date</div>
-                    <input class="input-field" type="date" name="due_at">
+                    <div class="field-label">Due date &amp; time</div>
+                    <input class="input-field" type="datetime-local" name="due_at" value="{{ now()->format('Y-m-d\TH:i') }}">
                 </div>
             </div>
             <div class="modal-footer">
@@ -107,6 +112,7 @@
             </div>
         </div>
         <div class="modal-footer">
+            <a href="#" class="btn-sm primary" data-review-target style="display:none;">Open full review</a>
             <button class="btn-sm" data-close-modal>Close</button>
         </div>
     </div>

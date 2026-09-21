@@ -8,18 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('knowledge_entries', function (Blueprint $table) {
+        Schema::create('team_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('tenant_id')->nullable()->index();
-            $table->string('type');
-            $table->string('title');
-            $table->text('description')->nullable();
+            $table->uuid('team_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->timestamps();
+            $table->unique(['team_id', 'user_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('knowledge_entries');
+        Schema::dropIfExists('team_user');
     }
 };

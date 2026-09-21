@@ -1,4 +1,4 @@
-@extends('core::layouts.app', [
+﻿@extends('core::layouts.app', [
     'pageTitle' => 'Workspace',
     'pageSub' => today()->format('l, F j') . ' · ' . $opportunities->count() . ' opportunities',
 ])
@@ -12,7 +12,7 @@
             <div class="opp-card">
                 <div class="opp-top"><div class="opp-name">{{ $opportunity->company }}</div><div class="opp-value">${{ number_format($opportunity->value) }}</div></div>
                 <div class="opp-meta">
-                    <span>{{ $opportunity->packages ?: 'Standard package' }} · {{ $opportunity->calls_count ?? '' }}</span>
+                    <span>{{ $opportunity->packages ?: 'Standard package' }} {{ $opportunity->calls_count ?? '' }}</span>
                     <span class="stage-badge stage-{{ $opportunity->stage }}">{{ ucfirst($opportunity->stage) }}</span>
                 </div>
             </div>
@@ -24,7 +24,7 @@
 
         @forelse ($activities as $activity)
             <div class="activity-item">
-                <div class="activity-icon {{ $activity['type'] }}">{{ $activity['type'] === 'call' ? '📞' : '📊' }}</div>
+                <div class="activity-icon {{ $activity['type'] }}"><i class="bi {{ $activity['type'] === 'call' ? 'bi-telephone' : 'bi-clipboard-data' }}"></i></div>
                 <div class="activity-text">{!! $activity['text'] !!}</div>
                 <div class="activity-time">{{ $activity['time'] }}</div>
             </div>
@@ -63,13 +63,15 @@
                             @foreach ($events as $event)
                                 @if ($event['type'] === 'call')
                                     <a href="{{ $event['href'] }}" class="cal-event-v2 deally">
-                                        <span>⚡</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span>
+                                        <span>âš¡</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span>
                                     </a>
                                 @elseif ($event['type'] === 'task')
-                                    <div class="cal-event-v2 task"><span>📝</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span></div>
+                                    <div class="cal-event-v2 task"><i class="bi bi-pin-angle"></i><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span></div>
                                 @else
-                                    <div class="cal-event-v2 ext"><span>📅</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span></div>
+                                    <div class="cal-event-v2 ext"><i class="bi bi-calendar-event"></i><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span>
+                                    </div>
                                 @endif
+
                             @endforeach
                         </div>
                     </div>
@@ -87,7 +89,7 @@
             @forelse ($todos as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">All clear.</div>
@@ -99,7 +101,7 @@
             @forelse ($overdue as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2 overdue">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">Nothing overdue.</div>
@@ -111,7 +113,7 @@
             @forelse ($closed as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2 closed">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : '—' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : '' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">Nothing closed.</div>

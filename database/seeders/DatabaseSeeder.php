@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Deally\Core\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,9 +18,15 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        $this->call(DeallyAccessSeeder::class);
+
         $user = User::query()->firstOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User'],
+
+            [
+                'name' => 'Test User',
+                'password' => Hash::make('password'),
+            ],
         );
 
         $user->forceFill([

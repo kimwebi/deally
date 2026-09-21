@@ -27,6 +27,7 @@ class Call extends Model
         'contact_role',
         'notes',
         'summary',
+        'owner_user_id',
     ];
 
     protected function casts(): array

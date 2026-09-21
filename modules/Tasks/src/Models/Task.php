@@ -15,21 +15,23 @@ class Task extends Model
 
     protected $fillable = [
         'title',
+        'assignee',
         'linked_company',
         'due_at',
         'status',
+        'owner_user_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'due_at' => 'date',
+            'due_at' => 'datetime',
         ];
     }
 
     public function scopeOverdue($query)
     {
-        return $query->where('status', '!=', 'closed')->whereNotNull('due_at')->where('due_at', '<', now()->startOfDay());
+        return $query->where('status', '!=', 'closed')->whereNotNull('due_at')->where('due_at', '<', now());
     }
 
     public function scopeTodo($query)

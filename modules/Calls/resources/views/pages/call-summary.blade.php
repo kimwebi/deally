@@ -10,10 +10,7 @@
         </div>
         <div class="post-actions-top">
             <a href="{{ route('deally.calls.show', $call) }}" class="btn-sm">Transcript</a>
-            <form method="POST" action="{{ route('logout') }}" style="display: inline;">
-                @csrf
-                <button class="btn-sm" type="submit">Close</button>
-            </form>
+            <a href="{{ route('deally.workspace') }}" class="btn-sm">Close</a>
         </div>
     </div>
 
@@ -41,20 +38,20 @@
                 </div>
             </div>
 
-            <div class="add-task-card">
-                <div class="add-task-icon">📋</div>
+            <div class="add-task-card done">
+                <div class="add-task-icon">✓</div>
                 <div class="add-task-text">
-                    <div class="t1">Review this call in detail</div>
-                    <div class="t2">Creates a <strong>"Review Call — {{ $call->company }}"</strong> task in your Tasks list.</div>
+                    <div class="t1">"Review Call — {{ $call->company }}" added to your tasks</div>
+                    <div class="t2">
+                        Reviewed within {{ $reviewTask?->due_at ? '24h (due '.$reviewTask->due_at->format('M d, g:ia').')' : '24 hours' }}.
+                        The transcript, AI guidance, and gaps are attached for the deep review.
+                    </div>
                 </div>
-                <form method="POST" action="{{ route('deally.calls.end', $call) }}">
-                    @csrf
-                    <input type="hidden" name="createTask" value="1">
-                    <button class="add-task-btn" type="submit">＋ Add to Tasks</button>
-                </form>
+                <div class="review-actions">
+                    <a class="btn-sm" href="{{ route('deally.tasks.index') }}">View task</a>
+                    <a class="btn-sm primary" href="{{ route('deally.calls.review', $call) }}">Open full review</a>
+                </div>
             </div>
-
-            <div class="helper-note">Detailed review, transcript, and corrections live inside the task.</div>
         </div>
     </div>
 </div>

@@ -1,0 +1,133 @@
+﻿
+/*Root css that cuts across the entire system*/
+
+:root {
+  --primary: #00a2ed;
+  --primary-hover: #0090d4;
+  --primary-soft: rgba(0, 162, 237, 0.14);
+  --primary-glow: rgba(0, 162, 237, 0.3);
+
+  --success: #228b22;
+  --success-bright: #4ade80;
+  --success-soft: rgba(34, 139, 34, 0.16);
+
+  --danger: #cc2936;
+  --danger-bright: #f87171;
+  --danger-soft: rgba(204, 41, 54, 0.16);
+
+  --warning: #e8a22b;
+  --warning-soft: rgba(232, 162, 43, 0.14);
+
+  --violet: #7c3aed;
+  --violet-bright: #a78bfa;
+  --violet-soft: rgba(124, 58, 237, 0.18);
+
+  --bg: #14171c;
+  --surface: #1c2027;
+  --surface-2: #232830;
+  --surface-3: #2b313a;
+  --border: #2e343d;
+  --border-soft: #262b33;
+  --border-hover: #3a414c;
+  --border-hover-strong: #46505e;
+
+  --text: #e8ecf0;
+  --text-2: #a8b0bc;
+  --text-3: #757575;
+  --text-4: #4a5059;
+
+  --card-bg: rgba(28, 32, 39, 0.72);
+  --sidebar-bg: rgba(20, 23, 28, 0.78);
+  --topbar-bg: rgba(20, 23, 28, 0.42);
+  --panel-bg: rgba(28, 32, 39, 0.42);
+  --panel-bg-deep: rgba(20, 23, 28, 0.52);
+  --header-bg: rgba(20, 23, 28, 0.72);
+  --footer-bg: rgba(20, 23, 28, 0.42);
+  --overlay-bg: rgba(8, 10, 13, 0.72);
+  --shadow-large: 0 30px 80px -20px rgba(0, 0, 0, 0.75);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --toast-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* legacy aliases â€” existing components still reference these */
+  --blue: var(--primary);
+  --blue-soft: var(--primary-soft);
+  --green: var(--success-bright);
+  --green-soft: var(--success-soft);
+  --amber: var(--warning);
+  --amber-soft: var(--warning-soft);
+  --red: var(--danger-bright);
+  --red-soft: var(--danger-soft);
+  --grey: var(--text-2);
+  --grey-soft: rgba(168, 176, 188, 0.07);
+  --violet-glow: rgba(124, 58, 237, 0.35);
+  --accent: #ef0427;
+  --violet-hover: var(--violet-bright);
+  --amber-hover: #fcd34d;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #eceef3;
+  --surface-3: #e2e5ec;
+  --border: #cbd2de;
+  --border-soft: #dde1ea;
+  --text: #101219;
+  --text-2: #3a4050;
+  --text-3: #69707f;
+  --text-4: #a5aab8;
+  --violet: #7c3aed;
+  --violet-glow: rgba(124, 58, 237, 0.28);
+  --violet-soft: rgba(124, 58, 237, 0.09);
+  --green: #15803d;
+  --green-soft: rgba(21, 128, 61, 0.1);
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, 0.1);
+  --blue: #1d4ed8;
+  --blue-soft: rgba(29, 78, 216, 0.09);
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.09);
+  --accent: #ef0427;
+  --grey: #64748b;
+  --grey-soft: rgba(100, 116, 139, 0.08);
+  --card-bg: rgba(255, 255, 255, 0.72);
+  --sidebar-bg: rgba(255, 255, 255, 0.85);
+  --topbar-bg: rgba(255, 255, 255, 0.6);
+  --panel-bg: rgba(255, 255, 255, 0.5);
+  --panel-bg-deep: rgba(255, 255, 255, 0.62);
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --footer-bg: rgba(255, 255, 255, 0.6);
+  --overlay-bg: rgba(30, 30, 45, 0.4);
+  --shadow-large: 0 30px 80px -20px rgba(20, 22, 32, 0.25);
+  --shadow-md: 0 8px 30px rgba(20, 22, 32, 0.14);
+  --toast-shadow: 0 10px 40px rgba(20, 22, 32, 0.18);
+  --border-hover: #b9c1cf;
+  --border-hover-strong: #a9b2c3;
+  --violet-hover: #6d28d9;
+  --amber-hover: #f59e0b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+

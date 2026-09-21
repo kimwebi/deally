@@ -94,6 +94,28 @@ class LiveAssistant
         ]);
     }
 
+    public function answerGlobal(string $query): ?string
+    {
+        if ($this->missingConfig()) {
+            return null;
+        }
+
+        return $this->chat([
+            [
+                'role' => 'system',
+                'content' => 'You are DeAlly, an AI sales enablement assistant. A sales team member asked you a question. '
+                    .'Answer in plain spoken english with the exact words they can use with a customer. Be concise and accurate; '
+                    .'if the knowledge base does not cover the question, say to confirm with the onboarding team.'
+                    .PHP_EOL.PHP_EOL
+                    .'Knowledge base:'.PHP_EOL.$this->knowledgeContext(),
+            ],
+            [
+                'role' => 'user',
+                'content' => $query,
+            ],
+        ]);
+    }
+
     protected function chat(array $messages): ?string
     {
         if ($this->missingConfig()) {

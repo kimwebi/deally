@@ -78,6 +78,10 @@ All demo users log in with the password `password`:
 
 The application is served by Laravel Herd at `https://deally.test`. Frontend assets need `npm run dev` (or `npm run build`) running to be reflected in the browser; run `composer run dev` to start both.
 
+## Live AI assistant (LLM integration)
+
+Live calls are transcribed and turned into real-time solution suggestions for the agent using the OpenAI API (`LiveAssistant`), with a deterministic `DummyAssistant` fallback when no API key is set. See [docs/ai-llm-integration.md](docs/ai-llm-integration.md) for the full flow, endpoints, config, and how to swap in another provider.
+
 ## Tests
 
 ```bash

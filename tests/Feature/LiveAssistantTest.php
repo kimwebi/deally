@@ -111,6 +111,25 @@ class LiveAssistantTest extends TestCase
         });
     }
 
+    public function test_global_ask_returns_a_knowledge_grounded_answer(): void
+    {
+        Http::fake([
+            'api.openai.com/v1/chat/completions*' => Http::response([
+                'choices' => [['message' => ['content' => 'Every plan runs on per-tenant isolation.']]],
+            ]),
+        ]);
+
+        $this->actingAs($this->alice())
+            ->postJson(route('deally.ask'), ['text' => 'How do you keep our data isolated?'])
+            ->assertOk()
+            ->assertJsonPath('answer', 'Every plan runs on per-tenant isolation.');
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->url() === 'https://api.openai.com/v1/chat/completions'
+                && str_contains($request['messages'][0]['content'], 'Knowledge base');
+        });
+    }
+
     public function test_guest_is_redirected_from_transcribe_endpoint(): void
     {
         Http::fake();

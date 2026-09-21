@@ -3,6 +3,7 @@
     'pageSub' => $call->date->format('M d').' · '.($call->duration ?: '0m'),
 ])
 
+@php($archived = app(\Deally\Retention\Services\RetentionService::class)->isTranscriptArchived($call))
 @section('content')
 <div class="list-page" style="max-width: 860px;">
     <div class="list-header">
@@ -16,10 +17,21 @@
             </div>
         </div>
         <div class="post-actions-top">
-            <a href="{{ route('deally.calls.summary', $call) }}" class="btn-sm">Summary</a>
-            <a href="{{ route('deally.calls.live', $call) }}" class="btn-sm primary">Replay Live</a>
+            @if (! $archived)
+                <a href="{{ route('deally.calls.summary', $call) }}" class="btn-sm">Summary</a>
+                <a href="{{ route('deally.calls.live', $call) }}" class="btn-sm primary">Replay Live</a>
+            @endif
         </div>
     </div>
+
+    @if ($archived)
+        <div class="risk-panel" style="border-color: rgba(232, 162, 43, 0.3); background: rgba(232, 162, 43, 0.06);">
+            <div class="report-panel-title">Archive notice</div>
+            <div class="risk-list">
+                <div class="risk-item">Call transcripts and proposals archived. Contact admin to retrieve.</div>
+            </div>
+        </div>
+    @endif
 
     <div class="settings-section">
         <div class="settings-title">Transcript</div>
@@ -27,7 +39,7 @@
 
         <div class="modal-body" style="padding: 0;">
             @forelse ($call->transcriptLines as $line)
-                <div class="transcript-line">
+                <div class="transcript-line" id="line-{{ $line->sequence }}">
                     <div class="speaker {{ $line->is_agent ? 'agent' : '' }}">{{ $line->is_agent ? 'Agent' : $line->speaker }}</div>
                     <div class="transcript-text">{{ $line->text }}</div>
                 </div>

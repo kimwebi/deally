@@ -21,6 +21,9 @@
         </thead>
         <tbody>
             @forelse ($proposals as $proposal)
+                @php
+                    $isArchived = in_array($proposal->id, $archivedIds, true);
+                @endphp
                 <tr>
                     <td class="primary">{{ $proposal->name }}</td>
                     <td>{{ $proposal->company }}</td>
@@ -34,15 +37,23 @@
                                 default => 'pending',
                             };
                         @endphp
-                        <span class="status-pill {{ $pill }}">{{ ucfirst($proposal->status) }}</span>
+                        @if ($isArchived)
+                            <span class="status-pill closed">Archived</span>
+                        @else
+                            <span class="status-pill {{ $pill }}">{{ ucfirst($proposal->status) }}</span>
+                        @endif
                     </td>
                     <td class="mono">{{ $proposal->updated_at->format('M d') }}</td>
                     <td style="text-align:right;">
-                        <button class="row-action primary" data-open-modal="modal-proposal"
-                            data-title="{{ $proposal->name }}"
-                            data-subtitle="{{ $proposal->company }} · {{ ucfirst($proposal->status) }}"
-                            data-company="{{ $proposal->company }}"
-                            data-value="${{ number_format($proposal->value) }}">View &amp; Edit</button>
+                        @if ($isArchived)
+                            <span style="font-size: 12px; color: var(--amber);">🔒 Archived</span>
+                        @else
+                            <button class="row-action primary" data-open-modal="modal-proposal"
+                                data-title="{{ $proposal->name }}"
+                                data-subtitle="{{ $proposal->company }} · {{ ucfirst($proposal->status) }}"
+                                data-company="{{ $proposal->company }}"
+                                data-value="${{ number_format($proposal->value) }}">View &amp; Edit</button>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -50,6 +61,15 @@
             @endforelse
         </tbody>
     </table>
+
+    @if ($archivedIds !== [])
+        <div class="risk-panel" style="border-color: rgba(232, 162, 43, 0.3); background: rgba(232, 162, 43, 0.06);">
+            <div class="report-panel-title">Archive notice</div>
+            <div class="risk-list">
+                <div class="risk-item">Call transcripts and proposals archived. Contact admin to retrieve.</div>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
 

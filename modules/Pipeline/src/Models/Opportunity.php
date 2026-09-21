@@ -22,12 +22,13 @@ class Opportunity extends Model
         'packages',
         'stage',
         'value',
+        'owner_user_id',
     ];
 
     /** @return string[] */
     public static function stages(): array
     {
-        return ['discovery', 'demo', 'negotiation', 'won'];
+        return ['discovery', 'demo', 'negotiation', 'won', 'lost'];
     }
 
     public function calls(): HasMany

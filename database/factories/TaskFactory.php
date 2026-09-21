@@ -16,8 +16,9 @@ class TaskFactory extends Factory
     {
         return [
             'title' => fake()->sentence(3),
+            'assignee' => fake()->name(),
             'linked_company' => fake()->company(),
-            'due_at' => fake()->dateTimeBetween('-5 days', '+10 days')->format('Y-m-d'),
+            'due_at' => fake()->dateTimeBetween('-5 days', '+10 days'),
             'status' => fake()->randomElement(['todo', 'closed']),
         ];
     }

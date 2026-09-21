@@ -9,11 +9,14 @@ use SaasFoundation\Services\Tenancy\TenantDatabaseManager;
 
 class DeallyTenantDatabaseManager extends TenantDatabaseManager
 {
-    protected ?string $centralConnectionName = null;
-
     public function getCentralConnectionName(): string
     {
         return Config::get('database.default');
+    }
+
+    public function storedCentralConnectionName(): string
+    {
+        return Config::get('tenancy.central_connection_name') ?? Config::get('database.default');
     }
 
     public function getTenantConnectionName(Tenant $tenant): string
@@ -31,7 +34,7 @@ class DeallyTenantDatabaseManager extends TenantDatabaseManager
         $connectionName = $this->getTenantConnectionName($tenant);
         $databaseName = $this->getTenantDatabaseName($tenant);
 
-        $tenantConfig = Config::get('database.connections.'.$this->getCentralConnectionName()) ?? [];
+        $tenantConfig = Config::get('database.connections.'.$this->storedCentralConnectionName()) ?? [];
 
         if (($tenantConfig['driver'] ?? null) === 'sqlite') {
             $directory = database_path('tenants');
@@ -48,8 +51,8 @@ class DeallyTenantDatabaseManager extends TenantDatabaseManager
 
     public function switchToTenant(Tenant $tenant): void
     {
-        if ($this->centralConnectionName === null) {
-            $this->centralConnectionName = Config::get('database.default');
+        if (Config::get('tenancy.central_connection_name') === null) {
+            Config::set('tenancy.central_connection_name', Config::get('database.default'));
         }
 
         parent::switchToTenant($tenant);
@@ -57,7 +60,7 @@ class DeallyTenantDatabaseManager extends TenantDatabaseManager
 
     public function restoreCentralConnection(): void
     {
-        Config::set('database.default', $this->centralConnectionName ?? Config::get('database.default'));
+        Config::set('database.default', $this->storedCentralConnectionName());
     }
 
     protected function instanceFor(Tenant $tenant): int

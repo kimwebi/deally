@@ -1,0 +1,74 @@
+﻿/* ---- Notifications ---- */
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notif-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 11px 13px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: card-in 0.3s ease;
+}
+
+.notif-card.accent { border-color: var(--accent); }
+.notif-card.accent .kb-tag { color: var(--accent); }
+.notif-card .kb-accent { top: 12px; bottom: 12px; }
+
+.notif-card-main { flex: 1; min-width: 0; }
+
+.notif-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: var(--text-4);
+  font-family: 'IBM Plex Mono', monospace;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.notif-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.notif-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.notif-mark {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.notif-mark:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
