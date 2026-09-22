@@ -153,11 +153,11 @@ class ReportingController extends Controller
     {
         $this->authorizeDeally('deally.reporting.view');
 
-        $tasks = Task::query()->when($request->get('assignee'), function ($query, string $assignee): void {
+        $tasks = $this->scopeToSeat(Task::query())->when($request->get('assignee'), function ($query, string $assignee): void {
             $query->where('assignee', $assignee);
         })->orderBy('due_at')->get();
 
-        $assignees = Task::query()->select('assignee')->distinct()->orderBy('assignee')
+        $assignees = $this->scopeToSeat(Task::query())->select('assignee')->distinct()->orderBy('assignee')
             ->pluck('assignee')->filter()->values();
 
         return view('reporting::pages.team-tasks', [

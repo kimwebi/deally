@@ -66,6 +66,110 @@ class CallLifecycleTest extends TestCase
         $this->assertTrue(Task::query()->where('title', "Review Call — {$call->company}")->exists());
     }
 
+    public function test_ending_a_call_in_demo_mode_persists_the_full_conversation(): void
+    {
+        config()->set('services.openai.key', '');
+
+        [$user, $call] = $this->startCall();
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '357:03',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $lines = $call->transcriptLines()->orderBy('sequence')->get();
+
+        $this->assertCount(10, $lines);
+        $this->assertSame(0, $lines->first()->is_agent);
+        $this->assertSame(1, $lines->offsetGet(1)->is_agent);
+        $this->assertStringContainsString('legacy tool', $lines->first()->text);
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], $lines->pluck('sequence')->all());
+        $this->assertSame(5, $lines->where('is_agent', 1)->count());
+    }
+
+    public function test_ending_a_call_with_captured_lines_completes_the_conversation(): void
+    {
+        config()->set('services.openai.key', '');
+
+        [$user, $call] = $this->startCall();
+
+        $call->transcriptLines()->create([
+            'speaker' => 'customer',
+            'is_agent' => false,
+            'text' => 'Real captured line.',
+            'sequence' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '357:03',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $lines = $call->transcriptLines()->orderBy('sequence')->get();
+
+        $this->assertCount(10, $lines);
+        $this->assertSame(5, $lines->where('is_agent', 1)->count());
+    }
+
+    public function test_ending_a_call_with_a_provider_configured_does_not_seed_demo_lines(): void
+    {
+        config()->set('services.openai.key', 'sk-test');
+
+        [$user, $call] = $this->startCall();
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '357:03',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $this->assertSame(0, $call->transcriptLines()->count());
+    }
+
+    public function test_ending_a_call_marks_it_completed(): void
+    {
+        [$user, $call] = $this->startCall();
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '357:03',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $this->assertSame(Call::STATUS_COMPLETED, $call->refresh()->status);
+    }
+
+    public function test_demo_transcript_is_rendered_on_the_review_page(): void
+    {
+        config()->set('services.openai.key', '');
+
+        [$user, $call] = $this->startCall();
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '357:03',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $this->actingAs($user)
+            ->get(route('deally.calls.review', $call))
+            ->assertOk()
+            ->assertDontSee('No transcript lines saved yet')
+            ->assertSee('legacy tool');
+    }
+
     /**
      * @return array{0: User, 1: Call}
      */

@@ -209,11 +209,79 @@
 
 .cal-top {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
   margin-bottom: 18px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-soft);
 }
+
+.cal-top > div:first-child { margin-right: auto; }
+
+.cal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cal-action-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  text-decoration: none;
+  border: 1px solid;
+  transition: 0.15s;
+}
+
+.cal-action-btn.deally {
+  color: var(--violet-bright);
+  border-color: rgba(139, 92, 246, 0.4);
+  background: var(--violet-soft);
+}
+.cal-action-btn.deally:hover { background: var(--violet); color: #fff; }
+
+.cal-action-btn.task {
+  color: var(--amber);
+  border-color: rgba(251, 191, 36, 0.4);
+  background: var(--amber-soft);
+}
+.cal-action-btn.task:hover { background: var(--amber); color: #111; }
+
+/* ---------- Quick add (home page event + task buttons) ---------- */
+.cal-action-btn.primary {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.cal-action-btn.primary:hover { background: var(--primary-bright, var(--primary)); border-color: var(--primary-bright, var(--primary)); }
+
+button.cal-action-btn { font-family: inherit; cursor: pointer; }
+
+.type-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.type-option { padding: 12px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; text-align: center; transition: 0.12s; }
+.type-option:hover { border-color: var(--primary); }
+.type-option.selected { background: var(--primary-soft); border-color: var(--primary); }
+.type-option .to-icon { font-size: 18px; display: block; margin-bottom: 6px; }
+.type-option .to-label { font-size: 11px; font-weight: 500; color: var(--text); }
+.type-option.selected .to-label { color: var(--primary); }
+
+.task-header-right { display: flex; align-items: center; gap: 8px; }
+.task-add-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-family: inherit;
+  transition: 0.12s;
+}
+.task-add-icon:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 .cal-title-big {
   font-size: 18px;

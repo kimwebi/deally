@@ -30,7 +30,7 @@ export function initForms() {
                 .then(function (json) {
                     if (json.ok) {
                         btn.classList.add('done');
-                        btn.innerHTML = 'âœ“ Added to Tasks';
+                        btn.innerHTML = '✓ Added to Tasks';
                         window.deallyToast && window.deallyToast('Task added from the call.');
                     }
                 })
@@ -46,7 +46,7 @@ export function initForms() {
         if (!flag) return;
         var item = flag.closest('.reason-item');
         flag.classList.toggle('flagged');
-        flag.textContent = flag.classList.contains('flagged') ? 'ðŸš©' : 'ðŸ³ï¸';
+        flag.textContent = flag.classList.contains('flagged') ? '🚩' : '🏳️';
         if (flag.classList.contains('flagged')) {
             item.classList.add('flagged');
             window.deallyToast && window.deallyToast('Line flagged.');
@@ -69,7 +69,7 @@ export function initForms() {
             chip.classList.add('waiting');
             setTimeout(function () {
                 chip.classList.remove('waiting');
-                chip.textContent = 'âœ“ Task added';
+                chip.textContent = '✓ Task added';
                 window.deallyToast && window.deallyToast('Follow-up task created.');
             }, 1200);
         }
@@ -106,7 +106,7 @@ function pushQuery(text, isSuggestion) {
     q.className = 'reason-item agent-query';
     q.innerHTML =
         '<div class="reason-header">' +
-        '<div class="reason-meta"><span>You Â· Query</span></div>' +
+        '<div class="reason-meta"><span>You · Query</span></div>' +
         '</div>' +
         '<div class="reason-text">' + text + '</div>';
     stream.appendChild(q);
@@ -117,7 +117,7 @@ function pushQuery(text, isSuggestion) {
     r.style.display = 'none';
     r.innerHTML =
         '<div class="reason-header">' +
-        '<div class="reason-meta"><span class="meta-icon">âœ¦</span><span>AI Â· Response</span></div>' +
+        '<div class="reason-meta"><span class="meta-icon">✦</span><span>AI · Response</span></div>' +
         '</div>' +
         '<div class="reason-text">' + genericResponse(text) + '</div>';
     stream.appendChild(r);

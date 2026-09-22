@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use Database\Seeders\DeallyAccessSeeder;
 use Database\Seeders\DemoSeeder;
+use Deally\Calls\Models\Call;
 use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
+use Deally\Tasks\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use SaasFoundation\Models\Permission;
 use SaasFoundation\Models\Role;
 use SaasFoundation\Models\Tenant;
 use Tests\TestCase;
@@ -68,6 +71,68 @@ class DeallyAccessTest extends TestCase
             ->assertDontSee('Initech Starter');
     }
 
+    public function test_sales_agent_sees_only_their_own_tasks_on_call_pages(): void
+    {
+        $charlie = $this->user('charlie@example.com');
+
+        $call = Call::query()->create([
+            'name' => 'Pipeline health check',
+            'company' => 'Acme Corp',
+            'date' => now(),
+            'duration' => '0m',
+            'sentiment' => 'neutral',
+            'status' => Call::STATUS_SCHEDULED,
+            'owner_user_id' => $charlie->id,
+        ]);
+
+        $this->actingAs($charlie)
+            ->get(route('deally.calls.live', $call))
+            ->assertOk()
+            ->assertSee('Send spec sheet to Acme')
+            ->assertDontSee('Review Call — Acme Corp')
+            ->assertDontSee('Prep battle card for Acme');
+
+        $this->actingAs($charlie)
+            ->get(route('deally.calls.summary', $call))
+            ->assertOk()
+            ->assertSee('24 hours')
+            ->assertDontSee('due '.today()->setTime(17, 0)->format('M d, g:ia'));
+
+        $this->actingAs($charlie)
+            ->post(route('deally.calls.end', $call), [
+                'duration' => '12:00',
+                'sentiment' => 'neutral',
+                'notes' => '',
+            ])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $task = Task::query()->where('title', 'Review Call — Acme Corp')->latest('id')->firstOrFail();
+        $this->assertSame((string) $charlie->id, (string) $task->owner_user_id);
+
+        $this->actingAs($charlie)
+            ->get(route('deally.tasks.index'))
+            ->assertOk()
+            ->assertSee('Review Call — Acme Corp');
+    }
+
+    public function test_team_tasks_page_is_seat_scoped(): void
+    {
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'sales-agent')->firstOrFail();
+        $role->permissions()->syncWithoutDetaching(
+            Permission::query()->where('slug', 'deally.reporting.view')->pluck('id')
+        );
+
+        $this->actingAs($this->user('charlie@example.com'))
+            ->get(route('deally.reporting.tasks'))
+            ->assertOk()
+            ->assertSee('Send spec sheet to Acme')
+            ->assertDontSee('Review Call — Acme Corp')
+            ->assertDontSee('Prep battle card for Acme')
+            ->assertDontSee('Send pricing to Globex')
+            ->assertDontSee('Alice Johnson')
+            ->assertDontSee('Bob Carter');
+    }
+
     public function test_agent_can_use_seat_features_but_not_admin_areas(): void
     {
         $this->actingAs($this->user('charlie@example.com'));
@@ -75,6 +140,8 @@ class DeallyAccessTest extends TestCase
         $this->get(route('deally.workspace'))->assertOk();
         $this->get(route('deally.kb.index'))->assertOk();
         $this->post(route('deally.tasks.store'), ['title' => 'Follow up Charlie'])->assertRedirect();
+
+        $this->get(route('deally.solutions.index'))->assertForbidden();
 
         $this->get(route('deally.reporting'))->assertForbidden();
         $this->get(route('deally.roles.index'))->assertForbidden();
@@ -117,7 +184,7 @@ class DeallyAccessTest extends TestCase
             ->assertDontSee('Prep battle card for Acme');
     }
 
-    public function test_solutions_lead_and_tenant_admin_see_everything(): void
+    public function test_globex_administrator_sees_everything(): void
     {
         $globex = Tenant::query()->where('slug', 'globex')->firstOrFail();
         $provisioner = app(DeallyTenantProvisioner::class);
@@ -132,6 +199,7 @@ class DeallyAccessTest extends TestCase
         $this->get(route('deally.teams.index'))->assertOk();
         $this->get(route('deally.activity.index'))->assertOk();
         $this->get(route('deally.pipeline'))->assertOk();
+        $this->get(route('deally.solutions.index'))->assertOk()->assertSee('Gap Queue');
     }
 
     private function acme(): Tenant

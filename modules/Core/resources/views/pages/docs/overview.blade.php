@@ -9,23 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script>
-        (function () {
-            try {
-                var theme = localStorage.getItem('deally-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-                document.documentElement.setAttribute('data-theme', theme);
-            } catch (e) {}
-        })();
-    </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
 
 <div class="ambient"></div>
 
-<div class="call-theme-toggle">
-    <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Toggle theme"><i class="bi bi-sun-fill theme-icon" data-theme-icon></i></button>
-</div>
 
 <div id="docs" class="screen active">
     <div class="docs-card">

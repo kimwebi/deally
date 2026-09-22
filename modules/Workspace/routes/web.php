@@ -8,4 +8,5 @@ Route::middleware('deally')
     ->name('deally.')
     ->group(function (): void {
         Route::get('home', [WorkspaceController::class, 'index'])->name('workspace');
+        Route::post('home/event', [WorkspaceController::class, 'storeEvent'])->name('workspace.event');
     });

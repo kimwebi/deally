@@ -40,6 +40,10 @@
                     <div class="cal-title-big">Today, {{ today()->format('F j') }}</div>
                     <div class="cal-subtitle">{{ $callsToday }} events · {{ $deallyCallsToday }} DeAlly call{{ $deallyCallsToday === 1 ? '' : 's' }}</div>
                 </div>
+                <div class="cal-actions">
+                    <button class="cal-action-btn" type="button" data-open-modal="modal-event">＋ Event</button>
+                    <button class="cal-action-btn primary" type="button" data-open-modal="modal-task">＋ Task</button>
+                </div>
                 <div class="cal-legend">
                     <span><span class="legend-dot deally"></span>DeAlly</span>
                     <span><span class="legend-dot ext"></span>External</span>
@@ -63,7 +67,7 @@
                             @foreach ($events as $event)
                                 @if ($event['type'] === 'call')
                                     <a href="{{ $event['href'] }}" class="cal-event-v2 deally">
-                                        <span>âš¡</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span>
+                                        <span>⚡</span><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span>
                                     </a>
                                 @elseif ($event['type'] === 'task')
                                     <div class="cal-event-v2 task"><i class="bi bi-pin-angle"></i><span class="event-label">{{ $event['label'] }}</span><span class="event-time">{{ $event['time'] }}</span></div>
@@ -85,11 +89,11 @@
 
     <div class="pane pane-right">
         <div class="task-section">
-            <div class="task-section-header todo"><span>To Do</span><span class="task-count">{{ $todos->count() }}</span></div>
+            <div class="task-section-header todo"><span>To Do</span><span class="task-header-right"><button class="task-add-icon" type="button" data-open-modal="modal-task" title="Add task">＋</button><span class="task-count">{{ $todos->count() }}</span></span></div>
             @forelse ($todos as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">All clear.</div>
@@ -101,7 +105,7 @@
             @forelse ($overdue as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2 overdue">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : 'no due' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">Nothing overdue.</div>
@@ -113,7 +117,7 @@
             @forelse ($closed as $task)
                 <a href="{{ route('deally.tasks.index') }}" class="task-item-v2 closed">
                     <div class="task-title-v2">{{ $task->title }}</div>
-                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: ':' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : '' }}</span></div>
+                    <div class="task-meta-v2"><span>{{ $task->linked_company ?: '—' }}</span><span>{{ $task->due_at ? $task->due_at->format('M j') : '' }}</span></div>
                 </a>
             @empty
                 <div style="font-size: 12px; color: var(--text-3); text-align: center; padding: 10px 0;">Nothing closed.</div>
@@ -122,3 +126,7 @@
     </div>
 </div>
 @endsection
+
+@push('modals')
+@include('core::partials.quick-add-modals')
+@endpush

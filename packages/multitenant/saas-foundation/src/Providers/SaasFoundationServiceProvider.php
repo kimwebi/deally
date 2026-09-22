@@ -38,6 +38,7 @@ use SaasFoundation\Http\Middleware\TrackActivity;
 use SaasFoundation\Services\Auditing\AuditService;
 use SaasFoundation\Services\Tenancy\Contracts\TenantResolverInterface;
 use SaasFoundation\Services\Tenancy\FeatureChecker;
+use SaasFoundation\Services\Tenancy\InstanceLimiter;
 use SaasFoundation\Services\Tenancy\LimitChecker;
 use SaasFoundation\Services\Tenancy\Middleware\CheckFeature;
 use SaasFoundation\Services\Tenancy\Middleware\CheckPermission;
@@ -104,6 +105,8 @@ class SaasFoundationServiceProvider extends ServiceProvider
         $this->app->scoped(TenantSettingsManager::class);
 
         $this->app->scoped(FeatureChecker::class);
+
+        $this->app->scoped(InstanceLimiter::class);
 
         $this->app->scoped(LimitChecker::class);
 

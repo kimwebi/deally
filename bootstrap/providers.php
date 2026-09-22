@@ -8,8 +8,8 @@ use Deally\Proposals\ProposalsServiceProvider;
 use Deally\Reporting\ReportingServiceProvider;
 use Deally\Retention\RetentionServiceProvider;
 use Deally\Settings\SettingsServiceProvider;
+use Deally\Solutions\SolutionsServiceProvider;
 use Deally\Tasks\TasksServiceProvider;
-use Deally\TenantManagement\TenantManagementServiceProvider;
 use Deally\Workspace\WorkspaceServiceProvider;
 
 return [
@@ -19,9 +19,9 @@ return [
     PipelineServiceProvider::class,
     TasksServiceProvider::class,
     ProposalsServiceProvider::class,
+    SolutionsServiceProvider::class,
     SettingsServiceProvider::class,
     WorkspaceServiceProvider::class,
     ReportingServiceProvider::class,
     RetentionServiceProvider::class,
-    TenantManagementServiceProvider::class,
 ];

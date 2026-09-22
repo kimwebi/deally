@@ -36,7 +36,7 @@ class DeallyDemoSeeder extends Seeder
             ['name' => 'Discovery', 'company' => 'Globex Inc', 'duration' => '18m', 'sentiment' => 'neutral', 'contact_name' => 'Mark Lee', 'contact_role' => 'VP Eng', 'date' => now()->subDays(4), 'opportunity_id' => $oppIds['Globex Inc'] ?? null],
             ['name' => 'Intro Call', 'company' => 'Initech', 'duration' => '12m', 'sentiment' => 'negative', 'contact_name' => 'Sam King', 'contact_role' => 'IT Lead', 'date' => now()->subDays(6)],
         ] as $row) {
-            $call = Call::query()->create(['sentiment' => $row['sentiment'] ?? 'neutral', 'owner_user_id' => $owners['company'][$row['company']] ?? null] + $row);
+            $call = Call::query()->create(['sentiment' => $row['sentiment'] ?? 'neutral', 'status' => Call::STATUS_COMPLETED, 'owner_user_id' => $owners['company'][$row['company']] ?? null] + $row);
 
             if ($call->name === 'Demo & Discovery') {
                 $call->transcriptLines()->createMany([
@@ -50,13 +50,13 @@ class DeallyDemoSeeder extends Seeder
 
         foreach ([
             ['title' => 'Review Call — Acme Corp', 'assignee' => 'Alice Johnson', 'linked_company' => 'Acme Corp', 'due_at' => today()->setTime(17, 0), 'status' => 'todo'],
-            ['title' => 'Send pricing to Globex', 'assignee' => 'Alice Johnson', 'linked_company' => 'Globex Inc', 'due_at' => today()->setTime(15, 30), 'status' => 'todo'],
+            ['title' => 'Send pricing to Globex', 'assignee' => 'David Chen', 'linked_company' => 'Globex Inc', 'due_at' => today()->setTime(15, 30), 'status' => 'todo'],
             ['title' => 'Prep battle card for Acme', 'assignee' => 'Bob Carter', 'linked_company' => 'Acme Corp', 'due_at' => today()->addDay()->setTime(9, 0), 'status' => 'todo'],
-            ['title' => 'Schedule QBR with Wayne', 'assignee' => 'Alice Johnson', 'linked_company' => 'Wayne Enterprises', 'due_at' => today()->addDays(2)->setTime(10, 0), 'status' => 'todo'],
+            ['title' => 'Schedule QBR with Wayne', 'assignee' => 'Erica Valdez', 'linked_company' => 'Wayne Enterprises', 'due_at' => today()->addDays(2)->setTime(10, 0), 'status' => 'todo'],
             ['title' => 'Follow up with Initech', 'assignee' => 'Bob Carter', 'linked_company' => 'Initech', 'due_at' => now()->subDays(2)->setTime(14, 0), 'status' => 'todo'],
             ['title' => 'Send spec sheet to Acme', 'assignee' => 'Charlie Lee', 'linked_company' => 'Acme Corp', 'due_at' => now()->subDays(3)->setTime(11, 0), 'status' => 'todo'],
             ['title' => 'Review proposal v2', 'assignee' => 'Alice Johnson', 'linked_company' => 'Acme Corp', 'due_at' => now()->subDay()->setTime(13, 0), 'status' => 'closed'],
-            ['title' => 'Send call recap', 'assignee' => 'Alice Johnson', 'linked_company' => 'Globex Inc', 'due_at' => now()->subDays(2)->setTime(16, 30), 'status' => 'closed'],
+            ['title' => 'Send call recap', 'assignee' => 'Erica Valdez', 'linked_company' => 'Globex Inc', 'due_at' => now()->subDays(2)->setTime(16, 30), 'status' => 'closed'],
         ] as $row) {
             Task::query()->create($row + ['owner_user_id' => $owners['name'][$row['assignee']] ?? null]);
         }
@@ -104,7 +104,7 @@ class DeallyDemoSeeder extends Seeder
 
         $companyOwner = [
             'Acme Corp' => 'alice@example.com',
-            'Globex Inc' => 'bob@example.com',
+            'Globex Inc' => 'alice@example.com',
             'Wayne Enterprises' => 'alice@example.com',
             'Stark Industries' => 'charlie@example.com',
             'Initech' => 'bob@example.com',
@@ -114,6 +114,8 @@ class DeallyDemoSeeder extends Seeder
             'Alice Johnson' => 'alice@example.com',
             'Bob Carter' => 'bob@example.com',
             'Charlie Lee' => 'charlie@example.com',
+            'Erica Valdez' => 'erica@example.com',
+            'David Chen' => 'david@example.com',
         ];
 
         $resolve = function (array $byEmail) use ($emails): array {

@@ -8,6 +8,7 @@ use SaasFoundation\Models\Membership;
 use SaasFoundation\Models\Role;
 use SaasFoundation\Models\Tenant;
 use SaasFoundation\Services\Authentication\InvitationService;
+use SaasFoundation\Services\Tenancy\InstanceLimiter;
 
 class TenantUserController extends Controller
 {
@@ -79,7 +80,17 @@ class TenantUserController extends Controller
             'status' => ['nullable', 'in:active,suspended,inactive'],
         ]);
 
-        $membership->roles()->sync($validated['roles'] ?? []);
+        $roleIds = $validated['roles'] ?? [];
+
+        if ($this->grantsOwnership($membership, $roleIds)) {
+            $limiter = app(InstanceLimiter::class);
+
+            if (! $limiter->canOwnTenant($membership->user, $tenant)) {
+                return back()->with('error', "Owners are limited to {$limiter->maxPerOwner()} instances; this membership would exceed the limit.");
+            }
+        }
+
+        $membership->roles()->sync($roleIds);
 
         if (isset($validated['status'])) {
             $membership->update(['status' => $validated['status']]);
@@ -102,5 +113,28 @@ class TenantUserController extends Controller
         return redirect()
             ->route('tenant.users.index', $tenant)
             ->with('success', 'Member removed from tenant.');
+    }
+
+    /**
+     * Whether the given role ids would newly grant ownership of this instance.
+     *
+     * @param  array<int, int|string>  $roleIds
+     */
+    protected function grantsOwnership(Membership $membership, array $roleIds): bool
+    {
+        $limiter = app(InstanceLimiter::class);
+
+        $ownerIds = Role::whereIn('slug', $limiter->ownerRoles())
+            ->pluck('id')
+            ->map(fn ($id): string => (string) $id)
+            ->all();
+
+        if (array_intersect(array_map('strval', $roleIds), $ownerIds) === []) {
+            return false;
+        }
+
+        return $membership->roles()
+            ->whereIn('slug', $limiter->ownerRoles())
+            ->doesntExist();
     }
 }

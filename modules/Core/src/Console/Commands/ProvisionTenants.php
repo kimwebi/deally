@@ -2,6 +2,8 @@
 
 namespace Deally\Core\Console\Commands;
 
+use Database\Seeders\DeallyAccessSeeder;
+use Database\Seeders\DemoSeeder;
 use Deally\Core\Services\DeallyTenantDatabaseManager;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Illuminate\Console\Command;
@@ -13,10 +15,12 @@ class ProvisionTenants extends Command
                             {--tenant= : Tenant UUID or instance number to provision}
                             {--fresh : Drop and rebuild the tenant database instead of migrating}';
 
-    protected $description = 'Create, migrate and seed tenant databases for active tenants';
+    protected $description = 'Seed central demo data, then create, migrate and seed tenant databases for active tenants';
 
     public function handle(): int
     {
+        $this->seedCentralDemoData();
+
         $provisioner = app(DeallyTenantProvisioner::class);
 
         $query = Tenant::query()->active()->orderBy('created_at');
@@ -58,5 +62,26 @@ class ProvisionTenants extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The command runs on a freshly migrated central database, so it seeds the
+     * central demo tenants, users and roles first. That way tenant databases
+     * are created and seeded against a known set of owners, and the regular
+     * `db:seed` afterwards is still idempotent.
+     */
+    protected function seedCentralDemoData(): void
+    {
+        $this->info('Seeding central demo data (tenants, users, roles) ...');
+
+        \Artisan::call('db:seed', [
+            '--class' => DemoSeeder::class,
+            '--force' => true,
+        ]);
+
+        \Artisan::call('db:seed', [
+            '--class' => DeallyAccessSeeder::class,
+            '--force' => true,
+        ]);
     }
 }

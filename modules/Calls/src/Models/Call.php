@@ -14,6 +14,10 @@ class Call extends Model
     /** @use HasFactory<CallFactory> */
     use HasFactory;
 
+    public const STATUS_SCHEDULED = 'scheduled';
+
+    public const STATUS_COMPLETED = 'completed';
+
     protected $connection = 'deally';
 
     protected $fillable = [
@@ -23,6 +27,7 @@ class Call extends Model
         'date',
         'duration',
         'sentiment',
+        'status',
         'contact_name',
         'contact_role',
         'notes',
@@ -33,7 +38,7 @@ class Call extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            'date' => 'datetime',
         ];
     }
 

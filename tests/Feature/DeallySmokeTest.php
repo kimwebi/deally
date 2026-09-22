@@ -100,6 +100,7 @@ class DeallySmokeTest extends TestCase
         $this->actingAs($user)->get(route('deally.tasks.index'))->assertOk()->assertSee('Tasks');
         $this->actingAs($user)->get(route('deally.proposals.index'))->assertOk()->assertSee('Proposals');
         $this->actingAs($user)->get(route('deally.kb.index'))->assertOk()->assertSee('Knowledge Base');
+        $this->actingAs($user)->get(route('deally.solutions.index'))->assertOk()->assertSee('Gap Queue');
         $this->actingAs($user)->get(route('deally.settings.index'))->assertOk()->assertSee('Settings');
     }
 
@@ -133,8 +134,16 @@ class DeallySmokeTest extends TestCase
         $call = Call::query()->where('company', 'Acme Corp')->firstOrFail();
 
         $this->actingAs($user)->get(route('deally.calls.show', $call))->assertOk();
-        $this->actingAs($user)->get(route('deally.calls.live', $call))->assertOk()->assertSee('live-mic-toggle')->assertSee('DeAlly is listening');
+        $this->actingAs($user)->get(route('deally.calls.live', $call))->assertOk()->assertSee('live-mic-toggle')->assertSee('kb-shelf')->assertDontSee('Live transcription')->assertSee('DeAlly is listening');
         $this->actingAs($user)->get(route('deally.calls.summary', $call))->assertOk()->assertSee('Call Summary');
+        $this->actingAs($user)->get(route('deally.calls.review', $call))->assertOk()
+            ->assertSee('Review Call — Acme Corp')
+            ->assertSee('Download transcript')
+            ->assertSee('Sentiment')
+            ->assertSee('Close-Readiness');
+        $download = $this->actingAs($user)->get(route('deally.calls.transcript.download', $call));
+        $download->assertOk()->assertHeader('content-type', 'text/plain; charset=utf-8');
+        $this->assertStringContainsString(strtoupper($call->company), $download->streamedContent());
     }
 
     private function makeSuperadmin(): User
@@ -145,8 +154,6 @@ class DeallySmokeTest extends TestCase
             'password' => 'password',
             'is_active' => true,
             'is_super_admin' => true,
-            'is_superadmin' => true,
-            'is_admin' => true,
         ]));
     }
 }

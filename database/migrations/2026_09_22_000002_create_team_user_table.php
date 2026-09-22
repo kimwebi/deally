@@ -14,6 +14,8 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->index();
             $table->timestamps();
             $table->unique(['team_id', 'user_id']);
+            $table->foreign('team_id')->references('id')->on('teams')->cascadeOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 

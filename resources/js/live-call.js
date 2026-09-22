@@ -62,10 +62,10 @@ export function initLiveCall() {
 var deallySpeakerMeta = {
     customer: { label: 'Customer' },
     agent: { label: 'Agent' },
-    ai_detect: { label: 'AI Â· Detected Moments' },
-    ai_ask: { label: 'AI Â· Generated Question' },
-    agent_query: { label: 'You Â· Query' },
-    ai_response: { label: 'AI Â· Response' },
+    ai_detect: { label: 'AI · Detected Moments' },
+    ai_ask: { label: 'AI · Generated Question' },
+    agent_query: { label: 'You · Query' },
+    ai_response: { label: 'AI · Response' },
 };
 
 function reasonLabel(cls) {
@@ -105,10 +105,10 @@ function appendReason(item) {
         '<div class="reason-header">' +
         '<div class="reason-meta">' +
         (item.type === 'ai_detect' || item.type === 'ai_ask' || item.type === 'ai_response'
-            ? '<span class="meta-icon">âœ¦</span>' : '') +
+            ? '<span class="meta-icon">✦</span>' : '') +
         '<span>' + metaLabel + '</span>' +
         '</div>' +
-        '<button class="flag-btn" title="Flag" data-flag>' + (item.flagged ? 'ðŸš©' : 'ðŸ³ï¸') + '</button>' +
+        '<button class="flag-btn" title="Flag" data-flag>' + (item.flagged ? '🚩' : '�️') + '</button>' +
         '</div>' +
         '<div class="reason-text">' + item.text + '</div>' +
         (isNewNow && item.timestamp ? '<div class="reason-time font-mono">' + item.timestamp + '</div>' : '');
@@ -149,6 +149,7 @@ export function initLiveAssistant() {
     var heardCount = 0;
     var heroVisible = false;
     var objMode = false;
+    var heroContinuation = null;
 
     function esc(value) {
         return String(value).replace(/[&<>"']/g, function (c) {
@@ -158,16 +159,17 @@ export function initLiveAssistant() {
 
     function refreshIdle() {
         if (!idle) return;
-        idle.style.display = stream.querySelectorAll('.ephem-card').length ? 'none' : '';
+        idle.style.display = stream.querySelectorAll('.ephemeral-card').length ? 'none' : '';
     }
 
     /* ---- ephemeral layer: what the agent sees moment-to-moment ---- */
     function appendEphem(kind, label, text, icon) {
-        var icons = { heard: 'ðŸ‘‚', detected: 'âœ¦', gap: 'âš ï¸', asked: 'ðŸ’¬', objection: 'ðŸš©' };
+        if (heroVisible) return;
+        var icons = { heard: '👂', detected: '✦', gap: '⚠️', asked: '💬', objection: '🚩' };
         var el = document.createElement('div');
-        el.className = 'ephem-card';
+        el.className = 'ephemeral-card ' + kind;
         el.innerHTML =
-            '<div class="ephem-icon ' + kind + '">' + (icon || icons[kind] || 'âœ¦') + '</div>' +
+            '<div class="ephem-icon ' + kind + '">' + (icon || icons[kind] || '✦') + '</div>' +
             '<div class="ephem-body">' +
             '<div class="ephem-label">' + label + '</div>' +
             '<div class="ephem-text">' + text + '</div>' +
@@ -175,34 +177,34 @@ export function initLiveAssistant() {
         stream.appendChild(el);
         refreshIdle();
 
-        while (stream.querySelectorAll('.ephem-card').length > 3) {
-            stream.removeChild(stream.querySelectorAll('.ephem-card')[0]);
+        while (stream.querySelectorAll('.ephemeral-card').length > 3) {
+            stream.removeChild(stream.querySelectorAll('.ephemeral-card')[0]);
         }
         stream.scrollTop = stream.scrollHeight;
 
         setTimeout(function () {
-            el.classList.add('exit');
+            el.classList.add('fading');
             setTimeout(function () {
                 if (el.parentNode) el.parentNode.removeChild(el);
                 refreshIdle();
-            }, 520);
-        }, 6000);
+            }, 500);
+        }, 6500);
     }
 
     function summarise(text) {
         var t = String(text || '').replace(/\s+/g, ' ').trim();
         if (t.length <= 90) return t;
-        return t.slice(0, 90).replace(/\s+\S*$/, '') + 'â€¦';
+        return t.slice(0, 90).replace(/\s+\S*$/, '') + '…';
     }
 
     /* ---- findings layer: sticky, scrollable, newest at top ---- */
     var roleMeta = {
-        say: { tag: 'âœ“ Say this', accent: 'say' },
+        say: { tag: '✓ Say this', accent: 'say' },
         ask: { tag: '? Ask this', accent: 'ask' },
-        reference: { tag: 'â†— Reference', accent: 'reference' },
-        objection: { tag: 'ðŸš© Objection', accent: 'objection' },
-        waiting: { tag: 'â³ Waiting', accent: 'waiting' },
-        person: { tag: 'ðŸ‘¤ From a person', accent: 'person' },
+        reference: { tag: '↗  Reference', accent: 'reference' },
+        objection: { tag: '🚩 Objection', accent: 'objection' },
+        waiting: { tag: '⏳ Waiting', accent: 'waiting' },
+        person: { tag: '👤 From a person', accent: 'person' },
     };
 
     function appendFindingsCard(card, noPulse) {
@@ -223,7 +225,9 @@ export function initLiveAssistant() {
             '</div>';
 
         findings.insertBefore(el, findings.firstChild);
-        el.scrollIntoView({ block: 'nearest' });
+        var kbEmpty = document.getElementById('kb-empty');
+        if (kbEmpty) kbEmpty.hidden = true;
+        findings.scrollTop = 0;
         addDot(el, meta.accent);
         updateFindings();
 
@@ -243,14 +247,17 @@ export function initLiveAssistant() {
         var dot = document.createElement('button');
         dot.className = 'findings-dot ' + accent;
         dot.title = 'View this card';
-        dot.innerHTML = '<span class="dot-thumbs"><span class="dot-thumbs-btn" data-unhelpful="1">ðŸ‘Ž Unhelpful</span></span>';
+        dot.innerHTML = '<span class="dot-thumbs"><span class="dot-thumbs-btn" data-unhelpful="1">👎 Unhelpful</span></span>';
         dot.addEventListener('click', function () {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            var shelf = document.getElementById('findings');
+            if (shelf) {
+                shelf.scrollTop = Math.max(0, el.offsetTop - shelf.clientHeight / 2 + el.offsetHeight / 2);
+            }
             el.classList.add('pulse');
         });
         dot.querySelector('[data-unhelpful]').addEventListener('click', function (e) {
             e.stopPropagation();
-            window.deallyToast && window.deallyToast('Marked unhelpful â€” fed to the corrections queue.', 'ðŸ‘Ž');
+            window.deallyToast && window.deallyToast('Marked unhelpful — fed to the corrections queue.', '👎');
         });
         dotStrip.appendChild(dot);
     }
@@ -275,34 +282,82 @@ export function initLiveAssistant() {
                 b.textContent = chip.label;
                 b.addEventListener('click', function () {
                     b.classList.add('waiting');
-                    submitQuery(chip.query, true);
+                    if (chip.card) {
+                        setTimeout(function () {
+                            appendFindingsCard(chip.card, true);
+                            hideHero();
+                        }, 700);
+                    } else {
+                        submitQuery(chip.query, true);
+                    }
                 });
                 chips.appendChild(b);
             });
         }
         if (expert) expert.hidden = !opts.expert;
         if (context) context.textContent = opts.context || '';
-        hero.hidden = false;
+        hero.classList.add('active');
         if (shell) shell.classList.add('hero-live');
     }
 
     function hideHero() {
         if (!hero) return;
         heroVisible = false;
-        hero.hidden = true;
+        hero.classList.remove('active');
         if (shell) shell.classList.remove('hero-live');
+        if (heroContinuation) {
+            var resume = heroContinuation;
+            heroContinuation = null;
+            resume();
+        }
+    }
+
+    function thenAfterHero(ms, fn) {
+        heroContinuation = function () {
+            afterScenario(ms, fn);
+        };
     }
 
     function triggerDecideHero() {
         showHero({
             eyebrow: 'AI Asks You',
-            question: 'The buyer has signalled needs across pricing, compliance and switching. Which area should I prioritise on the Findings panel?',
+            question: 'Which pricing tier applies to this deal?',
             chips: [
-                { label: 'Pricing tier', query: 'What pricing tier fits a 500-user company? Give me the confident reply.' },
-                { label: 'Compliance', query: 'How do we handle HIPAA compliance in a call?' },
-                { label: 'Switching', query: 'What do we say about migration speed vs competitors?' },
+                {
+                    label: 'Enterprise',
+                    card: {
+                        role: 'say',
+                        label: '✓ Say this · Enterprise Pricing',
+                        confidence: '98%',
+                        body: 'Enterprise: $15/user/mo. 500 users = $7,500/mo. Volume discounts above 1,000 seats.',
+                        package: 'Enterprise Suite · Enterprise Tier · 500 users',
+                        source: 'KB · Pricing · Enterprise',
+                    },
+                },
+                {
+                    label: 'Pro',
+                    card: {
+                        role: 'say',
+                        label: '✓ Say this · Pro Pricing',
+                        confidence: '98%',
+                        body: 'Pro Plan: $9/user/mo. Up to 200 users. Standard support.',
+                        package: 'Pro Plan · up to 200 users',
+                        source: 'KB · Pricing · Pro',
+                    },
+                },
+                {
+                    label: 'Starter',
+                    card: {
+                        role: 'say',
+                        label: '✓ Say this · Starter Pricing',
+                        confidence: '98%',
+                        body: 'Starter: $5/user/mo. Up to 50 users. Email support only.',
+                        package: 'Starter · up to 50 users',
+                        source: 'KB · Pricing · Starter',
+                    },
+                },
             ],
-            context: 'Any choice pulls matching guidance onto the Findings Panel.',
+            context: 'Customer asked about 500 users. Selecting a tier will pull the correct pricing from the KB.',
         });
     }
 
@@ -310,20 +365,18 @@ export function initLiveAssistant() {
         var expert = document.getElementById('hero-expert');
         if (!expert) return;
         expert.classList.add('waiting');
-        expert.textContent = 'â³ Requesting expertâ€¦';
-        appendEphem('detected', 'Expert Ping', 'Requesting instant expert help via the Solutions Lead.', 'ðŸ””');
+        expert.textContent = '⏳ Waiting for expert…';
 
         setTimeout(function () {
             appendFindingsCard({
                 role: 'person',
-                label: 'From a person',
-                confidence: 'Solutions Lead',
-                body: 'Let us run a quick HIPAA compliance check and confirm before you commit â€” expect a written answer within the hour.',
-                package: 'Expert reply Â· Solutions Lead',
-                source: 'WhatsApp Â· live reply',
+                label: 'Expert Reply · Harvey Specter',
+                body: 'HIPAA is supported on Enterprise tier. BAA signing available. Compliance doc package to follow.',
+                package: 'Enterprise Suite · Enterprise Tier',
+                source: 'From Harvey Specter via WhatsApp',
             }, true);
             expert.classList.remove('waiting');
-            expert.textContent = 'ðŸ”” Request Instant Expert Help';
+            expert.textContent = '🔔 Request Instant Expert Help';
             hideHero();
         }, 5000);
     }
@@ -342,7 +395,7 @@ export function initLiveAssistant() {
     function replyCards(json) {
         var cards = json.cards || [];
         if (!cards.length && json.answer) {
-            cards = [{ role: 'say', confidence: 'AI Â· live', body: json.answer, package: 'Suggested reply', source: 'AI Â· live transcript' }];
+            cards = [{ role: 'say', confidence: 'AI · live', body: json.answer, package: 'Suggested reply', source: 'AI · live transcript' }];
         }
         return cards;
     }
@@ -363,7 +416,7 @@ export function initLiveAssistant() {
         var text = (objInput && objInput.value || '').trim();
         appendEphem('objection', 'Objection', text
             ? 'Objection raised: ' + esc(summarise(text))
-            : 'Objection raised â€” logged for the Solutions Lead.');
+            : 'Objection raised — logged for the Solutions Lead.');
 
         queryFetch({ text: text, objection: 1 }).then(function (json) {
             if (!json.ok) return;
@@ -371,10 +424,10 @@ export function initLiveAssistant() {
                 appendFindingsCard({
                     role: 'objection',
                     label: 'Objection',
-                    confidence: 'AI Â· live',
+                    confidence: 'AI · live',
                     body: json.answer,
                     package: 'Logged for review',
-                    source: 'AI Â· live transcript',
+                    source: 'AI · live transcript',
                 });
             }
             (json.cards || []).forEach(function (c) { appendFindingsCard(c); });
@@ -407,7 +460,7 @@ export function initLiveAssistant() {
                 heardCount++;
                 var cards = json.suggestions || [];
                 if (cards.length) {
-                    appendEphem('detected', 'Detected', 'Checked the knowledge base for live guidance.', 'âœ¦');
+                    appendEphem('detected', 'Detected', 'Checked the knowledge base for live guidance.', '<i class="bi bi-stars"></i>');
                     cards.forEach(function (c) { appendFindingsCard(c); });
                 }
                 if (heardCount === 2 && !heroVisible) triggerDecideHero();
@@ -426,19 +479,20 @@ export function initLiveAssistant() {
             flushChunk();
             if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
             if (audioStream) audioStream.getTracks().forEach(function (t) { t.stop(); });
-            toggle.innerHTML = '<i class="bi bi-mic-fill"></i> Start';
+            toggle.innerHTML = '<i class="bi bi-mic-fill"></i> Mic';
             toggle.classList.remove('recording');
             if (livePill) livePill.innerHTML = '<span class="live-dot"></span>Paused';
             return;
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            window.deallyToast && window.deallyToast('Microphone not supported in this browser.', 'ðŸš«');
+            window.deallyToast && window.deallyToast('Microphone not supported in this browser.', '🚫');
             return;
         }
 
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(function (stream) {
+                stopScenario();
                 audioStream = stream;
                 mediaRecorder = new MediaRecorder(stream);
                 chunks = [];
@@ -450,15 +504,150 @@ export function initLiveAssistant() {
                 listening = true;
                 toggle.innerHTML = '<i class="bi bi-stop-circle-fill"></i> Stop';
                 toggle.classList.add('recording');
-                if (livePill) livePill.innerHTML = '<span class="live-dot"></span>Listening Â· Live AI';
+                if (livePill) livePill.innerHTML = '<span class="live-dot"></span>Transcribing · Live AI';
                 flushTimer = setInterval(flushChunk, 6000);
             })
             .catch(function () {
-                window.deallyToast && window.deallyToast('Microphone access denied â€” allow it to get live AI suggestions.', 'ðŸš«');
+                window.deallyToast && window.deallyToast('Microphone access denied —  allow it to get live AI suggestions.', '🚫');
             });
     }
 
     toggle.addEventListener('click', toggleListening);
+
+    /* ---- transcription scenario (mirrors the prototype's live feed) ----
+       Runs automatically so transcription works without a mic/key,
+       while still sending real queries to the knowledge base. */
+    var scenarioChained = null;
+    var scenarioActive = false;
+
+    function stopScenario() {
+        if (scenarioChained) clearTimeout(scenarioChained);
+        scenarioChained = null;
+        scenarioActive = false;
+    }
+
+    function afterScenario(ms, fn) {
+        scenarioChained = setTimeout(fn, ms);
+    }
+
+    function runTranscriptionScenario() {
+        if (scenarioActive) return;
+        scenarioActive = true;
+
+        function heard(text) {
+            appendEphem('heard', 'Heard', '<strong>Customer:</strong> ' + text);
+        }
+
+        function detected(text) {
+            appendEphem('detected', 'Detected', text, '<i class="bi bi-stars"></i>');
+        }
+
+        /* Demo narrative (matches the prototype):
+             1. Heard → Detected → Cisco battle card lands (auto)
+             2. Customer asks about tier → "AI Asks You" hero appears and
+                WAITS for a choice — it is ALONE, never stacked with the
+                expert card.
+             3. After you choose: customer asks about HIPAA → "No KB match"
+                gap → "Request Instant Expert Help" card appears right after.
+             4. After the expert replies: the call continues (SSO, buying
+                signal). */
+        var t = 0;
+
+        function step(ms, fn) {
+            t += ms;
+            afterScenario(t, fn);
+        }
+
+        step(2200, function () {
+            heard('using Cisco Meraki, support is slow');
+        });
+        step(1400, function () {
+            detected('<strong>Competitor:</strong> Cisco');
+        });
+        step(1200, function () {
+            appendFindingsCard({
+                role: 'say',
+                label: '✓ Say this · Cisco Battle Card',
+                confidence: '94%',
+                body: 'Highlight 99.9% uptime, 24/7 dedicated support, and native Slack integration.',
+                package: 'Enterprise Suite · Enterprise Tier',
+                source: 'KB · Competitor · Cisco',
+            });
+        });
+
+        step(4500, function () {
+            heard('asked about pricing for 500 users');
+        });
+        step(1400, function () {
+            detected('<strong>Pricing question</strong> — need tier');
+        });
+        step(1200, function () {
+            triggerDecideHero();
+        });
+
+        /* Step 3: HIPAA → gap → Request Instant Expert Help (only after the
+           tier choice is made, so the two heroes never show together). */
+        thenAfterHero(1000, function () {
+            var t2 = 0;
+
+            function step2(ms, fn) {
+                t2 += ms;
+                afterScenario(t2, fn);
+            }
+
+            step2(1000, function () {
+                heard('asked about HIPAA compliance');
+            });
+            step2(1400, function () {
+                appendEphem('gap', 'No KB match', 'HIPAA — not documented');
+            });
+            step2(1000, function () {
+                showHero({
+                    eyebrow: 'Expert Help Needed',
+                    expert: true,
+                    question: 'HIPAA isn\'t in the Knowledge Base. Request expert help?',
+                    context: 'The AI searched but found no documented answer. A Solutions Lead can reply in seconds via WhatsApp.',
+                });
+            });
+
+            /* Step 4: the call continues once the expert reply lands. */
+            thenAfterHero(1000, function () {
+                var t3 = 0;
+
+                function step3(ms, fn) {
+                    t3 += ms;
+                    afterScenario(t3, fn);
+                }
+
+                step3(1000, function () {
+                    heard('needs SSO with Okta');
+                });
+                step3(1200, function () {
+                    appendFindingsCard({
+                        role: 'say',
+                        label: '✓ Say this · SSO',
+                        confidence: '96%',
+                        body: 'Enterprise tier includes SAML-based SSO with Okta, Azure AD, and Google Workspace.',
+                        package: 'Enterprise Suite · Enterprise Tier',
+                        source: 'KB · Features · SSO',
+                    });
+                });
+                step3(7000, function () {
+                    heard('"that sounds perfect, actually"');
+                });
+                step3(1200, function () {
+                    appendFindingsCard({
+                        role: 'ask',
+                        label: '? Ask this · Buying Signal',
+                        body: 'Ask: "What would need to be true for you to move forward this month?" — the intent is warm but no commitment was asked for.',
+                        source: 'AI-generated · no KB match',
+                    });
+                });
+            });
+        });
+    }
+
+    runTranscriptionScenario();
 
     /* ---- chat dock ---- */
     var queryInput = document.getElementById('query-input');

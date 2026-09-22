@@ -7,7 +7,7 @@ export function initToasts() {
         var text = toast.querySelector('.toast-text');
         var ic = toast.querySelector('.toast-icon');
         if (text) text.textContent = message;
-        if (ic) ic.textContent = icon || 'âœ“';
+        if (ic) ic.textContent = icon || '✓';
         toast.classList.add('show');
         clearTimeout(toast._t);
         toast._t = setTimeout(function () {

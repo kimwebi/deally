@@ -12,6 +12,8 @@ use Illuminate\View\View;
 use SaasFoundation\Models\Membership;
 use SaasFoundation\Models\Role;
 use SaasFoundation\Models\Tenant;
+use SaasFoundation\Models\User as SaasFoundationUser;
+use SaasFoundation\Services\Tenancy\InstanceLimiter;
 
 class UserController extends Controller
 {
@@ -47,7 +49,15 @@ class UserController extends Controller
             'role_ids.*' => ['uuid', 'exists:roles,id'],
         ]);
 
+        $rolesToSync = $this->tenantRoleIds($data['role_ids'], $tenant);
+
         $user = User::where('email', $data['email'])->first();
+
+        if ($user !== null && $this->wouldExceedInstanceLimit($user, $tenant, $rolesToSync)) {
+            $limiter = app(InstanceLimiter::class);
+
+            return back()->with('toast', "Owners are limited to {$limiter->maxPerOwner()} instances; {$user->name} already owns that many.");
+        }
 
         if ($user === null) {
             $errors = [];
@@ -77,7 +87,7 @@ class UserController extends Controller
             ['status' => Membership::STATUS_ACTIVE, 'joined_at' => now()]
         );
 
-        $membership->roles()->sync($this->tenantRoleIds($data['role_ids'], $tenant));
+        $membership->roles()->sync($rolesToSync);
 
         return back()->with('toast', "{$user->name} was added to {$tenant->name}.");
     }
@@ -92,7 +102,17 @@ class UserController extends Controller
             'role_ids.*' => ['uuid', 'exists:roles,id'],
         ]);
 
-        $membership->roles()->sync($this->tenantRoleIds($data['role_ids'], $this->currentTenant()));
+        $tenant = $this->currentTenant();
+
+        $rolesToSync = $this->tenantRoleIds($data['role_ids'], $tenant);
+
+        if ($this->wouldExceedInstanceLimit($membership->user, $tenant, $rolesToSync)) {
+            $limiter = app(InstanceLimiter::class);
+
+            return back()->with('toast', "Owners are limited to {$limiter->maxPerOwner()} instances; cannot grant an additional owner seat.");
+        }
+
+        $membership->roles()->sync($rolesToSync);
 
         return back()->with('toast', "{$membership->user->name}'s roles were updated.");
     }
@@ -134,7 +154,7 @@ class UserController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin()) {
+        if ($user->isSuperAdmin()) {
             return;
         }
 
@@ -142,7 +162,7 @@ class UserController extends Controller
 
         if (
             $membership !== null
-            && ($membership->hasRole('owner') || $membership->hasRole('admin') || $membership->hasRole('tenant-admin'))
+            && ($membership->hasRole('owner') || $membership->hasRole('admin'))
         ) {
             return;
         }
@@ -171,5 +191,31 @@ class UserController extends Controller
         $assignable = $this->assignableRoles($tenant)->pluck('id')->all();
 
         return array_values(array_intersect($roleIds, $assignable));
+    }
+
+    /**
+     * Whether granting the given role ids would push the user past the owned
+     * instance cap of a tenant they do not already own.
+     *
+     * @param  array<int, string>  $roleIds
+     */
+    protected function wouldExceedInstanceLimit(SaasFoundationUser $user, Tenant $tenant, array $roleIds): bool
+    {
+        $limiter = app(InstanceLimiter::class);
+
+        $ownerIds = Role::whereIn('slug', $limiter->ownerRoles())
+            ->pluck('id')
+            ->map(fn ($id): string => (string) $id)
+            ->all();
+
+        if (array_intersect(array_map('strval', $roleIds), $ownerIds) === []) {
+            return false;
+        }
+
+        if ($limiter->isOwner($user, $tenant)) {
+            return false;
+        }
+
+        return ! $limiter->canOwn($user);
     }
 }

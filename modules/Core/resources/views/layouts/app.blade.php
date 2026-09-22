@@ -9,14 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script>
-        (function () {
-            try {
-                var theme = localStorage.getItem('deally-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-                document.documentElement.setAttribute('data-theme', theme);
-            } catch (e) {}
-        })();
-    </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
@@ -27,13 +20,38 @@
     @php
     $user = auth()->user();
     $membership = $user?->currentMembership;
-    $canManageRoles = $user && ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin() || ($membership && $membership->hasRole('owner')));
-    $adminSeatRoles = ['owner', 'admin', 'tenant-admin', 'team-leader'];
+    $canManageRoles = $user && ($user->isSuperAdmin() || ($membership && array_intersect(['owner', 'admin'], $membership->roles->pluck('slug')->all())));
+    $adminSeatRoles = ['owner', 'admin', 'team-leader'];
     $hasAdminSeat = $membership && array_intersect($adminSeatRoles, $membership->roles->pluck('slug')->all());
-    $canSeeTeams = $user && ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin() || $hasAdminSeat);
-    $userAdminRoles = ['owner', 'admin', 'tenant-admin'];
-    $canSeeUsers = $user && ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin() || ($membership && array_intersect($userAdminRoles, $membership->roles->pluck('slug')->all())));
+    $solutionsRoles = ['solutions-lead', 'owner', 'admin'];
+    $canSeeSolutions = $user && ($user->isSuperAdmin() || ($membership && array_intersect($solutionsRoles, $membership->roles->pluck('slug')->all())));
+    $canSeeTeams = $user && ($user->isSuperAdmin() || $hasAdminSeat);
+    $userAdminRoles = ['owner', 'admin'];
+    $canSeeUsers = $user && ($user->isSuperAdmin() || ($membership && array_intersect($userAdminRoles, $membership->roles->pluck('slug')->all())));
     $unreadCount = $user?->unreadNotifications()->count() ?? 0;
+    $taskTodoCount = $user ? Deally\Core\Services\Seat::scope(Deally\Tasks\Models\Task::query())->todo()->count() : 0;
+    $switchableTenants = collect();
+    $activeTenant = null;
+    $activeTenantId = $membership?->tenant_id;
+    $activeRole = $user ? Deally\Core\Services\Seat::roleLabel($user) : 'Member';
+
+    if ($user) {
+        if ($user->isSuperAdmin()) {
+            $activeTenantId = session(config('saas.auth.session_key', 'tenant_id'));
+            $activeTenant = $activeTenantId ? \SaasFoundation\Models\Tenant::query()->find($activeTenantId) : null;
+            $availableTenants = \SaasFoundation\Models\Tenant::query()->active()->orderBy('name')->get();
+        } else {
+            $activeTenant = $membership?->tenant;
+            $availableTenants = $user->memberships()->with('tenant')->active()->get()
+                ->map(fn ($m) => $m->tenant)
+                ->filter()
+                ->values();
+        }
+
+        $switchableTenants = $availableTenants
+            ->reject(fn ($tenant) => $tenant->id === $activeTenantId)
+            ->values();
+    }
     @endphp
     <aside class="sidebar">
         <div class="sidebar-brand"><div class="bolt"><i class="bi bi-lightning-fill" style="color: #ef0427"></i></div>DeAlly</div>
@@ -44,13 +62,16 @@
                 <a href="{{ route('deally.workspace') }}" class="nav-item {{ request()->routeIs('deally.workspace') ? 'active' : '' }}">Home</a>
                 <a href="{{ route('deally.pipeline') }}" class="nav-item {{ request()->routeIs('deally.pipeline') ? 'active' : '' }}">Pipeline<span class="nav-badge">{{ Deally\Pipeline\Models\Opportunity::count() }}</span></a>
                 <a href="{{ route('deally.calls.index') }}" class="nav-item {{ request()->routeIs('deally.calls.*') ? 'active' : '' }}">Calls</a>
-                <a href="{{ route('deally.tasks.index') }}" class="nav-item {{ request()->routeIs('deally.tasks.index') ? 'active' : '' }}">Tasks<span class="nav-badge {{ Deally\Tasks\Models\Task::todo()->count() > 0 ? 'alert' : '' }}">{{ Deally\Tasks\Models\Task::todo()->count() }}</span></a>
+                <a href="{{ route('deally.tasks.index') }}" class="nav-item {{ request()->routeIs('deally.tasks.index') ? 'active' : '' }}">Tasks @if($taskTodoCount > 0)<span class="nav-badge alert">{{ $taskTodoCount }}</span>@endif</a>
                 <a href="{{ route('deally.proposals.index') }}" class="nav-item {{ request()->routeIs('deally.proposals.index') ? 'active' : '' }}">Proposals</a>
             </div>
 
             <div class="nav-group">
                 <div class="nav-group-label">Knowledge</div>
                 <a href="{{ route('deally.kb.index') }}" class="nav-item {{ request()->routeIs('deally.kb.index') ? 'active' : '' }}">Knowledge Base</a>
+                @if($canSeeSolutions)
+                <a href="{{ route('deally.solutions.index') }}" class="nav-item {{ request()->routeIs('deally.solutions.*') ? 'active' : '' }}">Solutions Lead</a>
+                @endif
             </div>
 
             @if($canManageRoles || $canSeeTeams || $canSeeUsers)
@@ -87,11 +108,32 @@
         </nav>
 
         <div class="sidebar-footer">
+            @if($activeTenant)
+            <div class="active-instance" title="You are in {{ $activeTenant->name }}">
+                <span class="instance-logo">{{ collect(explode(' ', trim($activeTenant->name)))->filter()->take(2)->map(fn ($p) => strtoupper(mb_substr($p, 0, 1)))->join('') }}</span>
+                <span class="instance-name">{{ $activeTenant->name }}</span>
+                <span class="instance-badge"><span class="instance-badge-dot"></span>Active</span>
+            </div>
+            @endif
+            @if($switchableTenants->isNotEmpty())
+            <div class="instance-switcher">
+                <div class="instance-switcher-label">Instances</div>
+                @foreach($switchableTenants as $switchTenant)
+                <form class="instance-switcher-item" method="POST" action="{{ route('tenant.switch', $switchTenant) }}">
+                    @csrf
+                    <button type="submit" title="Switch to {{ $switchTenant->name }}">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>{{ $switchTenant->name }}</span>
+                    </button>
+                </form>
+                @endforeach
+            </div>
+            @endif
             <div class="user-row">
                 <div class="user-avatar">{{ collect(explode(' ', trim($user->name ?? '?')))->filter()->take(2)->map(fn ($p) => strtoupper(mb_substr($p, 0, 1)))->join('') }}</div>
                 <div>
                     <div class="user-name">{{ $user->name ?? 'Agent' }}</div>
-                    <div class="user-role">{{ optional($membership?->tenant)->name ?: 'Sales Agent' }}</div>
+                    <div class="user-role">{{ $activeRole }}</div>
                 </div>
             </div>
         </div>
@@ -117,7 +159,10 @@
                     {"label":"Pipeline","href":"{{ route('deally.pipeline') }}","icon":"bi-kanban","keywords":"opportunities deals stage"},
                     {"label":"Tasks","href":"{{ route('deally.tasks.index') }}","icon":"bi-check2-square","keywords":"todo follow up action items"},
                     {"label":"Proposals","href":"{{ route('deally.proposals.index') }}","icon":"bi-file-earmark-text","keywords":"proposal docs documents"},
-                    {"label":"Knowledge Base","href":"{{ route('deally.kb.index') }}","icon":"bi-book","keywords":"kb knowledge answers pricing features"},
+                    {"label":"Knowledge Base","href":"{{ route('deally.kb.index') }}","icon":"bi-book","keywords":"kb knowledge answers pricing features"}
+                    @if($canSeeSolutions)
+                    ,{"label":"Solutions Lead","href":"{{ route('deally.solutions.index') }}","icon":"bi-shield-check","keywords":"solutions lead quality gap queue corrections"}
+                    @endif,
                     {"label":"Reporting","href":"{{ route('deally.reporting') }}","icon":"bi-bar-chart","keywords":"report team performance dashboard"},
                     {"label":"Activity","href":"{{ route('deally.activity.index') }}","icon":"bi-activity","keywords":"activity feed audit log"},
                     {"label":"Notifications","href":"{{ route('deally.notifications.index') }}","icon":"bi-bell","keywords":"notifications alerts unread"},
@@ -155,7 +200,6 @@
 
         <footer class="system-footer">
             <span class="system-footer-copy">© {{ date('Y') }} DeAlly · AI-powered sales enablement</span>
-            <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Toggle theme"><i class="bi bi-sun-fill theme-icon" data-theme-icon></i></button>
         </footer>
     </div>
 

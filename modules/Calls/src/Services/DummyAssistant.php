@@ -26,6 +26,46 @@ class DummyAssistant
         'Honestly, our current setup mostly works, so it would need to be a clear improvement to switch.',
     ];
 
+    /**
+     * @return string[]
+     */
+    public function demoScript(): array
+    {
+        return $this->script;
+    }
+
+    /**
+     * The demo call as a full customer/agent conversation, so ended calls
+     * persist both sides of the exchange.
+     *
+     * @return array<int, array{string, string}>
+     */
+    public function conversation(): array
+    {
+        return [
+            [
+                "We're currently on a legacy tool, but support has been really slow. We're open to looking at alternatives.",
+                'Understood — that slow support is exactly what we solve. We guarantee 99.9% uptime with 24/7 dedicated support, and we usually start with a two-week pilot so there is no risk moving off the legacy tool.',
+            ],
+            [
+                'Does your platform support HIPAA compliance and per-tenant data isolation?',
+                "Yes — we are HIPAA-compliant with per-tenant data isolation, so every customer's data stays fully separated. I can share our compliance sheet with your security team right away.",
+            ],
+            [
+                'Your pricing looks higher than what we can approve this quarter — can you do better?',
+                'I can put together a formal proposal within two days, and we typically start with a two-week pilot at a reduced rate so there is no risk in locking in.',
+            ],
+            [
+                'We need SSO for security, native Slack integration, and a faster onboarding path.',
+                'All covered — the Enterprise tier includes SAML SSO with Okta and Azure AD, native Slack integration, and an onboarding path we can complete together in under a week.',
+            ],
+            [
+                'Honestly, our current setup mostly works, so it would need to be a clear improvement to switch.',
+                'That is completely fair. If we could make one thing clearly better for your team — say support response time — would that be enough to justify a pilot?',
+            ],
+        ];
+    }
+
     public function transcribe(Call $call, string $audio, string $filename): ?string
     {
         return $this->script[$call->transcriptLines()->count() % count($this->script)];

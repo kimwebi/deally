@@ -558,7 +558,7 @@
 }
 
 .chip.clicked::after {
-  content: 'âœ“';
+  content: '✓';
   margin-left: 2px;
   font-size: 11px;
 }

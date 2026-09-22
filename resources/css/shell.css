@@ -173,6 +173,100 @@ button.nav-item {
   color: var(--text-3);
 }
 
+.active-instance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 6px;
+}
+
+.instance-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--green-soft);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.instance-name {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instance-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.instance-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.instance-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px 8px;
+}
+
+.instance-switcher-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  padding: 4px 6px 2px;
+}
+
+.instance-switcher-item button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.instance-switcher-item button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.instance-switcher-item i {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
 .main {
   flex: 1;
   display: flex;
@@ -478,23 +572,6 @@ button.nav-item {
 .icon-btn:hover {
   background: var(--surface-2);
   color: var(--text);
-}
-
-.call-theme-toggle {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 50;
-}
-
-.call-theme-toggle .icon-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.call-theme-toggle .icon-btn:hover {
-  color: var(--violet);
-  border-color: var(--violet);
 }
 
 .notif-dot {

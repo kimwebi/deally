@@ -7,11 +7,13 @@ use Deally\Calls\Models\TranscriptLine;
 use Deally\Calls\Services\DummyAssistant;
 use Deally\Calls\Services\LiveAssistant;
 use Deally\Core\Http\Controllers\Controller;
+use Deally\Core\Models\User;
 use Deally\Core\Services\ActivityLogger;
 use Deally\Core\Services\Notifier;
 use Deally\Proposals\Models\KnowledgeGap;
 use Deally\Tasks\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CallController extends Controller
 {
@@ -21,7 +23,16 @@ class CallController extends Controller
 
         $calls = $this->scopeToSeat(Call::query())->with('opportunity')->orderByDesc('date')->get();
 
-        return view('calls::pages.calls', ['calls' => $calls]);
+        $ownerIds = $calls->pluck('owner_user_id')->filter();
+        $ownerNames = $ownerIds->isNotEmpty()
+            ? User::whereIn('id', $ownerIds)->pluck('name', 'id')
+            : collect();
+
+        return view('calls::pages.calls', [
+            'calls' => $calls,
+            'assignees' => $this->tenantMembershipOptions(),
+            'ownerNames' => $ownerNames,
+        ]);
     }
 
     public function show(Call $call)
@@ -41,7 +52,7 @@ class CallController extends Controller
 
         $call->load('opportunity');
 
-        $tasks = Task::query()
+        $tasks = $this->scopeToSeat(Task::query())
             ->where('linked_company', $call->company)
             ->orderByRaw("CASE WHEN status = 'closed' THEN 1 ELSE 0 END")
             ->orderBy('due_at')
@@ -56,7 +67,7 @@ class CallController extends Controller
         $this->authorizeDeally('deally.calls.view');
         $this->authorizeSeatRecord($call);
 
-        $reviewTask = Task::query()
+        $reviewTask = $this->scopeToSeat(Task::query())
             ->where('title', "Review Call — {$call->company}")
             ->latest('id')
             ->first();
@@ -79,6 +90,26 @@ class CallController extends Controller
         return view('calls::pages.call-review', ['call' => $call, 'gaps' => $gaps]);
     }
 
+    public function downloadTranscript(Call $call)
+    {
+        $this->authorizeDeally('deally.calls.view');
+        $this->authorizeSeatRecord($call);
+
+        $call->load('transcriptLines');
+
+        $content = view('calls::transcript-download', ['call' => $call, 'lines' => $call->transcriptLines]);
+
+        $filename = 'transcript-'.Str::slug($call->company).'-'.$call->date->format('Y-m-d').'.txt';
+
+        return response()->streamDownload(
+            function () use ($content): void {
+                echo (string) $content;
+            },
+            $filename,
+            ['Content-Type' => 'text/plain; charset=utf-8']
+        );
+    }
+
     public function store(Request $request)
     {
         $this->authorizeDeally('deally.calls.manage');
@@ -89,13 +120,24 @@ class CallController extends Controller
             'contact_name' => ['nullable', 'string'],
             'contact_role' => ['nullable', 'string'],
             'date' => ['nullable', 'date'],
+            'assignee_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
-        $call = Call::create([...$data,
+        $assigneeId = $data['assignee_user_id'] ?? null;
+
+        if ($assigneeId !== null && ! in_array((string) $assigneeId, $this->tenantMemberUserIds(), true)) {
+            $assigneeId = null;
+        }
+
+        $attributes = $data;
+        unset($attributes['assignee_user_id']);
+
+        $call = Call::create([...$attributes,
             'duration' => '0m',
             'sentiment' => 'neutral',
+            'status' => Call::STATUS_SCHEDULED,
             'date' => $data['date'] ?? now()->toDateString(),
-            'owner_user_id' => auth()->id(),
+            'owner_user_id' => $assigneeId ?: auth()->id(),
         ]);
 
         return redirect()->route('deally.calls.live', $call);
@@ -114,8 +156,11 @@ class CallController extends Controller
         ]);
 
         $data['sentiment'] = $data['sentiment'] ?: 'neutral';
+        $data['status'] = Call::STATUS_COMPLETED;
 
         $call->update($data);
+
+        $this->completeDemoTranscript($call);
 
         if (blank($data['summary'] ?? null)) {
             $call->update(['summary' => ($call->contact_name ?: 'The customer')
@@ -124,7 +169,7 @@ class CallController extends Controller
         }
 
         Task::query()->firstOrCreate(
-            ['title' => "Review Call — {$call->company}", 'linked_company' => $call->company],
+            ['title' => "Review Call — {$call->company}", 'linked_company' => $call->company, 'owner_user_id' => $call->owner_user_id ?: auth()->id()],
             ['due_at' => now()->addHours(24), 'status' => 'todo'],
         );
 
@@ -141,6 +186,42 @@ class CallController extends Controller
         );
 
         return redirect()->route('deally.calls.summary', $call);
+    }
+
+    /**
+     * Persist the demo call as a full customer/agent conversation when a call
+     * ends with no real provider configured, so the review and summary pages
+     * reflect both sides of the exchange that just ran.
+     */
+    protected function completeDemoTranscript(Call $call): void
+    {
+        $assistant = $this->assistant();
+
+        if (! $assistant instanceof DummyAssistant) {
+            return;
+        }
+
+        $existing = $call->transcriptLines()->orderBy('sequence')->get();
+
+        if ($existing->isNotEmpty() && $existing->where('is_agent', true)->isNotEmpty()) {
+            return;
+        }
+
+        $call->transcriptLines()->delete();
+
+        $sequence = 0;
+
+        foreach ($assistant->conversation() as $exchange) {
+            foreach (['customer', 'Agent'] as $index => $speaker) {
+                TranscriptLine::create([
+                    'call_id' => $call->id,
+                    'speaker' => $speaker,
+                    'is_agent' => $index === 1,
+                    'text' => $exchange[$index],
+                    'sequence' => ++$sequence,
+                ]);
+            }
+        }
     }
 
     public function liveTranscribe(Request $request, Call $call)

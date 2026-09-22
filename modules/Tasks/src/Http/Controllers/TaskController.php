@@ -33,6 +33,7 @@ class TaskController extends Controller
         return view('tasks::pages.tasks', [
             'tasks' => $tasks,
             'reviewUrls' => $reviewUrls,
+            'assignees' => $this->tenantMembershipOptions(),
             'todoCount' => $tasks->where('status', '!=', 'closed')->count(),
             'overdueCount' => $tasks->where('status', '!=', 'closed')->filter(fn (Task $task) => $task->due_at !== null && $task->due_at->isPast())->count(),
         ]);
@@ -45,11 +46,27 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string'],
             'assignee' => ['nullable', 'string'],
+            'assignee_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'linked_company' => ['nullable', 'string'],
             'due_at' => ['nullable', 'date'],
         ]);
 
-        Task::create($data + ['status' => 'todo', 'owner_user_id' => auth()->id()]);
+        $assigneeId = $data['assignee_user_id'] ?? null;
+
+        if ($assigneeId !== null && ! in_array((string) $assigneeId, $this->tenantMemberUserIds(), true)) {
+            $assigneeId = null;
+        }
+
+        $attributes = $data;
+        unset($attributes['assignee_user_id']);
+
+        if ($assigneeId !== null) {
+            $attributes['assignee'] = $this->tenantMembershipOptions()->get((int) $assigneeId);
+        } elseif (blank($attributes['assignee'] ?? null)) {
+            $attributes['assignee'] = auth()->user()->name;
+        }
+
+        Task::create($attributes + ['status' => 'todo', 'owner_user_id' => $assigneeId ?: auth()->id()]);
 
         app(ActivityLogger::class)->log(
             'task.created',

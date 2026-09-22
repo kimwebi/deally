@@ -3,6 +3,7 @@
 namespace SaasFoundation\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use SaasFoundation\Models\Membership;
 use SaasFoundation\Models\Tenant;
 
@@ -24,7 +25,15 @@ class SwitchTenantController extends Controller
             abort(403, 'Your membership in this tenant is not active.');
         }
 
-        session(['tenant_id' => $tenant->id]);
+        session([config('saas.auth.session_key', 'tenant_id') => $tenant->id]);
+
+        $redirectTo = config('saas.switch_redirect');
+
+        if (filled($redirectTo) && Route::has($redirectTo)) {
+            return redirect()
+                ->route($redirectTo)
+                ->with('success', "Now working in '{$tenant->name}'.");
+        }
 
         return redirect()
             ->route('tenant.dashboard', $tenant)

@@ -2,11 +2,11 @@
 
 namespace Deally\Core\Http\Controllers\Concerns;
 
-use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
+use Deally\Core\Services\Seat;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use SaasFoundation\Models\Membership;
 
 trait AuthorizesDeally
@@ -17,7 +17,7 @@ trait AuthorizesDeally
         return auth()->user();
     }
 
-    protected function deallyMembership(): ?Membership
+    protected function deallyMembership()
     {
         return $this->deallyUser()?->currentMembership;
     }
@@ -30,7 +30,7 @@ trait AuthorizesDeally
             return false;
         }
 
-        if ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin()) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
 
@@ -59,55 +59,12 @@ trait AuthorizesDeally
      */
     protected function seatUserIds(): ?array
     {
-        $user = $this->deallyUser();
-
-        if ($user === null) {
-            return null;
-        }
-
-        if ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin()) {
-            return null;
-        }
-
-        $membership = $this->deallyMembership();
-
-        if ($membership === null) {
-            return null;
-        }
-
-        if (
-            $membership->hasRole('owner')
-            || $membership->hasRole('admin')
-            || $membership->hasRole('tenant-admin')
-            || $membership->hasRole('solutions-lead')
-        ) {
-            return null;
-        }
-
-        if ($membership->hasRole('team-leader')) {
-            $teamIds = Team::query()->forTenant($membership->tenant_id)->pluck('id')->all();
-
-            $memberIds = DB::table('team_user')->whereIn('team_id', $teamIds)->pluck('user_id')->all();
-
-            return array_values(array_unique(array_merge($memberIds, [$user->id])));
-        }
-
-        if ($membership->hasRole('sales-agent')) {
-            return [$user->getKey()];
-        }
-
-        return null;
+        return Seat::userIds($this->deallyUser());
     }
 
     protected function scopeToSeat(Builder $query, string $column = 'owner_user_id'): Builder
     {
-        $ids = $this->seatUserIds();
-
-        if ($ids !== null) {
-            $query->whereIn($column, $ids);
-        }
-
-        return $query;
+        return Seat::scope($query, $column, $this->deallyUser());
     }
 
     protected function authorizeSeatRecord(Model $record): void
@@ -119,5 +76,50 @@ trait AuthorizesDeally
         }
 
         abort_unless(in_array($record->getAttribute('owner_user_id'), $ids, true), 403);
+    }
+
+    /**
+     * User ids of active memberships in the current tenant.
+     *
+     * @return array<int, string>
+     */
+    protected function tenantMemberUserIds(): array
+    {
+        $membership = $this->deallyMembership();
+
+        if ($membership === null) {
+            return [];
+        }
+
+        return Membership::query()
+            ->forTenant($membership->tenant_id)
+            ->active()
+            ->pluck('user_id')
+            ->map(fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Active tenant members as user id => name options for assignment controls.
+     *
+     * @return Collection<int, string>
+     */
+    protected function tenantMembershipOptions(): Collection
+    {
+        $membership = $this->deallyMembership();
+
+        if ($membership === null) {
+            return collect();
+        }
+
+        return Membership::query()
+            ->forTenant($membership->tenant_id)
+            ->active()
+            ->with('user')
+            ->get()
+            ->map(fn (Membership $m) => $m->user)
+            ->filter()
+            ->mapWithKeys(fn ($user): array => [(int) $user->getKey() => $user->name]);
     }
 }

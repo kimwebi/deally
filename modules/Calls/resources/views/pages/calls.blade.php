@@ -14,14 +14,12 @@
             <div class="list-title">Calls</div>
             <div class="list-subtitle">{{ $calls->count() }} recorded sessions · DeAlly transcribes and analyzes every call</div>
         </div>
-        @if (! $calls->isEmpty())
-            <span class="btn-sm primary" data-open-modal="modal-add-call" style="cursor: pointer;">＋ New Call</span>
-        @endif
+        <span class="btn-sm primary" data-open-modal="modal-add-call" style="cursor: pointer;">＋ New Call</span>
     </div>
 
     <table class="data-table">
         <thead>
-            <tr><th>Call</th><th>Customer</th><th>Opportunity</th><th>Date</th><th>Duration</th><th>Sentiment</th><th></th></tr>
+            <tr><th>Call</th><th>Customer</th><th>Agent</th><th>Opportunity</th><th>Date</th><th>Duration</th><th>Sentiment</th><th></th></tr>
         </thead>
         <tbody>
             @forelse ($calls as $call)
@@ -41,6 +39,7 @@
                 <tr>
                     <td class="primary">{{ $call->name }}</td>
                     <td>{{ $call->company }}</td>
+                    <td>{{ $call->owner_user_id === auth()->id() ? 'You' : ($ownerNames[$call->owner_user_id] ?? '—') }}</td>
                     <td>{{ $call->opportunity?->company ?? '—' }}</td>
                     <td class="mono">{{ $call->date->format('M d') }}</td>
                     <td class="mono">{{ $call->duration ?: '—' }}</td>
@@ -56,7 +55,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" style="text-align:center; color: var(--text-3);">No calls recorded yet.</td></tr>
+                <tr><td colspan="8" style="text-align:center; color: var(--text-3);">No calls recorded yet.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -98,6 +97,17 @@
                 <div class="field-block">
                     <div class="field-label">Date</div>
                     <input class="input-field" type="date" name="date" value="{{ today()->toDateString() }}">
+                </div>
+                <div class="field-block">
+                    <div class="field-label">Assign to</div>
+                    <select class="input-field" name="assignee_user_id">
+                        <option value="">Me — {{ auth()->user()->name }}</option>
+                        @foreach ($assignees as $assigneeId => $assigneeName)
+                            @if ($assigneeId !== auth()->id())
+                                <option value="{{ $assigneeId }}">{{ $assigneeName }}</option>
+                            @endif
+                        @endforeach
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">

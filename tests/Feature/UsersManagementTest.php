@@ -179,10 +179,10 @@ class UsersManagementTest extends TestCase
 
     public function test_members_of_another_tenant_cannot_be_managed(): void
     {
-        $alice = User::query()->where('email', 'alice@example.com')->firstOrFail();
+        $david = User::query()->where('email', 'david@example.com')->firstOrFail();
         $globex = Tenant::query()->where('slug', 'globex')->firstOrFail();
 
-        $globexMembership = $alice->getMembershipForTenant($globex);
+        $globexMembership = $david->getMembershipForTenant($globex);
         $this->assertNotNull($globexMembership);
 
         $acmeAdmin = User::query()->where('email', 'alice@example.com')->firstOrFail();

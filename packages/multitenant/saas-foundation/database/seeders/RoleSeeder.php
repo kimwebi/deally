@@ -46,7 +46,7 @@ class RoleSeeder extends Seeder
         $roles = [
             ['slug' => 'super-admin', 'name' => 'Super Administrator', 'permissions' => $allSlugs],
             ['slug' => 'owner', 'name' => 'Tenant Owner', 'permissions' => $allSlugs],
-            ['slug' => 'admin', 'name' => 'Tenant Administrator', 'permissions' => $adminSlugs],
+            ['slug' => 'admin', 'name' => 'Administrator', 'permissions' => $adminSlugs],
             ['slug' => 'member', 'name' => 'Member', 'permissions' => $memberSlugs],
             ['slug' => 'viewer', 'name' => 'Viewer', 'permissions' => $viewerSlugs],
         ];

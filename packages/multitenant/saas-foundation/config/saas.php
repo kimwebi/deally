@@ -30,6 +30,8 @@ return [
         ],
     ],
 
+    'switch_redirect' => env('SAAS_SWITCH_REDIRECT'),
+
     'authorization' => [
         'cache_enabled' => (bool) env('SAAS_AUTHORIZATION_CACHE_ENABLED', true),
         'cache_store' => env('SAAS_AUTHORIZATION_CACHE_STORE'),
@@ -55,6 +57,11 @@ return [
         'default_roles' => array_values(array_filter(array_map('trim', explode(',', (string) env('SAAS_MEMBERSHIP_DEFAULT_ROLES', 'member'))))),
         'statuses' => ['active', 'suspended', 'inactive'],
         'allow_multiple_active' => (bool) env('SAAS_MEMBERSHIP_ALLOW_MULTIPLE_ACTIVE', true),
+    ],
+
+    'instances' => [
+        'max_per_owner' => (int) env('SAAS_INSTANCES_MAX_PER_OWNER', 10),
+        'owner_roles' => array_values(array_filter(array_map('trim', explode(',', (string) env('SAAS_INSTANCES_OWNER_ROLES', 'owner'))))),
     ],
 
     'invitation' => [

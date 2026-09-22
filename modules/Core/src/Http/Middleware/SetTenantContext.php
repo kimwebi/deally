@@ -5,6 +5,7 @@ namespace Deally\Core\Http\Middleware;
 use Closure;
 use Deally\Core\Services\TenantConnectionBinder;
 use Illuminate\Http\Request;
+use SaasFoundation\Models\Tenant;
 use SaasFoundation\Services\Tenancy\TenantContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,13 +18,41 @@ class SetTenantContext
         $user = $request->user();
 
         if ($user !== null) {
-            $membership = $user->memberships()
-                ->with('tenant')
-                ->active()
-                ->first();
+            $sessionKey = config('saas.auth.session_key', 'tenant_id');
+            $sessionTenantId = session($sessionKey);
+
+            $membership = filled($sessionTenantId)
+                ? $user->memberships()
+                    ->with('tenant')
+                    ->where('tenant_id', $sessionTenantId)
+                    ->first()
+                : null;
+
+            if ($membership === null || ! $membership->isActive()) {
+                $membership = $user->memberships()
+                    ->with('tenant')
+                    ->active()
+                    ->first();
+
+                if (filled($sessionTenantId)) {
+                    session()->forget($sessionKey);
+                }
+            }
 
             if ($membership === null && $user->isSuperAdmin()) {
-                return redirect()->route('central.dashboard');
+                if (filled($sessionTenantId)) {
+                    $tenant = Tenant::query()->whereKey($sessionTenantId)->first();
+
+                    if ($tenant !== null) {
+                        $this->binder->bind($tenant);
+
+                        app(TenantContext::class)->initialize($tenant, $user);
+                    }
+                }
+
+                if (! app(TenantContext::class)->check()) {
+                    return redirect()->route('central.dashboard');
+                }
             }
 
             if ($membership !== null) {

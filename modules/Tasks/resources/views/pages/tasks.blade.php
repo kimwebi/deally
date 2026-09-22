@@ -72,11 +72,18 @@
             <div class="modal-body">
                 <div class="field-block">
                     <div class="field-label">Title</div>
-                    <input class="input-field" name="title" placeholder="Send pricing to Globex" required>
+                    <input class="input-field" name="title" placeholder="e.g. Follow up with Stark Industries" required>
                 </div>
                 <div class="field-block">
                     <div class="field-label">Assignee</div>
-                    <input class="input-field" name="assignee" value="{{ auth()->user()?->name }}" placeholder="Who owns this task?">
+                    <select class="input-field" name="assignee_user_id">
+                        <option value="">Me — {{ auth()->user()->name }}</option>
+                        @foreach ($assignees as $assigneeId => $assigneeName)
+                            @if ($assigneeId !== auth()->id())
+                                <option value="{{ $assigneeId }}">{{ $assigneeName }}</option>
+                            @endif
+                        @endforeach
+                    </select>
                 </div>
                 <div class="field-block">
                     <div class="field-label">Linked to</div>

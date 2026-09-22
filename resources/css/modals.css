@@ -23,15 +23,15 @@
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   width: 100%;
-  max-width: 780px;
-  max-height: 90vh;
+  max-width: 500px;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .modal.wide {
-  max-width: 900px;
+  max-width: 650px;
 }
 
 .modal-header {

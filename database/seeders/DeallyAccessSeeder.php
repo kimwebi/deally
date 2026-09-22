@@ -16,7 +16,7 @@ class DeallyAccessSeeder extends Seeder
     {
         $this->seedPermissions();
         $this->seedRoles();
-
+        $this->retireTenantAdminRole();
         $this->assignDemoSeats();
         $this->seedTeams();
     }
@@ -57,8 +57,6 @@ class DeallyAccessSeeder extends Seeder
 
     protected function seedRoles(): void
     {
-        $allSlugs = Permission::where('group_name', 'Deally')->pluck('slug')->all();
-
         $agent = [
             'deally.workspace.view',
             'deally.pipeline.view',
@@ -92,7 +90,6 @@ class DeallyAccessSeeder extends Seeder
                 'deally.reporting.view',
                 'deally.activity.view',
             ]],
-            ['slug' => 'tenant-admin', 'name' => 'Tenant Administrator', 'permissions' => $allSlugs],
         ];
 
         foreach ($roles as $role) {
@@ -109,14 +106,134 @@ class DeallyAccessSeeder extends Seeder
 
             $model->permissions()->sync($permissionIds);
         }
+
+        $this->ensureFoundationRoles();
+    }
+
+    /**
+     * The tenant-admin role duplicated what the owner role already covers,
+     * so it is retired: detach it from every membership and remove it from
+     * the global roles table so it never appears in role pickers again.
+     */
+    protected function retireTenantAdminRole(): void
+    {
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'tenant-admin')->first();
+
+        if ($role === null) {
+            return;
+        }
+
+        $role->memberships()->detach();
+        $role->permissions()->detach();
+        $role->delete();
+    }
+
+    protected function ensureFoundationRoles(): void
+    {
+        $allIds = Permission::where('group_name', 'Deally')->pluck('id')->all();
+        $viewIds = Permission::where('group_name', 'Deally')
+            ->where('slug', 'like', '%.view')
+            ->whereNotIn('slug', [
+                'deally.reporting.view',
+                'deally.activity.view',
+                'deally.team.view',
+            ])
+            ->pluck('id')
+            ->all();
+
+        foreach ([
+            ['slug' => 'owner', 'name' => 'Tenant Owner', 'description' => 'Manages a tenant and everything scoped to it.', 'permissionIds' => $allIds],
+            ['slug' => 'admin', 'name' => 'Administrator', 'description' => 'Runs day-to-day tenant administration without sensitive owner operations.', 'permissionIds' => $allIds],
+            ['slug' => 'viewer', 'name' => 'Viewer', 'description' => 'Read-only access to a tenant.', 'permissionIds' => $viewIds],
+        ] as $role) {
+            $model = Role::firstOrCreate(
+                ['tenant_id' => null, 'slug' => $role['slug']],
+                [
+                    'name' => $role['name'],
+                    'description' => $role['description'],
+                    'is_system' => true,
+                ]
+            );
+
+            $model->permissions()->sync($role['permissionIds']);
+        }
     }
 
     protected function assignDemoSeats(): void
     {
-        $this->assign('alice@example.com', 'acme-corp', 'tenant-admin');
-        $this->assign('charlie@example.com', 'acme-corp', 'sales-agent');
-        $this->assign('bob@example.com', 'globex', 'team-leader');
-        $this->assign('alice@example.com', 'globex', 'solutions-lead');
+        foreach ($this->demoRoster() as ['email' => $email, 'tenant' => $tenantSlug, 'roles' => $roleSlugs]) {
+            $this->sync($email, $tenantSlug, $roleSlugs);
+        }
+    }
+
+    /**
+     * Authoritative demo roster for the Deally app.
+     *
+     * Alice is the only tenant owner and owns every demo instance. Everyone
+     * else is staff with per-instance roles, which is what exercises
+     * multitenancy: the same person can be an administrator in both instances,
+     * an agent in one and a viewer in the other, and so on.
+     *
+     * @return array<int, array{email: string, tenant: string, roles: list<string>}>
+     */
+    protected function demoRoster(): array
+    {
+        return [
+            ['email' => 'alice@example.com', 'tenant' => 'acme-corp', 'roles' => ['owner']],
+            ['email' => 'alice@example.com', 'tenant' => 'globex', 'roles' => ['owner']],
+            ['email' => 'bob@example.com', 'tenant' => 'acme-corp', 'roles' => ['admin']],
+            ['email' => 'bob@example.com', 'tenant' => 'globex', 'roles' => ['admin']],
+            ['email' => 'charlie@example.com', 'tenant' => 'acme-corp', 'roles' => ['viewer', 'sales-agent']],
+            ['email' => 'charlie@example.com', 'tenant' => 'globex', 'roles' => ['viewer']],
+            ['email' => 'erica@example.com', 'tenant' => 'acme-corp', 'roles' => ['team-leader']],
+            ['email' => 'david@example.com', 'tenant' => 'acme-corp', 'roles' => ['admin']],
+            ['email' => 'david@example.com', 'tenant' => 'globex', 'roles' => ['solutions-lead']],
+        ];
+    }
+
+    /**
+     * Ensures the demo user and membership exist, then syncs the exact roles
+     * so re-seeding converges on the same state.
+     *
+     * @param  list<string>  $roleSlugs
+     */
+    protected function sync(string $email, string $tenantSlug, array $roleSlugs): void
+    {
+        $user = User::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => $this->demoUserName($email),
+                'password' => 'password',
+                'is_active' => true,
+            ]
+        );
+
+        $tenant = Tenant::where('slug', $tenantSlug)->first();
+
+        if ($tenant === null) {
+            return;
+        }
+
+        $membership = Membership::query()->firstOrCreate(
+            ['user_id' => $user->id, 'tenant_id' => $tenant->id],
+            ['status' => Membership::STATUS_ACTIVE, 'joined_at' => now()]
+        );
+
+        $roleIds = Role::whereNull('tenant_id')->whereIn('slug', $roleSlugs)->pluck('id')->all();
+
+        $membership->roles()->sync($roleIds);
+    }
+
+    protected function demoUserName(string $email): string
+    {
+        return match ($email) {
+            'alice@example.com' => 'Alice Johnson',
+            'bob@example.com' => 'Bob Carter',
+            'charlie@example.com' => 'Charlie Lee',
+            'erica@example.com' => 'Erica Valdez',
+            'david@example.com' => 'David Chen',
+            default => str($email)->before('@')->replace('_', ' ')->ucfirst()->toString(),
+        };
     }
 
     protected function seedTeams(): void
@@ -131,7 +248,7 @@ class DeallyAccessSeeder extends Seeder
             );
 
             $team->members()->syncWithoutDetaching(
-                User::whereIn('email', ['alice@example.com', 'charlie@example.com'])->pluck('id')->all()
+                User::whereIn('email', ['alice@example.com', 'charlie@example.com', 'erica@example.com'])->pluck('id')->all()
             );
         }
 
@@ -141,30 +258,9 @@ class DeallyAccessSeeder extends Seeder
                 ['description' => 'Core account management and renewals.']
             );
 
-            $team->members()->syncWithoutDetaching(
-                User::whereIn('email', ['bob@example.com', 'alice@example.com'])->pluck('id')->all()
+            $team->members()->sync(
+                User::whereIn('email', ['alice@example.com', 'bob@example.com'])->pluck('id')->all()
             );
-        }
-    }
-
-    protected function assign(string $email, string $tenantSlug, string $roleSlug): void
-    {
-        $user = User::where('email', $email)->first();
-        $tenant = Tenant::where('slug', $tenantSlug)->first();
-
-        if ($user === null || $tenant === null) {
-            return;
-        }
-
-        $membership = Membership::query()
-            ->where('user_id', $user->id)
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        $role = Role::whereNull('tenant_id')->where('slug', $roleSlug)->first();
-
-        if ($membership !== null && $role !== null) {
-            $membership->roles()->syncWithoutDetaching($role->id);
         }
     }
 
@@ -179,7 +275,6 @@ class DeallyAccessSeeder extends Seeder
             'sales-agent' => 'Works deals end-to-end within their own pipeline, calls, tasks and proposals.',
             'team-leader' => 'Oversees a team and its reporting; sees what the team sees plus team visibility.',
             'solutions-lead' => 'Handles platform questions and knowledge base governance.',
-            'tenant-admin' => 'Administers tenant users, teams, roles and settings.',
             default => '',
         };
     }

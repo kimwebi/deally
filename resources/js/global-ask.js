@@ -39,7 +39,7 @@ export function initGlobalAsk() {
     function renderNav() {
         var items = matchNav(input.value);
         if (!items.length) {
-            results.innerHTML = '<div class="cmdbar-no-match">No matching pages â€” press Enter to ask DeAlly.</div>';
+            results.innerHTML = '<div class="cmdbar-no-match">No matching pages — press Enter to ask DeAlly.</div>';
             return;
         }
         var html = items.map(function (item) {
@@ -66,7 +66,7 @@ export function initGlobalAsk() {
         if (!text) return;
 
         results.hidden = false;
-        results.innerHTML = '<div class="cmdbar-thinking"><span class="live-dot"></span>DeAlly is thinkingâ€¦</div>';
+        results.innerHTML = '<div class="cmdbar-thinking"><span class="live-dot"></span>DeAlly is thinking...</div>';
 
         fetch('/app/ask', {
             method: 'POST',
@@ -78,16 +78,16 @@ export function initGlobalAsk() {
                 if (json && json.ok && json.answer) {
                     var kb = nav.find(function (item) { return item.label === 'Knowledge Base'; });
                     results.innerHTML =
-                        '<div class="cmdbar-result-label">DeAlly Â· grounded in your knowledge base</div>' +
+                        '<div class="cmdbar-result-label">DeAlly · grounded in your knowledge base</div>' +
                         '<div class="cmdbar-result-answer">' + esc(json.answer) + '</div>' +
                         (kb ? '<a class="cmdbar-result-link" href="' + esc(kb.href) + '"><i class="bi bi-book"></i> Explore the Knowledge Base</a>' : '');
                 } else {
                     results.innerHTML =
-                        '<div class="cmdbar-result-error">Could not find an answer right now â€” try a more specific question.</div>';
+                        '<div class="cmdbar-result-error">Could not find an answer right now, try a more specific question.</div>';
                 }
             })
             .catch(function () {
-                results.innerHTML = '<div class="cmdbar-result-error">Network error â€” try again.</div>';
+                results.innerHTML = '<div class="cmdbar-result-error">Network error, try again.</div>';
             });
     });
 

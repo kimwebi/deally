@@ -15,7 +15,7 @@
 
     <table class="data-table">
         <thead>
-            <tr><th>Role</th><th>Permissions</th><th>Members</th><th></th></tr>
+            <tr><th>Role</th><th>Scope</th><th>Permissions</th><th>Members</th><th></th></tr>
         </thead>
         <tbody>
             @forelse ($roles as $role)
@@ -26,6 +26,7 @@
                             <span class="status-pill pending">system</span>
                         @endif
                     </td>
+                    <td>{{ $role->is_system ? 'Global' : 'This instance' }}</td>
                     <td>{{ $role->permissions->count() }} permissions</td>
                     <td>{{ $role->memberships_count }} member{{ $role->memberships_count === 1 ? '' : 's' }}</td>
                     <td style="text-align:right;">
@@ -40,7 +41,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4" style="text-align:center; color: var(--text-3);">No roles yet. Create the first role to start assigning permissions.</td></tr>
+                <tr><td colspan="5" style="text-align:center; color: var(--text-3);">No roles yet. Create the first role to start assigning permissions.</td></tr>
             @endforelse
         </tbody>
     </table>

@@ -14,6 +14,7 @@ Route::middleware('deally')
         Route::post('calls/{call}/live/query', [CallController::class, 'liveQuery'])->name('calls.live.query');
         Route::get('calls/{call}/summary', [CallController::class, 'summary'])->name('calls.summary');
         Route::get('calls/{call}/review', [CallController::class, 'review'])->name('calls.review');
+        Route::get('calls/{call}/transcript/download', [CallController::class, 'downloadTranscript'])->name('calls.transcript.download');
         Route::get('calls/{call}', [CallController::class, 'show'])->name('calls.show');
         Route::post('calls/{call}/end', [CallController::class, 'end'])->name('calls.end');
         Route::post('calls/{call}/transcript', [CallController::class, 'transcript'])->name('calls.transcript');

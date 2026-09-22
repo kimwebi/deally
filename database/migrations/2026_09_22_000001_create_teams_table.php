@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->timestamps();
             $table->unique(['tenant_id', 'name']);
+            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
         });
     }
 

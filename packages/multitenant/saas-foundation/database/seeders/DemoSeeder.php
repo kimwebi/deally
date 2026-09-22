@@ -30,8 +30,9 @@ class DemoSeeder extends Seeder
         $this->membership($alice, $acme, 'owner');
         $this->membership($charlie, $acme, 'viewer');
 
-        $this->membership($bob, $globex, 'owner');
-        $this->membership($alice, $globex, 'viewer');
+        $this->membership($bob, $globex, 'member');
+        $this->membership($alice, $globex, 'owner');
+        $this->membership($bob, $acme, 'member');
 
         $acme->projects()->create([
             'name' => 'Cloud Dashboard',

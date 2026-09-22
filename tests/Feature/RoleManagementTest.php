@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Database\Seeders\DeallyAccessSeeder;
 use Database\Seeders\DemoSeeder;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
@@ -20,6 +21,7 @@ class RoleManagementTest extends TestCase
         parent::setUp();
 
         $this->seed(DemoSeeder::class);
+        $this->seed(DeallyAccessSeeder::class);
 
         $acme = Tenant::query()->where('slug', 'acme-corp')->firstOrFail();
         $provisioner = app(DeallyTenantProvisioner::class);
@@ -45,6 +47,47 @@ class RoleManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Roles')
             ->assertSee('Ops Manager');
+    }
+
+    public function test_roles_index_lists_roles_used_in_this_instance_with_scope(): void
+    {
+        $this->acme()->roles()->create(['name' => 'Ops Manager']);
+
+        $this->actingAs($this->user('alice@example.com'))
+            ->get(route('deally.roles.index'))
+            ->assertOk()
+            ->assertSee('Global')
+            ->assertSee('This instance')
+            ->assertSee('Tenant Owner')
+            ->assertSee('Viewer')
+            ->assertSee('Sales Agent')
+            ->assertSee('Team Leader')
+            ->assertSee('Administrator')
+            ->assertDontSee('Tenant Administrator')
+            ->assertSee('Ops Manager')
+            ->assertSee('6 roles')
+            ->assertDontSee('Super Administrator');
+    }
+
+    public function test_owner_can_update_global_system_role_permissions(): void
+    {
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'owner')->firstOrFail();
+
+        $usersView = Permission::query()->where('slug', 'users.view')->firstOrFail();
+        $billingManage = Permission::query()->where('slug', 'billing.manage')->firstOrFail();
+        $role->permissions()->sync($usersView->id);
+
+        $this->actingAs($this->user('alice@example.com'))
+            ->put(route('deally.roles.update', $role), [
+                'name' => 'Member',
+                'permissions' => [$usersView->id, $billingManage->id],
+            ])
+            ->assertRedirect(route('deally.roles.index'));
+
+        $role->refresh();
+
+        $this->assertTrue($role->permissions()->where('id', $billingManage->id)->exists());
+        $this->assertTrue($role->permissions()->where('id', $usersView->id)->exists());
     }
 
     public function test_viewer_cannot_manage_roles(): void

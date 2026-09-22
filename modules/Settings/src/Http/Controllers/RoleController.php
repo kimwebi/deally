@@ -4,6 +4,7 @@ namespace Deally\Settings\Http\Controllers;
 
 use Deally\Core\Http\Controllers\Controller;
 use Deally\Core\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,10 +19,19 @@ class RoleController extends Controller
     {
         $this->authorizeManageRoles();
 
-        $roles = $this->currentTenant()->roles()
-            ->withCount('memberships')
+        $tenant = $this->currentTenant();
+
+        $roles = Role::query()
+            ->where('slug', '!=', 'super-admin')
+            ->where(function (Builder $query) use ($tenant) {
+                $query->whereHas('memberships', fn (Builder $query) => $query->where('memberships.tenant_id', $tenant->id))
+                    ->orWhere('tenant_id', $tenant->id);
+            })
             ->with('permissions')
-            ->latest()
+            ->withCount([
+                'memberships' => fn (Builder $query) => $query->where('memberships.tenant_id', $tenant->id),
+            ])
+            ->orderBy('name')
             ->get();
 
         return view('settings::pages.roles.index', ['roles' => $roles]);
@@ -91,9 +101,7 @@ class RoleController extends Controller
         $this->authorizeManageRoles();
         $this->abortIfNotInTenant($role);
 
-        if ($role->isSystem()) {
-            return back()->with('toast', 'System roles cannot be deleted.');
-        }
+        abort_if($role->isSystem(), 404);
 
         if ($role->memberships()->count() > 0) {
             return back()->with('toast', 'Role cannot be deleted while assigned to members.');
@@ -122,13 +130,17 @@ class RoleController extends Controller
     {
         $user = $this->user();
 
-        if ($user->isSuperAdmin() || $user->isSuperadmin() || $user->isAdmin()) {
+        if ($user->isSuperAdmin()) {
             return;
         }
 
         $membership = $user->currentMembership;
 
-        if ($membership !== null && ($membership->hasRole('owner') || $membership->hasRole('admin'))) {
+        if (
+            $membership !== null
+            && ($membership->hasRole('owner')
+                || $membership->hasRole('admin'))
+        ) {
             return;
         }
 
@@ -148,7 +160,7 @@ class RoleController extends Controller
 
     protected function abortIfNotInTenant(Role $role): void
     {
-        abort_if($role->tenant_id !== $this->currentTenant()->id, 404);
+        abort_if($role->tenant_id !== null && $role->tenant_id !== $this->currentTenant()->id, 404);
     }
 
     protected function user(): User

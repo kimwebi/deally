@@ -49,12 +49,12 @@ export function deallySuggest() {
                 el.className = 'suggestion ' + type;
                 el.setAttribute('data-type', type);
                 var src = type === 'competitor'
-                    ? 'Source: live transcript Â· competitor detection'
+                    ? 'Source: live transcript · competitor detection'
                     : type === 'data'
                         ? 'Source: capability card'
                         : 'Source: playbook';
                 el.innerHTML =
-                    '<div class="suggestion-tag">' + type.toUpperCase() + '<span class="suggestion-confidence">AI Â· LIVE</span></div>' +
+                    '<div class="suggestion-tag">' + type.toUpperCase() + '<span class="suggestion-confidence">AI · LIVE</span></div>' +
                     '<div class="suggestion-text">' + items[0] + '</div>' +
                     '<div class="suggestion-source">' + src + '</div>';
                 pool.appendChild(el);
