@@ -13,14 +13,15 @@ The application is split into feature modules, each with its own `routes/`, `res
 | `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline |
 | `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management |
 | `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and knowledge base |
-| `Settings` | `Deally\Settings` | `/app/account` | `settings::` | User account settings |
+| `Solutions` | `Deally\Solutions` | `/app/solutions` | `solutions::` | Solutions lead: gap queue, corrections, VOC trends |
+| `Settings` | `Deally\Settings` | `/app/account` | `settings::` | User account settings, roles, teams, users, integrations |
 | `Workspace` | `Deally\Workspace` | `/app/home` | `workspace::` | Workspace dashboard |
 
 ### Multi-tenancy
 
 - The central database holds users, tenants, memberships, subscriptions, and teams (`teams` and `team_user` live alongside the central `users` and `tenants`, with cascade foreign keys so deleting a user or tenant automatically removes their team memberships).
 - Each active tenant gets its own SQLite database under `database/tenants/` with a random `instance` key.
-- Tenant management (central CRUD, provisioning commands, tenant-scoped users/invitations/roles/domains/settings, instance switching, the sole system-owner `superadmin` flag) lives in the `multitenant/saas-foundation` package under `packages/`.
+- Tenant management (central CRUD, provisioning commands, tenant-scoped users/invitations/roles/domains/settings, instance switching, the sole system-owner `superadmin` flag) lives in the `multitenant/saas-foundation` package under `packages/`. The package's central console also ships the **Setup Console** and the platform-wide **Audit Log**, gated by a `platform.operator` middleware that admits the super-admin or any member holding the global `platform-support` role.
 - Module routes run under the `deally` middleware group registered in `bootstrap/app.php`, which applies the session, CSRF, `auth`, and `tenant.context` middleware plus route-model binding substitution. `tenant.context` (`SetTenantContext`) runs before `SubstituteBindings` so route-bound models hydrate from the right tenant connection.
 
 ### Registration
@@ -79,8 +80,29 @@ All demo users log in with the password `password`:
 | `charlie@example.com` | sales-agent · viewer | viewer |
 | `david@example.com` | admin | solutions-lead |
 | `erica@example.com` | team-leader | — |
+| `support@example.com` | platform-support · viewer | — |
 
-> Alice is **the** tenant owner — she owns every demo instance (Acme Corp and Globex). The other members carry per-instance roles, which is what exercises multitenancy: Bob is an administrator in both instances; Charlie is a sales agent in Acme and a read-only viewer in Globex; David is an administrator in Acme and Globex's solution lead; Erica leads the Acme East Pod team. Erica's and David's accounts are seeded by `DeallyAccessSeeder` (`Erica Valdez` teammates land in the East Pod, watching the team workspace, team pages and team reporting). A tenant owner can change any member's role from the Administration → Users page.
+> Alice is **the** tenant owner — she owns every demo instance (Acme Corp and Globex). The other members carry per-instance roles, which is what exercises multitenancy: Bob is an administrator in both instances; Charlie is a sales agent in Acme and a read-only viewer in Globex; David is an administrator in Acme and Globex's solution lead; Erica leads the Acme East Pod team. Erica's and David's accounts are seeded by `DeallyAccessSeeder` (`Erica Valdez` teammates land in the East Pod, watching the team workspace, team pages and team reporting). Stephanie Orr (`support@example.com`) is platform support: she is a read-only viewer in Acme who can open the **Setup Console** and the platform-wide **Audit Log** in the `multitenant/saas-foundation` central console. A tenant owner can change any member's role from the Administration → Users page.
+
+## Roles & access (access matrix)
+
+The seeded roles implement the following account access. "Sees" is what a seat can read, "Owns" is what it can change. Everything is enforced by permissions seeded in `DeallyAccessSeeder` and seat scoping in `Deally\Core\Services\Seat` (sales agents are scoped to their own user id, team leaders to their team's member ids, owners/admins/solutions-leads see everything in scope). The Platform Support seat is keyed to the package's platform consoles rather than tenant data (`tenants.view`, `tenants.create`, `audit.view`).
+
+| Role | Sees | Owns |
+| --- | --- | --- |
+| **Sales Agent** | Only their own Customers/Deals, Tasks, Calls, Proposals and their own pipeline | Their own pipeline, tasks, calls and proposals |
+| **Team Leader** | Every such record of the agents on their team (read-only for anyone outside), team health, approvals | Team health, approvals, coaching, reassignment (scope = managed agents) |
+| **Solutions Lead** | The org-wide Knowledge Base, gap queue, corrections queue, and VOC trends — what the AI is allowed to say (org-wide, not tied to a team, customer or deal) | KB governance: approving/editing/rejecting gap answers and corrections |
+| **Tenant Admin / Owner** | Team structure, integrations, account settings | Account-level configuration (teams, users, roles, integrations, settings) |
+| **Platform Support** | Setup console, platform-wide audit logs | Provisioning new customers (tenant databases) |
+
+Implementation notes:
+
+- **Sales Agent / Team Leader / Tenant Admin** seat scoping lives in `Seat::userIds()`: `null` means every record in scope (owner, admin, solutions-lead), a team leader sees team member ids + self, a sales agent only themselves.
+- **VOC trends** (Solutions Lead) is a data-driven pane on the Solutions Lead page (`deally.kb.manage`) that aggregates call sentiment across the whole tenant into a 6-month heatmap plus a 30-day positive/negative summary.
+- **Integrations** (Tenant Admin / Owner) is under Administration → Integrations (`deally.integrations.view/manage`), storing per-tenant toggles in the `tenants.settings` JSON column.
+- **Setup Console & platform-wide Audit Log** (Platform Support + superadmin) live in the `multitenant/saas-foundation` package as `central.setup.*` / `central.audit.index`, under the Platform Ops section of the package's central console, gated by the `platform.operator` middleware (`SaasFoundation\Http\Middleware\EnsurePlatformOperator`, backed by `User::isPlatformOperator()`). The console lists every customer with provisioning status, provisions tenant databases, and can create a new customer and provision its database in one action. The app binds the package's `TenantProvisioner` to `DeallyTenantProvisioner` (`CoreServiceProvider`), so provisioning from the console uses DeAlly's tenant migrations and seeder. The DeAlly sidebar's Platform group links into the package console; the platform-support role and permissions are seeded by the package's `RoleSeeder` (with an app-side `ensurePlatformSupportRole()` for the demo, since the app does not run the package seeders).
+- The platform-level **Super Admin** (`tech@wyzone.com`, a flag set in `DatabaseSeeder`) bypasses all permission checks and can reach the setup console and the package's Tailwind-based central console (`central.*`).
 
 ## Roles, calls and task assignment
 

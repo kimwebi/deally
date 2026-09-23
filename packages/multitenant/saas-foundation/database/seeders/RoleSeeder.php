@@ -49,6 +49,11 @@ class RoleSeeder extends Seeder
             ['slug' => 'admin', 'name' => 'Administrator', 'permissions' => $adminSlugs],
             ['slug' => 'member', 'name' => 'Member', 'permissions' => $memberSlugs],
             ['slug' => 'viewer', 'name' => 'Viewer', 'permissions' => $viewerSlugs],
+            ['slug' => 'platform-support', 'name' => 'Platform Support', 'permissions' => [
+                'tenants.view',
+                'tenants.create',
+                'audit.view',
+            ]],
         ];
 
         foreach ($roles as $role) {
@@ -75,6 +80,7 @@ class RoleSeeder extends Seeder
             'admin' => 'Runs day-to-day tenant administration without sensitive owner operations.',
             'member' => 'Works with operational features inside a tenant.',
             'viewer' => 'Read-only access to a tenant.',
+            'platform-support' => 'Platform operations: the setup console, tenant provisioning and platform-wide audit logs.',
             default => '',
         };
     }

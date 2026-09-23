@@ -30,6 +30,7 @@ use SaasFoundation\Console\Commands\TenantUserAddCommand;
 use SaasFoundation\Console\Commands\TenantUserListCommand;
 use SaasFoundation\Console\Commands\TenantUserRemoveCommand;
 use SaasFoundation\Http\Middleware\EnsureEmailVerified;
+use SaasFoundation\Http\Middleware\EnsurePlatformOperator;
 use SaasFoundation\Http\Middleware\EnsureSuperAdmin;
 use SaasFoundation\Http\Middleware\EnsureTenantMembership;
 use SaasFoundation\Http\Middleware\EnsureUserIsActive;
@@ -159,6 +160,7 @@ class SaasFoundationServiceProvider extends ServiceProvider
 
         $router->aliasMiddleware('track.activity', TrackActivity::class);
         $router->aliasMiddleware('super_admin', EnsureSuperAdmin::class);
+        $router->aliasMiddleware('platform.operator', EnsurePlatformOperator::class);
         $router->aliasMiddleware('tenant.access', EnsureTenantMembership::class);
         $router->aliasMiddleware('email.verified', EnsureEmailVerified::class);
         $router->aliasMiddleware('user.active', EnsureUserIsActive::class);

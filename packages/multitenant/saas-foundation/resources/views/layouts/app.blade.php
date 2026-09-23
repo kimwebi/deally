@@ -42,6 +42,18 @@
                 </div>
                 @endif
 
+                @if(auth()->user() && auth()->user()->isPlatformOperator())
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Platform Ops</div>
+                    <a href="{{ route('central.setup.index') }}" class="sidebar-link {{ request()->routeIs('central.setup.*') ? 'active' : '' }}">
+                        <span class="icon">&#9881;</span> Setup Console
+                    </a>
+                    <a href="{{ route('central.audit.index') }}" class="sidebar-link {{ request()->routeIs('central.audit.*') ? 'active' : '' }}">
+                        <span class="icon">&#9783;</span> Audit Log
+                    </a>
+                </div>
+                @endif
+
                 @if($tenant)
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Tenant Panel</div>

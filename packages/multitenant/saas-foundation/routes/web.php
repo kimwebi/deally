@@ -13,6 +13,7 @@ use SaasFoundation\Http\Controllers\Central\CentralAuditController;
 use SaasFoundation\Http\Controllers\Central\CentralDashboardController;
 use SaasFoundation\Http\Controllers\Central\CentralFeatureController;
 use SaasFoundation\Http\Controllers\Central\CentralPlanController;
+use SaasFoundation\Http\Controllers\Central\CentralSetupController;
 use SaasFoundation\Http\Controllers\Central\CentralSubscriptionController;
 use SaasFoundation\Http\Controllers\Central\CentralTenantController;
 use SaasFoundation\Http\Controllers\Central\CentralUserController;
@@ -178,6 +179,18 @@ Route::middleware(['auth', 'super_admin'])->prefix('central')->name('central.')-
 
     Route::get('subscriptions', [CentralSubscriptionController::class, 'index'])->name('subscriptions.index');
     Route::get('subscriptions/{subscription}', [CentralSubscriptionController::class, 'show'])->name('subscriptions.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Central Platform Operator Routes (Super Admin + Platform Support)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'platform.operator'])->prefix('central')->name('central.')->group(function () {
+    Route::get('setup', [CentralSetupController::class, 'index'])->name('setup.index');
+    Route::post('setup/tenants', [CentralSetupController::class, 'store'])->name('setup.tenants.store');
+    Route::post('setup/tenants/{tenant}/provision', [CentralSetupController::class, 'provision'])->name('setup.tenants.provision');
 
     Route::get('audit', [CentralAuditController::class, 'index'])->name('audit.index');
 });

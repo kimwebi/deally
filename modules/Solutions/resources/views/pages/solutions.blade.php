@@ -29,11 +29,39 @@
 
         <div class="sl-card">
             <div class="sl-card-head">Voice of customer</div>
-            <div class="heatmap">
-                <div class="heatmap-row"><span class="heatmap-tag">Pricing</span><div class="heatmap-cells"><span class="heatmap-cell hot"></span><span class="heatmap-cell hot"></span><span class="heatmap-cell warm"></span><span class="heatmap-cell"></span><span class="heatmap-cell"></span><span class="heatmap-cell warm"></span></div></div>
-                <div class="heatmap-row"><span class="heatmap-tag">Feature fit</span><div class="heatmap-cells"><span class="heatmap-cell hot"></span><span class="heatmap-cell warm"></span><span class="heatmap-cell warm"></span><span class="heatmap-cell"></span><span class="heatmap-cell"></span><span class="heatmap-cell"></span></div></div>
-                <div class="heatmap-row"><span class="heatmap-tag">Security</span><div class="heatmap-cells"><span class="heatmap-cell warm"></span><span class="heatmap-cell"></span><span class="heatmap-cell"></span><span class="heatmap-cell"></span><span class="heatmap-cell cold"></span><span class="heatmap-cell cold"></span></div></div>
-                <div class="heatmap-row"><span class="heatmap-tag">Migrations</span><div class="heatmap-cells"><span class="heatmap-cell warm"></span><span class="heatmap-cell warm"></span><span class="heatmap-cell"></span><span class="heatmap-cell cold"></span><span class="heatmap-cell cold"></span><span class="heatmap-cell"></span></div></div>
+            @if (count($voc['rows']) > 0)
+                <div class="heatmap">
+                    <div class="heatmap-row heatmap-months">
+                        <span class="heatmap-tag"></span>
+                        <div class="heatmap-cells">
+                            @foreach ($voc['months'] as $month)
+                                <span class="heatmap-month">{{ $month }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @foreach ($voc['rows'] as $row)
+                        <div class="heatmap-row">
+                            <span class="heatmap-tag" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $row['label'] }}</span>
+                            <div class="heatmap-cells">
+                                @foreach ($row['cells'] as $cell)
+                                    <span class="heatmap-cell {{ $cell }}" title="{{ $row['label'] }}"></span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="sl-row-note">No call signal yet — VOC trends appear as calls are logged.</div>
+            @endif
+            <div style="font-size:11px;color:var(--text-3);margin-top:10px;">
+                @if ($voc['total30'] > 0)
+                    Last 30 days: {{ $voc['positive30'] }} positive · {{ $voc['negative30'] }} negative across {{ $voc['total30'] }} calls.
+                    @if ($voc['negative30'] > 0)
+                        <span style="color:var(--danger-bright);font-weight:500;"> {{ $voc['negative30'] }} need attention.</span>
+                    @endif
+                @else
+                    No calls logged in the last 30 days.
+                @endif
             </div>
         </div>
     </aside>

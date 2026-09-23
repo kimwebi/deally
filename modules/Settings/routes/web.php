@@ -1,5 +1,6 @@
 <?php
 
+use Deally\Settings\Http\Controllers\IntegrationsController;
 use Deally\Settings\Http\Controllers\RoleController;
 use Deally\Settings\Http\Controllers\SettingsController;
 use Deally\Settings\Http\Controllers\TeamController;
@@ -41,4 +42,7 @@ Route::middleware('deally')
                 Route::put('users/{membership}', [UserController::class, 'update'])->name('update');
                 Route::delete('users/{membership}', [UserController::class, 'destroy'])->name('destroy');
             });
+
+        Route::get('admin/integrations', [IntegrationsController::class, 'index'])->name('integrations.index');
+        Route::post('admin/integrations', [IntegrationsController::class, 'update'])->name('integrations.update');
     });

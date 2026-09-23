@@ -63,9 +63,10 @@ class RoleManagementTest extends TestCase
             ->assertSee('Sales Agent')
             ->assertSee('Team Leader')
             ->assertSee('Administrator')
+            ->assertSee('Platform Support')
             ->assertDontSee('Tenant Administrator')
             ->assertSee('Ops Manager')
-            ->assertSee('6 roles')
+            ->assertSee('7 roles')
             ->assertDontSee('Super Administrator');
     }
 

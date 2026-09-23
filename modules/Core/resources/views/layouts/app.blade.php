@@ -28,6 +28,8 @@
     $canSeeTeams = $user && ($user->isSuperAdmin() || $hasAdminSeat);
     $userAdminRoles = ['owner', 'admin'];
     $canSeeUsers = $user && ($user->isSuperAdmin() || ($membership && array_intersect($userAdminRoles, $membership->roles->pluck('slug')->all())));
+    $canSeeSetup = $user && ($user->isSuperAdmin() || ($membership && $membership->roles->pluck('slug')->contains('platform-support')));
+    $canSeeIntegrations = $user && ($user->isSuperAdmin() || ($membership && array_intersect(['owner', 'admin'], $membership->roles->pluck('slug')->all())));
     $unreadCount = $user?->unreadNotifications()->count() ?? 0;
     $taskTodoCount = $user ? Deally\Core\Services\Seat::scope(Deally\Tasks\Models\Task::query())->todo()->count() : 0;
     $switchableTenants = collect();
@@ -85,6 +87,19 @@
                 @endif
                 @if($canSeeUsers)
                 <a href="{{ route('deally.users.index') }}" class="nav-item {{ request()->routeIs('deally.users.*') ? 'active' : '' }}">Users</a>
+                @endif
+                @if($canSeeIntegrations)
+                <a href="{{ route('deally.integrations.index') }}" class="nav-item {{ request()->routeIs('deally.integrations.index') ? 'active' : '' }}">Integrations</a>
+                @endif
+            </div>
+            @endif
+
+            @if($canSeeSetup)
+            <div class="nav-group">
+                <div class="nav-group-label">Platform</div>
+                <a href="{{ route('central.setup.index') }}" class="nav-item {{ request()->routeIs('central.setup.*') ? 'active' : '' }}">Setup Console</a>
+                @if($user->isSuperAdmin())
+                <a href="{{ route('central.dashboard') }}" class="nav-item">Central Console</a>
                 @endif
             </div>
             @endif
@@ -175,6 +190,12 @@
                     @endif
                     @if($canSeeUsers)
                     ,{"label":"Users","href":"{{ route('deally.users.index') }}","icon":"bi-person","keywords":"users members seats"}
+                    @endif
+                    @if($canSeeIntegrations)
+                    ,{"label":"Integrations","href":"{{ route('deally.integrations.index') }}","icon":"bi-plug","keywords":"integrations connectors sync apps"}
+                    @endif
+                    @if($canSeeSetup)
+                    ,{"label":"Setup Console","href":"{{ route('central.setup.index') }}","icon":"bi-cpu","keywords":"setup provisioning tenants platform customers"}
                     @endif
                 ]</script>
             </div>

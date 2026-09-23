@@ -84,6 +84,26 @@ class User extends Authenticatable
         return $this->is_super_admin === true;
     }
 
+    /**
+     * Platform-level operator: the super-admin or any active membership
+     * holding the global platform-support role. This gates the package's
+     * platform consoles (setup console, platform-wide audit log), which
+     * are not bound to a single tenant seat.
+     */
+    public function isPlatformOperator(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->memberships()
+            ->active()
+            ->whereHas('roles', function ($query): void {
+                $query->where('slug', 'platform-support');
+            })
+            ->exists();
+    }
+
     public function belongsToTenant(Tenant|string $tenant): bool
     {
         $tenantId = $tenant instanceof Tenant ? $tenant->id : $tenant;

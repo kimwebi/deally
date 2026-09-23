@@ -25,8 +25,13 @@
         @forelse ($atRisk as $deal)
             <div class="risk-deal">
                 <div class="risk-deal-title">{{ $deal['title'] }} <span style="color:var(--danger-bright);font-size:11px">{{ $deal['value'] }}</span></div>
-                <div class="risk-deal-meta"><span>{{ $deal['owner'] }}</span></div>
-                <div class="risk-reason">{{ $deal['reason'] }}</div>
+                <div class="risk-deal-meta">
+                    <span>{{ $deal['owner'] }}</span>
+                    @if ($deal['days'] !== null)
+                        <span>{{ $deal['days'] }} day{{ $deal['days'] === 1 ? '' : 's' }} quiet</span>
+                    @endif
+                </div>
+                <div class="risk-reason">⚠ {{ $deal['reason'] }}</div>
             </div>
         @empty
             <div style="font-size:12px;color:var(--text-3);text-align:center;padding:14px 0;">No at-risk deals right now.</div>
@@ -93,10 +98,16 @@
 
         @forelse ($approvals as $approval)
             <div class="approval-card">
-                <div class="approval-title">{{ $approval['title'] }}</div>
+                <a class="approval-title" href="{{ $approval['href'] }}">{{ $approval['title'] }}</a>
                 <div class="approval-meta">{{ $approval['meta'] }}</div>
                 <div class="approval-actions">
-                    <a class="approve" href="{{ $approval['href'] }}">Open</a>
+                    @foreach (['approved' => '✓ Approve', 'draft' => 'Changes', 'rejected' => 'Reject'] as $status => $label)
+                        <form method="POST" action="{{ route('deally.proposals.status', $approval['id']) }}">
+                            @csrf
+                            <input type="hidden" name="status" value="{{ $status }}">
+                            <button type="submit" class="{{ $status === 'approved' ? 'approve' : ($status === 'rejected' ? 'reject' : '') }}">{{ $label }}</button>
+                        </form>
+                    @endforeach
                 </div>
             </div>
         @empty

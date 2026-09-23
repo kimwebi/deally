@@ -7,10 +7,12 @@ use Database\Seeders\DemoSeeder;
 use Deally\Calls\Models\Call;
 use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
+use Deally\Core\Services\DeallyTenantDatabaseManager;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Deally\Tasks\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use SaasFoundation\Models\AuditLog;
 use SaasFoundation\Models\Permission;
 use SaasFoundation\Models\Role;
 use SaasFoundation\Models\Tenant;
@@ -235,6 +237,118 @@ class DeallyAccessTest extends TestCase
         $this->get(route('deally.solutions.index'))->assertOk()->assertSee('Gap Queue');
     }
 
+    public function test_tenant_owner_can_configure_integrations(): void
+    {
+        $this->actingAs($this->user('bob@example.com'));
+
+        $this->get(route('deally.integrations.index'))
+            ->assertOk()
+            ->assertSee('Integrations')
+            ->assertSee('Slack');
+
+        $this->post(route('deally.integrations.update'), ['enabled' => ['slack', 'openai']])
+            ->assertRedirect();
+
+        $this->assertSame(
+            ['slack', 'openai'],
+            $this->acme()->fresh()->settings['integrations']
+        );
+
+        $this->get(route('deally.integrations.index'))
+            ->assertOk()
+            ->assertSee('Connected');
+    }
+
+    public function test_sales_agent_cannot_access_integrations_or_platform_console(): void
+    {
+        $this->actingAs($this->user('charlie@example.com'));
+
+        $this->get(route('deally.integrations.index'))->assertForbidden();
+        $this->get(route('central.setup.index'))->assertForbidden();
+        $this->get(route('central.audit.index'))->assertForbidden();
+    }
+
+    public function test_tenant_admin_cannot_access_setup_console(): void
+    {
+        $this->actingAs($this->user('bob@example.com'))
+            ->get(route('central.setup.index'))
+            ->assertForbidden();
+    }
+
+    public function test_platform_support_can_use_setup_console(): void
+    {
+        $this->actingAs($this->user('support@example.com'))
+            ->get(route('central.setup.index'))
+            ->assertOk()
+            ->assertSee('Setup Console')
+            ->assertSee('Acme Corp');
+    }
+
+    public function test_superadmin_can_open_setup_console(): void
+    {
+        $this->actingAs($this->makeSuperadmin())
+            ->get(route('central.setup.index'))
+            ->assertOk()
+            ->assertSee('Setup Console');
+    }
+
+    public function test_platform_support_can_provision_a_new_customer(): void
+    {
+        $this->actingAs($this->user('support@example.com'));
+
+        $this->post(route('central.setup.tenants.store'), [
+            'name' => 'Umbrella Corp',
+            'email' => 'owner.umbrella@example.com',
+        ])->assertRedirect();
+
+        $tenant = Tenant::query()->where('slug', 'umbrella-corp')->firstOrFail();
+        $this->assertSame('ready', $tenant->provisioning_status);
+
+        $manager = app(DeallyTenantDatabaseManager::class);
+        $this->assertFileExists(database_path('tenants').DIRECTORY_SEPARATOR.$manager->getTenantDatabaseName($tenant).'.sqlite');
+
+        $membership = $tenant->memberships()
+            ->whereHas('user', fn ($query) => $query->where('email', 'owner.umbrella@example.com'))
+            ->firstOrFail();
+        $this->assertTrue($membership->hasRole('owner'));
+    }
+
+    public function test_solutions_lead_sees_voc_trends_from_call_data(): void
+    {
+        $this->actingAs($this->user('david@example.com'));
+
+        $this->get(route('deally.solutions.index'))
+            ->assertOk()
+            ->assertSee('Gap Queue')
+            ->assertSee('Voice of customer')
+            ->assertSee('Last 30 days:')
+            ->assertSee('1 positive')
+            ->assertSee('1 negative');
+    }
+
+    public function test_platform_support_sees_platform_wide_audit_logs(): void
+    {
+        $globex = Tenant::query()->where('slug', 'globex')->firstOrFail();
+
+        AuditLog::query()->create([
+            'tenant_id' => $globex->id,
+            'user_id' => $this->user('alice@example.com')->id,
+            'action' => 'tenant.created',
+            'auditable_type' => 'tenants',
+            'auditable_id' => $globex->id,
+        ]);
+
+        $this->actingAs($this->user('support@example.com'))
+            ->get(route('central.audit.index'))
+            ->assertOk()
+            ->assertSee('Globex')
+            ->assertSee('tenant.created');
+
+        $this->actingAs($this->user('bob@example.com'))
+            ->get(route('central.audit.index'))
+            ->assertForbidden();
+    }
+
     private function acme(): Tenant
     {
         return Tenant::query()->where('slug', 'acme-corp')->firstOrFail();
@@ -243,5 +357,16 @@ class DeallyAccessTest extends TestCase
     private function user(string $email): User
     {
         return User::query()->where('email', $email)->firstOrFail();
+    }
+
+    private function makeSuperadmin(): User
+    {
+        return User::unguarded(fn () => User::create([
+            'name' => 'Super Admin',
+            'email' => fake()->unique()->safeEmail(),
+            'password' => 'password',
+            'is_active' => true,
+            'is_super_admin' => true,
+        ]));
     }
 }

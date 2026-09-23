@@ -45,4 +45,26 @@ class ProposalController extends Controller
 
         return back()->with('toast', 'Proposal saved.');
     }
+
+    public function updateStatus(Request $request, Proposal $proposal)
+    {
+        $this->authorizeDeally('deally.proposals.manage');
+        $this->authorizeSeatRecord($proposal);
+
+        $status = $request->validate([
+            'status' => ['required', 'string', 'in:approved,rejected,draft'],
+        ])['status'];
+
+        $proposal->update(['status' => $status]);
+
+        app(ActivityLogger::class)->log(
+            'proposal.'.$status,
+            "Proposal '{$proposal->name}' {$status}.",
+            ['proposal_id' => $proposal->getKey()],
+            'info',
+            $proposal
+        );
+
+        return back()->with('toast', "Proposal '{$proposal->name}' marked as {$status}.");
+    }
 }

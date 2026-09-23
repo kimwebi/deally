@@ -173,12 +173,13 @@ class WorkspaceController extends Controller
             ],
         ];
 
-        $lastCallByCompany = $calls->groupBy->company
-            ->map(fn (Collection $group) => $group->max('date'));
+        $latestCallByCompany = $calls
+            ->groupBy('company')
+            ->map(fn (Collection $group): ?Call => $group->sortByDesc('date')->first());
 
-        $atRisk = $open->map(function (Opportunity $opportunity) use ($lastCallByCompany, $names): ?array {
-            $last = $lastCallByCompany->get($opportunity->company);
-            $days = $last === null ? null : (int) now()->startOfDay()->diffInDays($last);
+        $atRisk = $open->map(function (Opportunity $opportunity) use ($latestCallByCompany, $names): ?array {
+            $latest = $latestCallByCompany->get($opportunity->company);
+            $days = $latest?->date === null ? null : (int) now()->startOfDay()->diffInDays($latest->date);
 
             if ($days !== null && $days <= 7) {
                 return null;
@@ -188,7 +189,12 @@ class WorkspaceController extends Controller
                 'title' => $opportunity->company,
                 'value' => '$'.number_format($opportunity->value),
                 'owner' => $names->get($opportunity->owner_user_id, 'Unassigned'),
-                'reason' => $days === null ? 'No calls logged yet' : $days.' days quiet',
+                'days' => $days,
+                'reason' => match (true) {
+                    $days === null => 'No calls logged yet',
+                    $latest?->sentiment === 'negative' => 'Sentiment dropped',
+                    default => 'Stale pipeline',
+                },
             ];
         })->filter()->values()->take(3);
 
@@ -240,6 +246,7 @@ class WorkspaceController extends Controller
             ->sortByDesc('updated_at')
             ->take(3)
             ->map(fn (Proposal $proposal) => [
+                'id' => $proposal->id,
                 'title' => $proposal->name,
                 'meta' => $this->firstName($names->get($proposal->owner_user_id, 'Unassigned')).' · $'.number_format($proposal->value).' · '.$proposal->updated_at->diffForHumans(),
                 'href' => route('deally.proposals.index'),

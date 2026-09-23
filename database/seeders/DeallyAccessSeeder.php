@@ -17,6 +17,7 @@ class DeallyAccessSeeder extends Seeder
         $this->seedPermissions();
         $this->seedRoles();
         $this->retireTenantAdminRole();
+        $this->ensurePlatformSupportRole();
         $this->assignDemoSeats();
         $this->seedTeams();
     }
@@ -52,6 +53,9 @@ class DeallyAccessSeeder extends Seeder
             // Teams
             ['deally.team.view', 'Deally — Teams', 'View teams', 'See teams and their members.'],
             ['deally.team.manage', 'Deally — Teams', 'Manage teams', 'Create teams and manage their membership.'],
+            // Integrations (account-level configuration)
+            ['deally.integrations.view', 'Deally — Integrations', 'View integrations', 'See enabled account integrations and their status.'],
+            ['deally.integrations.manage', 'Deally — Integrations', 'Manage integrations', 'Enable or disable account-level integrations.'],
         ];
 
         foreach ($permissions as [$slug, $group, $name, $description]) {
@@ -150,6 +154,7 @@ class DeallyAccessSeeder extends Seeder
                 'deally.reporting.view',
                 'deally.activity.view',
                 'deally.team.view',
+                'deally.integrations.view',
             ])
             ->pluck('id')
             ->all();
@@ -170,6 +175,33 @@ class DeallyAccessSeeder extends Seeder
 
             $model->permissions()->sync($role['permissionIds']);
         }
+    }
+
+    /**
+     * The platform-support role ships with the multitenant/saas-foundation
+     * package (RoleSeeder). The Deally app never runs the package seeder,
+     * so mirror the definition here so seeded demo memberships can hold the
+     * role and reach the package's platform consoles (/central/setup and
+     * /central/audit). This only creates the role if it is missing; it never
+     * rewrites an existing one.
+     */
+    protected function ensurePlatformSupportRole(): void
+    {
+        if (Role::query()->whereNull('tenant_id')->where('slug', 'platform-support')->exists()) {
+            return;
+        }
+
+        $role = Role::create([
+            'tenant_id' => null,
+            'slug' => 'platform-support',
+            'name' => 'Platform Support',
+            'description' => 'Platform operations: the setup console, tenant provisioning and platform-wide audit logs.',
+            'is_system' => true,
+        ]);
+
+        $role->permissions()->sync(
+            Permission::whereIn('slug', ['tenants.view', 'tenants.create', 'audit.view'])->pluck('id')
+        );
     }
 
     protected function assignDemoSeats(): void
@@ -201,6 +233,7 @@ class DeallyAccessSeeder extends Seeder
             ['email' => 'erica@example.com', 'tenant' => 'acme-corp', 'roles' => ['team-leader']],
             ['email' => 'david@example.com', 'tenant' => 'acme-corp', 'roles' => ['admin']],
             ['email' => 'david@example.com', 'tenant' => 'globex', 'roles' => ['solutions-lead']],
+            ['email' => 'support@example.com', 'tenant' => 'acme-corp', 'roles' => ['viewer', 'platform-support']],
         ];
     }
 
@@ -245,6 +278,7 @@ class DeallyAccessSeeder extends Seeder
             'charlie@example.com' => 'Charlie Lee',
             'erica@example.com' => 'Erica Valdez',
             'david@example.com' => 'David Chen',
+            'support@example.com' => 'Steph Orr',
             default => str($email)->before('@')->replace('_', ' ')->ucfirst()->toString(),
         };
     }

@@ -8,6 +8,7 @@ use Deally\Calls\Models\Call;
 use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
+use Deally\Proposals\Models\Proposal;
 use Deally\Tasks\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use SaasFoundation\Models\Membership;
@@ -92,6 +93,35 @@ class WorkspaceRolesTest extends TestCase
             ->assertSee('Team Pulse')
             ->assertSee('Team Calendar')
             ->assertSee('Alice Johnson');
+    }
+
+    public function test_team_leader_can_approve_proposal_from_workspace(): void
+    {
+        $user = User::query()->firstOrCreate(
+            ['email' => 'dana@example.com'],
+            ['name' => 'Dana Smith', 'password' => 'password', 'is_active' => true]
+        );
+
+        $acme = Tenant::query()->where('slug', 'acme-corp')->firstOrFail();
+
+        $membership = Membership::query()->firstOrCreate(
+            ['user_id' => $user->id, 'tenant_id' => $acme->id],
+            ['status' => Membership::STATUS_ACTIVE, 'joined_at' => now()]
+        );
+
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'team-leader')->firstOrFail();
+        $membership->roles()->syncWithoutDetaching($role->id);
+
+        $team = Team::query()->forTenant($acme->id)->firstOrFail();
+        $team->members()->syncWithoutDetaching([$user->id]);
+
+        $proposal = Proposal::query()->where('status', 'viewed')->firstOrFail();
+
+        $this->actingAs($user)
+            ->post(route('deally.proposals.status', $proposal), ['status' => 'approved'])
+            ->assertRedirect();
+
+        $this->assertSame('approved', $proposal->fresh()->status);
     }
 
     public function test_home_event_modal_creates_a_task(): void
