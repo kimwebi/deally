@@ -28,7 +28,7 @@
     $canSeeTeams = $user && ($user->isSuperAdmin() || $hasAdminSeat);
     $userAdminRoles = ['owner', 'admin'];
     $canSeeUsers = $user && ($user->isSuperAdmin() || ($membership && array_intersect($userAdminRoles, $membership->roles->pluck('slug')->all())));
-    $canSeeSetup = $user && ($user->isSuperAdmin() || ($membership && $membership->roles->pluck('slug')->contains('platform-support')));
+    $canSeeSetup = $user && ($user->isSuperAdmin() || $user->is_platform_support);
     $canSeeIntegrations = $user && ($user->isSuperAdmin() || ($membership && array_intersect(['owner', 'admin'], $membership->roles->pluck('slug')->all())));
     $unreadCount = $user?->unreadNotifications()->count() ?? 0;
     $taskTodoCount = $user ? Deally\Core\Services\Seat::scope(Deally\Tasks\Models\Task::query())->todo()->count() : 0;

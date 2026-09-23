@@ -4,12 +4,64 @@
 @section('content')
 <div class="page-header">
     <h1>Setup Console</h1>
-    <div class="text-muted text-sm">{{ $tenants->count() }} customers &middot; {{ $provisionedCount }} provisioned</div>
+    <div class="text-muted text-sm">{{ $customerCount }} customers &middot; {{ $provisionedCount }} provisioned</div>
 </div>
 
+{{-- Flash cards --}}
+<div class="flash-grid">
+    <div class="flashcard blue">
+        <div class="flash-icon">&#9632;</div>
+        <div class="flash-label">Customers</div>
+        <div class="flash-value">{{ $customerCount }}</div>
+        <div class="flash-sub">Total on the platform</div>
+    </div>
+    <div class="flashcard gold">
+        <div class="flash-icon">&#10003;</div>
+        <div class="flash-label">Provisioned</div>
+        <div class="flash-value">{{ $provisionedCount }}</div>
+        <div class="flash-sub">Databases live &amp; seeded</div>
+    </div>
+    <div class="flashcard navy">
+        <div class="flash-icon">&#9881;</div>
+        <div class="flash-label">Pending</div>
+        <div class="flash-value">{{ $pendingCount }}</div>
+        <div class="flash-sub">Awaiting provisioning</div>
+    </div>
+    <div class="flashcard black">
+        <div class="flash-icon">&#128200;</div>
+        <div class="flash-label">Milestone</div>
+        <div class="flash-value">{{ $customerCount }} / {{ $milestone }}</div>
+        <div class="flash-sub">Progress toward the target</div>
+    </div>
+</div>
+
+{{-- Milestone / Hurray --}}
+@if ($customerCount >= $milestone)
+<div class="hurray">
+    <div class="hurray-emoji">&#127881; &#127947;&#65039; &#127881;</div>
+    <div class="hurray-title">Hurray! You crossed the {{ $milestone }}-customer mark! &#127881;</div>
+    <div class="hurray-text">{{ $customerCount }} customers are now provisioned on the platform &mdash; fantastic work!</div>
+</div>
+@else
+<div class="milestone">
+    <div class="milestone-head">
+        <div class="milestone-title"><span class="flag">&#127937;</span> Customer milestone</div>
+        <div class="milestone-goal">{{ $customerCount }} / {{ $milestone }} customers</div>
+    </div>
+    <div class="milestone-track">
+        <div class="milestone-fill" style="width: {{ min(100, (int) round($customerCount / $milestone * 100)) }}%;"></div>
+    </div>
+    <div class="milestone-note">
+        <strong>{{ $milestone - $customerCount }} to go!</strong> Provision {{ $milestone - $customerCount }} more customer(s) to unlock the celebration.
+    </div>
+</div>
+@endif
+
+{{-- New customer --}}
 <div class="card mb-4" style="max-width:640px;">
     <div class="card-header">
         <h3>New Customer</h3>
+        <span class="badge badge-primary">Provision on create</span>
     </div>
     <div class="card-body">
         <form method="POST" action="{{ route('central.setup.tenants.store') }}">
@@ -39,6 +91,7 @@
     </div>
 </div>
 
+{{-- Tenants table --}}
 <div class="card">
     <div class="card-body" style="padding:0;">
         <div class="table-wrapper">

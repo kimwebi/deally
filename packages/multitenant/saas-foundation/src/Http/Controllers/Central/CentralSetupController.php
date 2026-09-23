@@ -20,10 +20,17 @@ use SaasFoundation\Services\Tenancy\TenantProvisioner;
  * Platform operations console. Lists every customer with its provisioning
  * status, provisions tenant databases, and creates a new customer (tenant +
  * owner + provisioning) in one action. Gated by the platform.operator
- * middleware, so it is available to the super-admin and platform-support.
+ * middleware, so it is available to the super-admin and users flagged as
+ * platform support.
  */
 class CentralSetupController extends Controller
 {
+    /**
+     * The celebratory tenant milestone. Reaching this many customers shows
+     * the Hurray! banner on the setup console and the central dashboard.
+     */
+    public const MILESTONE_TARGET = 10;
+
     public function __construct(
         protected TenantProvisioner $provisioner,
         protected TenantDatabaseManager $databaseManager,
@@ -38,9 +45,14 @@ class CentralSetupController extends Controller
             $tenant->database = $this->databaseManager->getTenantDatabaseName($tenant);
         });
 
+        $provisionedCount = $tenants->where('provisioned', true)->count();
+
         return view('central.setup.index', [
             'tenants' => $tenants,
-            'provisionedCount' => $tenants->where('provisioned', true)->count(),
+            'provisionedCount' => $provisionedCount,
+            'customerCount' => $tenants->count(),
+            'pendingCount' => $tenants->count() - $provisionedCount,
+            'milestone' => self::MILESTONE_TARGET,
         ]);
     }
 

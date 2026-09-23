@@ -17,7 +17,7 @@ class DeallyAccessSeeder extends Seeder
         $this->seedPermissions();
         $this->seedRoles();
         $this->retireTenantAdminRole();
-        $this->ensurePlatformSupportRole();
+        $this->retirePlatformSupportRole();
         $this->assignDemoSeats();
         $this->seedTeams();
     }
@@ -146,6 +146,25 @@ class DeallyAccessSeeder extends Seeder
         $role->delete();
     }
 
+    /**
+     * Platform support used to be a global membership role, but it is now a
+     * user-level flag (is_platform_support) so nothing tenant-creation related
+     * shows up inside a customer's instance. Retire any leftover role so it
+     * never appears in role pickers again.
+     */
+    protected function retirePlatformSupportRole(): void
+    {
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'platform-support')->first();
+
+        if ($role === null) {
+            return;
+        }
+
+        $role->memberships()->detach();
+        $role->permissions()->detach();
+        $role->delete();
+    }
+
     protected function ensureFoundationRoles(): void
     {
         $allIds = Permission::where('slug', 'like', 'deally.%')->pluck('id')->all();
@@ -178,36 +197,15 @@ class DeallyAccessSeeder extends Seeder
     }
 
     /**
-     * The platform-support role ships with the multitenant/saas-foundation
-     * package (RoleSeeder). The Deally app never runs the package seeder,
-     * so mirror the definition here so seeded demo memberships can hold the
-     * role and reach the package's platform consoles (/central/setup and
-     * /central/audit). This only creates the role if it is missing; it never
-     * rewrites an existing one.
+     * Platform support is a system-owner flag on the user record
+     * (is_platform_support), not a tenant role: support staff are the shop,
+     * never a seat in a customer's instance. The flag is what admits them to
+     * the package's platform consoles (/central/setup and /central/audit).
      */
-    protected function ensurePlatformSupportRole(): void
-    {
-        if (Role::query()->whereNull('tenant_id')->where('slug', 'platform-support')->exists()) {
-            return;
-        }
-
-        $role = Role::create([
-            'tenant_id' => null,
-            'slug' => 'platform-support',
-            'name' => 'Platform Support',
-            'description' => 'Platform operations: the setup console, tenant provisioning and platform-wide audit logs.',
-            'is_system' => true,
-        ]);
-
-        $role->permissions()->sync(
-            Permission::whereIn('slug', ['tenants.view', 'tenants.create', 'audit.view'])->pluck('id')
-        );
-    }
-
     protected function assignDemoSeats(): void
     {
-        foreach ($this->demoRoster() as ['email' => $email, 'tenant' => $tenantSlug, 'roles' => $roleSlugs]) {
-            $this->sync($email, $tenantSlug, $roleSlugs);
+        foreach ($this->demoRoster() as $seats) {
+            $this->sync($seats['email'], $seats['tenant'], $seats['roles'], $seats['platform_support'] ?? false);
         }
     }
 
@@ -219,7 +217,7 @@ class DeallyAccessSeeder extends Seeder
      * multitenancy: the same person can be an administrator in both instances,
      * an agent in one and a viewer in the other, and so on.
      *
-     * @return array<int, array{email: string, tenant: string, roles: list<string>}>
+     * @return array<int, array{email: string, tenant: string, roles: list<string>, platform_support?: bool}>
      */
     protected function demoRoster(): array
     {
@@ -233,7 +231,7 @@ class DeallyAccessSeeder extends Seeder
             ['email' => 'erica@example.com', 'tenant' => 'acme-corp', 'roles' => ['team-leader']],
             ['email' => 'david@example.com', 'tenant' => 'acme-corp', 'roles' => ['admin']],
             ['email' => 'david@example.com', 'tenant' => 'globex', 'roles' => ['solutions-lead']],
-            ['email' => 'support@example.com', 'tenant' => 'acme-corp', 'roles' => ['viewer', 'platform-support']],
+            ['email' => 'support@example.com', 'tenant' => 'acme-corp', 'roles' => ['viewer'], 'platform_support' => true],
         ];
     }
 
@@ -243,7 +241,7 @@ class DeallyAccessSeeder extends Seeder
      *
      * @param  list<string>  $roleSlugs
      */
-    protected function sync(string $email, string $tenantSlug, array $roleSlugs): void
+    protected function sync(string $email, string $tenantSlug, array $roleSlugs, bool $platformSupport = false): void
     {
         $user = User::firstOrCreate(
             ['email' => $email],
@@ -253,6 +251,10 @@ class DeallyAccessSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        if ($user->is_platform_support !== $platformSupport) {
+            $user->forceFill(['is_platform_support' => $platformSupport])->save();
+        }
 
         $tenant = Tenant::where('slug', $tenantSlug)->first();
 

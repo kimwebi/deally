@@ -17,6 +17,7 @@ use Illuminate\Notifications\Notifiable;
     'email',
     'password',
     'is_super_admin',
+    'is_platform_support',
     'is_active',
     'avatar',
     'timezone',
@@ -40,6 +41,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'is_platform_support' => 'boolean',
             'is_active' => 'boolean',
             'two_factor_enabled_at' => 'datetime',
             'last_login_at' => 'datetime',
@@ -85,23 +87,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Platform-level operator: the super-admin or any active membership
-     * holding the global platform-support role. This gates the package's
-     * platform consoles (setup console, platform-wide audit log), which
-     * are not bound to a single tenant seat.
+     * System-owner side operator: the super-admin or any user flagged as
+     * platform support. This gates the package's platform consoles (setup
+     * console, platform-wide audit log), which are the shop itself and are
+     * never tied to a tenant seat or a tenant membership role.
      */
     public function isPlatformOperator(): bool
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        return $this->memberships()
-            ->active()
-            ->whereHas('roles', function ($query): void {
-                $query->where('slug', 'platform-support');
-            })
-            ->exists();
+        return $this->isSuperAdmin() || $this->is_platform_support === true;
     }
 
     public function belongsToTenant(Tenant|string $tenant): bool

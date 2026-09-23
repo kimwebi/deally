@@ -47,6 +47,7 @@ class Tenant extends Model
     {
         return [
             'suspended_at' => 'datetime',
+            'provisioned_at' => 'datetime',
             'metadata' => 'array',
             'settings' => 'array',
         ];

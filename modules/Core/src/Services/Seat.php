@@ -115,7 +115,6 @@ class Seat
         $precedence = [
             'owner' => 10,
             'admin' => 9,
-            'platform-support' => 8,
             'solutions-lead' => 7,
             'team-leader' => 6,
             'sales-agent' => 5,
