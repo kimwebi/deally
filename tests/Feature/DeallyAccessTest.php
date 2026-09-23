@@ -117,11 +117,6 @@ class DeallyAccessTest extends TestCase
 
     public function test_team_tasks_page_is_seat_scoped(): void
     {
-        $role = Role::query()->whereNull('tenant_id')->where('slug', 'sales-agent')->firstOrFail();
-        $role->permissions()->syncWithoutDetaching(
-            Permission::query()->where('slug', 'deally.reporting.view')->pluck('id')
-        );
-
         $this->actingAs($this->user('charlie@example.com'))
             ->get(route('deally.reporting.tasks'))
             ->assertOk()
@@ -131,6 +126,43 @@ class DeallyAccessTest extends TestCase
             ->assertDontSee('Send pricing to Globex')
             ->assertDontSee('Alice Johnson')
             ->assertDontSee('Bob Carter');
+    }
+
+    public function test_reassigning_permission_via_role_sync_restores_access(): void
+    {
+        $reporting = Permission::query()->where('slug', 'deally.reporting.view')->firstOrFail();
+
+        $role = Role::query()->whereNull('tenant_id')->where('slug', 'viewer')->firstOrFail();
+        $role->permissions()->sync(
+            $role->permissions()->pluck('permissions.id')->push($reporting->id)
+        );
+
+        $this->actingAs($this->user('charlie@example.com'))
+            ->get(route('deally.reporting'))
+            ->assertOk();
+    }
+
+    public function test_reassign_via_roles_ui_restores_access(): void
+    {
+        $reporting = Permission::query()->where('slug', 'deally.reporting.view')->firstOrFail();
+
+        $viewer = Role::query()->whereNull('tenant_id')->where('slug', 'viewer')->firstOrFail();
+        $viewer->load('permissions');
+
+        $this->actingAs($this->user('bob@example.com'))
+            ->put(route('deally.roles.update', $viewer), [
+                'name' => 'Viewer',
+                'description' => $viewer->description,
+                'permissions' => array_merge(
+                    $viewer->permissions->pluck('id')->all(),
+                    [$reporting->id]
+                ),
+            ])
+            ->assertRedirect(route('deally.roles.index'));
+
+        $this->actingAs($this->user('charlie@example.com'))
+            ->get(route('deally.reporting'))
+            ->assertOk();
     }
 
     public function test_agent_can_use_seat_features_but_not_admin_areas(): void
@@ -143,7 +175,8 @@ class DeallyAccessTest extends TestCase
 
         $this->get(route('deally.solutions.index'))->assertForbidden();
 
-        $this->get(route('deally.reporting'))->assertForbidden();
+        $this->get(route('deally.reporting'))->assertOk()->assertSee('Acme Corp');
+        $this->get(route('deally.reporting.tasks'))->assertOk();
         $this->get(route('deally.roles.index'))->assertForbidden();
         $this->get(route('deally.teams.index'))->assertForbidden();
         $this->get(route('deally.activity.index'))->assertForbidden();

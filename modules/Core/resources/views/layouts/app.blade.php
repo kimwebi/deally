@@ -70,7 +70,7 @@
                 <div class="nav-group-label">Knowledge</div>
                 <a href="{{ route('deally.kb.index') }}" class="nav-item {{ request()->routeIs('deally.kb.index') ? 'active' : '' }}">Knowledge Base</a>
                 @if($canSeeSolutions)
-                <a href="{{ route('deally.solutions.index') }}" class="nav-item {{ request()->routeIs('deally.solutions.*') ? 'active' : '' }}">Solutions Lead</a>
+                <a href="{{ route('deally.solutions.index') }}" class="nav-item {{ request()->routeIs('deally.solutions.*') ? 'active' : '' }}">Solutions</a>
                 @endif
             </div>
 
@@ -161,7 +161,7 @@
                     {"label":"Proposals","href":"{{ route('deally.proposals.index') }}","icon":"bi-file-earmark-text","keywords":"proposal docs documents"},
                     {"label":"Knowledge Base","href":"{{ route('deally.kb.index') }}","icon":"bi-book","keywords":"kb knowledge answers pricing features"}
                     @if($canSeeSolutions)
-                    ,{"label":"Solutions Lead","href":"{{ route('deally.solutions.index') }}","icon":"bi-shield-check","keywords":"solutions lead quality gap queue corrections"}
+                    ,{"label":"Solutions","href":"{{ route('deally.solutions.index') }}","icon":"bi-shield-check","keywords":"solutions lead quality gap queue corrections"}
                     @endif,
                     {"label":"Reporting","href":"{{ route('deally.reporting') }}","icon":"bi-bar-chart","keywords":"report team performance dashboard"},
                     {"label":"Activity","href":"{{ route('deally.activity.index') }}","icon":"bi-activity","keywords":"activity feed audit log"},

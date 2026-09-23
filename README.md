@@ -86,6 +86,7 @@ All demo users log in with the password `password`:
 
 - The Administration → Roles page lists only the roles in use in the active instance (a **global** role appears when a member of this instance holds it, e.g. Tenant Owner, Viewer, Sales Agent, Team Leader), plus any roles created for this instance. The platform-level Super Administrator and unused global roles are never listed. Member counts are scoped to the active instance.
 - Owners and admins can open the Roles, Teams and Users administration pages.
+- **Reporting**: the Team Tasks page is seat-scoped — sales agents see only their own tasks (`deally.reporting.tasks.view`), team leaders see their whole team, and owners/admins see everything. Team Dashboard, Account Story and Coaching Review stay manager-only (`deally.reporting.view`).
 - **Calls**: any agent (permission `deally.calls.manage`) can start a call from the Calls page. Managers can open the same "New Call" modal and pick an **Assign to** member, which hands ownership over to that sales agent — the call then appears on the agent's home calendar and Calls list.
 - **Tasks**: the "New Task" and home "＋ Task" modals include an **Assignee** select. Assigning a task hands ownership to that member, so it shows up in their Tasks list and home day view.
 

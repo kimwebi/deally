@@ -24,31 +24,42 @@ class DeallyAccessSeeder extends Seeder
     protected function seedPermissions(): void
     {
         $permissions = [
-            ['deally.workspace.view', 'View the workspace home'],
-            ['deally.pipeline.view', 'View the pipeline'],
-            ['deally.pipeline.manage', 'Create and update opportunities'],
-            ['deally.calls.view', 'View calls and transcripts'],
-            ['deally.calls.manage', 'Run, end and annotate calls'],
-            ['deally.tasks.view', 'View tasks'],
-            ['deally.tasks.manage', 'Create and close tasks'],
-            ['deally.proposals.view', 'View proposals'],
-            ['deally.proposals.manage', 'Create proposals'],
-            ['deally.kb.view', 'View the knowledge base'],
-            ['deally.kb.manage', 'Manage knowledge base entries'],
-            ['deally.reporting.view', 'View team reporting'],
-            ['deally.activity.view', 'View the activity feed'],
-            ['deally.settings.view', 'View account settings'],
-            ['deally.settings.manage', 'Manage tenant settings'],
-            ['deally.team.view', 'View teams and members'],
-            ['deally.team.manage', 'Manage teams and members'],
+            // Workspace
+            ['deally.workspace.view', 'Deally — Workspace', 'View the workspace home', 'See the tenant workspace landing page.'],
+            // Pipeline
+            ['deally.pipeline.view', 'Deally — Pipeline', 'View the pipeline', 'See every opportunity across all stages.'],
+            ['deally.pipeline.manage', 'Deally — Pipeline', 'Update the pipeline', 'Create and update opportunities and their stages.'],
+            // Calls
+            ['deally.calls.view', 'Deally — Calls', 'View calls', 'See call library, transcripts and contacts.'],
+            ['deally.calls.manage', 'Deally — Calls', 'Run and annotate calls', 'Start, end, and annotate calls and transcripts.'],
+            // Tasks
+            ['deally.tasks.view', 'Deally — Tasks', 'View tasks', 'See tasks assigned within reach of your seat.'],
+            ['deally.tasks.manage', 'Deally — Tasks', 'Create and close tasks', 'Create, assign and close tasks within reach of your seat.'],
+            // Proposals
+            ['deally.proposals.view', 'Deally — Proposals', 'View proposals', 'See proposals for accounts in your reach.'],
+            ['deally.proposals.manage', 'Deally — Proposals', 'Create proposals', 'Draft and send proposals.'],
+            // Knowledge base
+            ['deally.kb.view', 'Deally — Knowledge base', 'View the knowledge base', 'Browse knowledge base entries.'],
+            ['deally.kb.manage', 'Deally — Knowledge base', 'Manage the knowledge base', 'Create and edit knowledge base entries.'],
+            // Reporting
+            ['deally.reporting.view', 'Deally — Reporting', 'View team reporting', 'See team dashboards and account stories within reach of your seat.'],
+            ['deally.reporting.tasks.view', 'Deally — Reporting', 'View the team task overview', 'See the team task overview within reach of your seat.'],
+            // Activity
+            ['deally.activity.view', 'Deally — Activity', 'View the activity feed', 'See recent activity across the tenant.'],
+            // Settings
+            ['deally.settings.view', 'Deally — Settings', 'View account settings', 'See account settings.'],
+            ['deally.settings.manage', 'Deally — Settings', 'Manage settings', 'Manage tenant settings and workspace preferences.'],
+            // Teams
+            ['deally.team.view', 'Deally — Teams', 'View teams', 'See teams and their members.'],
+            ['deally.team.manage', 'Deally — Teams', 'Manage teams', 'Create teams and manage their membership.'],
         ];
 
-        foreach ($permissions as [$slug, $description]) {
-            Permission::firstOrCreate(
+        foreach ($permissions as [$slug, $group, $name, $description]) {
+            Permission::updateOrCreate(
                 ['slug' => $slug],
                 [
-                    'name' => $this->nameFor($slug),
-                    'group_name' => 'Deally',
+                    'name' => $name,
+                    'group_name' => $group,
                     'description' => $description,
                 ]
             );
@@ -69,6 +80,8 @@ class DeallyAccessSeeder extends Seeder
             'deally.proposals.manage',
             'deally.kb.view',
             'deally.settings.view',
+            'deally.reporting.view',
+            'deally.reporting.tasks.view',
         ];
 
         $roles = [
@@ -88,6 +101,7 @@ class DeallyAccessSeeder extends Seeder
                 'deally.kb.view',
                 'deally.kb.manage',
                 'deally.reporting.view',
+                'deally.reporting.tasks.view',
                 'deally.activity.view',
             ]],
         ];
@@ -130,9 +144,8 @@ class DeallyAccessSeeder extends Seeder
 
     protected function ensureFoundationRoles(): void
     {
-        $allIds = Permission::where('group_name', 'Deally')->pluck('id')->all();
-        $viewIds = Permission::where('group_name', 'Deally')
-            ->where('slug', 'like', '%.view')
+        $allIds = Permission::where('slug', 'like', 'deally.%')->pluck('id')->all();
+        $viewIds = Permission::where('slug', 'like', 'deally.%.view')
             ->whereNotIn('slug', [
                 'deally.reporting.view',
                 'deally.activity.view',

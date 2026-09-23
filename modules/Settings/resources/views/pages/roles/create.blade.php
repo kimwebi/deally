@@ -35,17 +35,20 @@
         <div class="settings-section">
             <div class="settings-title">Permissions</div>
             @foreach ($permissions->groupBy('group_name') as $group => $groupPermissions)
-                <div class="settings-row">
-                    <div class="settings-row-label">{{ $group }}</div>
-                    <div class="settings-row-value">
+                <details class="settings-row" style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;" {{ $loop->first ? 'open' : '' }}>
+                    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                        <span style="font-weight:600;">{{ $group }} <small style="color:var(--text-3);">({{ $groupPermissions->count() }} permissions)</small></span>
+                        <span style="color:var(--text-3);font-size:13px;"><i class="bi bi-caret-down-fill"></i> </span>
+                    </summary>
+                    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 16px;">
                         @foreach ($groupPermissions as $permission)
-                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;">
-                                <input type="checkbox" name="permissions[]" value="{{ $permission->id }}">
-                                <span>{{ $permission->name }} <small style="color:var(--text-3);">{{ $permission->slug }}</small></span>
+                            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+                                <input type="checkbox" name="permissions[]" value="{{ $permission->id }}" style="margin-top:2px;">
+                                <span>{{ $permission->name }} <small style="color:var(--text-3);display:block;">{{ $permission->slug }}</small></span>
                             </label>
                         @endforeach
                     </div>
-                </div>
+                </details>
             @endforeach
         </div>
 

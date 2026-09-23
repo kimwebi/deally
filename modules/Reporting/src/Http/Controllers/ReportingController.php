@@ -18,8 +18,8 @@ class ReportingController extends Controller
     {
         $this->authorizeDeally('deally.reporting.view');
 
-        $opportunities = Opportunity::all();
-        $calls = Call::with('opportunity')->get();
+        $opportunities = $this->scopeToSeat(Opportunity::query())->get();
+        $calls = $this->scopeToSeat(Call::query())->with('opportunity')->get();
 
         $closed = $opportunities->whereIn('stage', ['won', 'lost']);
         $won = $opportunities->where('stage', 'won');
@@ -58,10 +58,10 @@ class ReportingController extends Controller
     {
         $this->authorizeDeally('deally.reporting.view');
 
-        $opportunity = Opportunity::query()->where('company', $company)->first();
-        $calls = Call::query()->where('company', $company)->orderByDesc('date')->get();
-        $proposals = Proposal::query()->where('company', $company)->orderByDesc('updated_at')->get();
-        $tasks = Task::query()->where('linked_company', $company)->orderByDesc('created_at')->get();
+        $opportunity = $this->scopeToSeat(Opportunity::query()->where('company', $company))->first();
+        $calls = $this->scopeToSeat(Call::query()->where('company', $company))->orderByDesc('date')->get();
+        $proposals = $this->scopeToSeat(Proposal::query()->where('company', $company))->orderByDesc('updated_at')->get();
+        $tasks = $this->scopeToSeat(Task::query()->where('linked_company', $company))->orderByDesc('created_at')->get();
         $gaps = KnowledgeGap::query()->where('source', 'like', "%{$company}%")->get();
 
         $sentiment = $calls->groupBy(fn (Call $call): string => $call->sentiment ?? 'neutral')->map->count();
@@ -151,7 +151,7 @@ class ReportingController extends Controller
 
     public function teamTasks(Request $request)
     {
-        $this->authorizeDeally('deally.reporting.view');
+        $this->authorizeDeally('deally.reporting.tasks.view');
 
         $tasks = $this->scopeToSeat(Task::query())->when($request->get('assignee'), function ($query, string $assignee): void {
             $query->where('assignee', $assignee);
