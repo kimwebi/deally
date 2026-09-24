@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Deally\Calls\Models\Call;
 use Deally\Core\Services\DeallyTenantDatabaseManager;
+use Deally\Pipeline\Models\Customer;
 use Deally\Pipeline\Models\Opportunity;
 use Deally\Proposals\Models\KnowledgeEntry;
 use Deally\Proposals\Models\KnowledgeGap;
@@ -18,6 +19,7 @@ class DeallyDemoSeeder extends Seeder
     public function run(): void
     {
         $owners = $this->ownerIds();
+        $teams = $this->teamIds();
 
         $oppIds = [];
 
@@ -27,7 +29,28 @@ class DeallyDemoSeeder extends Seeder
             ['company' => 'Wayne Enterprises', 'contact_name' => 'Bruce Wayne', 'contact_title' => 'CEO', 'packages' => 'Enterprise Suite (1)', 'stage' => 'demo', 'value' => 22000],
             ['company' => 'Stark Industries', 'contact_name' => 'Pepper Potts', 'contact_title' => 'COO', 'packages' => 'Pro Plan (2)', 'stage' => 'discovery', 'value' => 18000],
         ] as $row) {
-            $opp = Opportunity::query()->create($row + ['owner_user_id' => $owners['company'][$row['company']] ?? null]);
+            $ownerId = $owners['company'][$row['company']] ?? null;
+
+            if ($ownerId === null) {
+                $opp = Opportunity::query()->create($row + ['customer_id' => null]);
+                $oppIds[$opp->company] = $opp->getKey();
+
+                continue;
+            }
+
+            // Update-or-create keeps re-seeding safe: a customer account is
+            // identified by its company and hosts every deal for that company.
+            $customer = Customer::query()->updateOrCreate(
+                ['company' => $row['company']],
+                [
+                    'contact_name' => $row['contact_name'],
+                    'contact_title' => $row['contact_title'],
+                    'owner_user_id' => $ownerId,
+                    'team_id' => $teams[$row['company']] ?? null,
+                ]
+            );
+
+            $opp = Opportunity::query()->create($row + ['customer_id' => $customer->getKey()]);
             $oppIds[$opp->company] = $opp->getKey();
         }
 
@@ -89,6 +112,27 @@ class DeallyDemoSeeder extends Seeder
         ] as $row) {
             KnowledgeGap::query()->create($row);
         }
+    }
+
+    /**
+     * Maps seeded customer accounts to their owning team id (central).
+     *
+     * @return array<string, int|null>
+     */
+    protected function teamIds(): array
+    {
+        $central = app(DeallyTenantDatabaseManager::class)->storedCentralConnectionName();
+
+        $byName = DB::connection($central)->table('teams')->pluck('id', 'name');
+
+        $pod = $byName['East Pod'] ?? $byName['Core Pod'] ?? null;
+
+        return [
+            'Acme Corp' => $pod !== null ? (int) $pod : null,
+            'Globex Inc' => $pod !== null ? (int) $pod : null,
+            'Wayne Enterprises' => $pod !== null ? (int) $pod : null,
+            'Stark Industries' => $pod !== null ? (int) $pod : null,
+        ];
     }
 
     /**

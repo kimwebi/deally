@@ -66,12 +66,14 @@
             <ul class="docs-list">
                 <li><b>Home</b> — landing dashboard for the signed-in user.</li>
                 <li><b>Calls</b> — log calls, live AI-assisted sessions, reviews, and summaries.</li>
-                <li><b>Pipeline</b> — opportunities through the sales pipeline.</li>
+                <li><b>Pipeline</b> — opportunities with a list/board toggle, owner column, and per-deal risk flags.</li>
+                <li><b>Customers</b> — accounts with contacts, ownership, and an at-risk panel.</li>
+                <li><b>Service Reviews</b> — recurring account check-ins with reschedule, hold, and catch-up.</li>
                 <li><b>Tasks</b> — follow-up tasks with one-click completion.</li>
-                <li><b>Proposals</b> — documents tied to calls and opportunities.</li>
+                <li><b>Proposals</b> — documents tied to calls and opportunities, editable in place.</li>
                 <li><b>Knowledge Base</b> — the source of truth the AI answers from.</li>
                 <li><b>Reporting</b> — team performance, account, coaching, and task reporting.</li>
-                <li><b>Admin</b> — users, roles, and teams scoped to the tenant.</li>
+                <li><b>Admin</b> — users, roles, and teams scoped to the tenant, with a reassignment plan for removed sales agents.</li>
                 <li><b>Ask DeAlly</b> — a global command bar (⌘K) that answers any question from the knowledge base.</li>
             </ul>
         </div>
@@ -104,7 +106,7 @@
             <ul class="docs-list">
                 <li>Laravel multi-tenant SaaS; a central database holds users, tenants, and memberships.</li>
                 <li>Each active tenant runs its <b>own isolated database</b>.</li>
-                <li>Feature modules under <span class="font-mono">modules/</span> (Calls, Pipeline, Tasks, Proposals, Reporting, Settings, Core…).</li>
+                <li>Feature modules under <span class="font-mono">modules/</span> (Calls, Pipeline, Tasks, Proposals, Reporting, Settings, Core…); the Pipeline module also owns customers, contacts, and Service Reviews.</li>
                 <li>Frontend: Blade + Vite with a built-in light/dark theme.</li>
             </ul>
         </div>

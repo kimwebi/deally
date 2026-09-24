@@ -46,14 +46,16 @@ be built, tested, and shipped independently.
 | --- | --- |
 | **Home (Workspace)** | Landing dashboard for the signed-in user. |
 | **Calls** | Log calls, see histories/summaries, run a live agent-assisted call, review transcripts. |
-| **Pipeline** | Track opportunities through the sales pipeline. |
+| **Pipeline** | Track opportunities with a list or board view, owner column, and per-deal risk flags. |
+| **Customers** | Customer accounts with owners, multiple contacts (single primary), an at-risk panel, and a pre-filled Create Deal modal. |
+| **Service Reviews** | Recurring per-customer check-in schedule with reschedule, hold, cancel, and catch-up. |
 | **Tasks** | Personal/team follow-up tasks with one-click toggle. |
-| **Proposals** | Build proposals tied to calls, opportunities, and the knowledge base. |
+| **Proposals** | Build and edit proposals tied to calls, opportunities, and the knowledge base. |
 | **Knowledge Base (KB)** | The single source of truth the AI answers from (pricing, features, processes). |
 | **Reporting** | Team performance, account-level, coaching, and task reporting. |
 | **Activity** | Audit-style activity feed of important system events. |
 | **Notifications** | In-app notifications (new calls, read/unread state, AI knowledge gaps). |
-| **Settings** | Profile/preferences, and admin (users, roles, teams) for tenant owners. |
+| **Settings** | Profile/preferences, the demand-account threshold, and admin (users, roles, teams) for tenant owners. |
 | **Tenant Management** | Platform admin: create, edit, and clone tenant instances. |
 | **Docs** | Public AI setup documentation page (also reachable from the login footer). |
 
@@ -117,10 +119,28 @@ same objection automatically.
 
 - **Calls** — list of calls with detail, live agent screen, review page with transcript + sentiment,
   and auto-generated summaries.
-- **Pipeline** — opportunities tracked through stages, complementing the call history.
-- **Proposals** — docs tied to opportunities and calls, archived per the retention policy.
+- **Pipeline** — opportunities tracked through stages with a **list ↔ board** toggle, an **Owner**
+  column, and **risk assessments** on every deal. The **New Deal** modal always attaches the deal to a
+  real customer account.
+- **Deal engagement log** — each deal page merges the deal's calls, the customer's proposals, and a
+  permanent Activity trail (stage moves, lost reasons, notes) into one chronological log. Moving a
+  deal to **Lost requires a reason**; an open deal on a Critical/High account is flagged **possible lost**.
+- **Account health (risk tiers)** — every customer is scored **Critical / High / Medium / Low** from a
+  mix of missed Service Reviews, proposals needing action, demand-account pipeline (vs. the
+  configurable threshold), open deals, and inactivity. The used tier shows on the pipeline and customer pages,
+  with an **at-risk panel** on the customer record.
+- **Service Reviews** — recurring check-in schedules (cadence per account tier) that keep a rolling set
+  of upcoming sessions, with reschedule (time-clash guarded), hold, cancel, catch-up, cadence changes,
+  and graceful ending — never leaving a next-review gap.
+- **Contacts** — multiple named contacts per customer with a single primary; adding a second contact
+  from the same company never duplicates the customer account.
+- **Proposals** — docs tied to opportunities and calls, archived per the retention policy; editable
+  in place from the engagement log and the Proposals page.
 - **Reporting** — team performance, per-account breakdowns, coaching review per call, and task progress.
-- **Admin** — users (with roles/seats), roles, and teams; all scoped to the tenant.
+- **Admin** — users (with roles/seats), roles, and teams; all scoped to the tenant. Removing a **sales
+  agent** routes through a **reassignment plan** (suggested least-loaded owners, per-customer override,
+  bulk-assign, approve); Team Leader/Solutions Lead seats get a fill-the-seat screen; other roles keep
+  the inline Remove form.
 - **Notifications** — a real notification system with per-item read toggling ("Mark as read" / green
   "Read" badge) and a read-all action.
 - **Activity feed** — audit trail of system events (provisioning, transcript failures, etc.).
@@ -156,9 +176,13 @@ same objection automatically.
 4. **Ask DeAlly a question** in the live pane (*"pricing, comparison, feature check"*).
 5. **Flag an objection** — show the knowledge-gap notification to the lead's inbox.
 6. **Review / Summary** — reopen the same call and show the recorded transcript and card history.
-7. **Knowledge Base** — show the entries; explain they power every AI answer.
-8. **Admin** — manage a user, role, or team; show tenant isolation.
-9. **Reporting** — team performance + coaching view tying it all together.
+7. **Pipeline / account health** — flip **List ↔ Board**, open a deal to show the **engagement log**,
+   then open the customer to show its **risk tier** and **Service Review** schedule; set up a review on
+   a customer that lacks one.
+8. **Knowledge Base** — show the entries; explain they power every AI answer.
+9. **Admin** — manage a user, role, or team; deactivate a sales agent to walk the **reassignment plan**
+   (override, bulk-assign, approve); show tenant isolation.
+10. **Reporting** — team performance + coaching view tying it all together.
 
 ---
 

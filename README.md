@@ -10,7 +10,7 @@ The application is split into feature modules, each with its own `routes/`, `res
 | --- | --- | --- | --- | --- |
 | `Core` | `Deally\Core` | — | `core::` | Shared layouts, guest login, tenant binding middleware |
 | `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call tracking, live call script, summaries |
-| `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline |
+| `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline (list/board), customer accounts & contacts, deals, risk tiers, service reviews |
 | `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management |
 | `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and knowledge base |
 | `Solutions` | `Deally\Solutions` | `/app/solutions` | `solutions::` | Solutions lead: gap queue, corrections, VOC trends |
@@ -49,6 +49,33 @@ npm install
 npm run build
 ```
 
+### Syncing package-only changes (`packages/multitenant/saas-foundation`)
+
+The `multitenant/saas-foundation` package is a composer `path` repository with `"symlink": false`, so the app runs from a real mirrored copy at `vendor/multitenant/saas-foundation` — edits in `packages/multitenant/saas-foundation/` do **not** apply automatically. After changing the package alone, push the changes to the app:
+
+```bash
+# 1. Re-mirror the package source into vendor/
+#    (use `composer reinstall` when only source files changed; use
+#     `composer update multitenant/saas-foundation` if composer.json changed)
+composer reinstall multitenant/saas-foundation
+
+# 2. Re-publish the package's CSS/assets into public/vendor/...
+php artisan vendor:publish --provider="SaasFoundation\Providers\SaasFoundationServiceProvider" --tag=saas-assets --force
+
+# 3. Only if the package added a new migration:
+php artisan migrate
+
+# 4. Only if a rendered view still looks stale:
+php artisan view:clear
+```
+
+Notes:
+
+- **Blade views** are loaded straight from the mirrored package (`loadViewsFrom`), so the re-mirror in step 1 is enough for template changes.
+- **CSS and other assets** are *published* copies: the source lives at `packages/.../resources/css/app.css` and is copied to `public/vendor/multitenant/saas-foundation/css/` by step 2 — skipping it means the old look keeps serving.
+- **New migrations** in `packages/.../database/migrations/` are auto-discovered after the re-mirror and run with the app's regular `php artisan migrate`.
+- `composer reinstall` mirrors the current package source even when the package's `composer.lock` hash hasn't changed; `composer update` is only needed when the package's own `composer.json` (dependencies, autoload, providers) changed.
+
 ### Provisioning demo tenants
 
 Run the central migrations first, then the tenant setup command. The command seeds the central demo tenants, users, and roles itself, and then creates, migrates, and seeds each tenant database against those real owners — so on a fresh checkout it just works, in order:
@@ -68,6 +95,8 @@ Use `--tenant=<uuid|instance>` to provision a single tenant and `--fresh` to reb
 ```bash
 php artisan deally:tenants:setup --fresh
 ```
+
+Tenant-specific tables live in `database/migrations/tenant/` (customers, contacts, service reviews, account settings, deal ownership). To apply *pending* tenant migrations to already-provisioned dev tenant databases without rebuilding them, run `php artisan tenant:migrate`.
 
 ### Demo accounts
 
@@ -113,6 +142,26 @@ Implementation notes:
 - **Calls**: any agent (permission `deally.calls.manage`) can start a call from the Calls page. Managers can open the same "New Call" modal and pick an **Assign to** member, which hands ownership over to that sales agent — the call then appears on the agent's home calendar and Calls list.
 - **Tasks**: the "New Task" and home "＋ Task" modals include an **Assignee** select. Assigning a task hands ownership to that member, so it shows up in their Tasks list and home day view.
 
+## Sales pipeline, customers & account health
+
+The Pipeline module owns customer accounts, contacts, deals, risk tiers, and Service Reviews.
+
+- **Customer accounts** — deals attach to real customer accounts (`customer_id`) instead of free-form company strings, so one customer can have many contacts and deals. The New Deal modal always picks an existing customer; the server still accepts a legacy company-only path for backward compatibility.
+- **Customers page** (`/app/customers`) — account owners, contacts (with a single **primary** contact), an at-risk panel, and a pre-filled Create Deal modal.
+- **Deal engagement log** — each deal page merges the deal's calls, the customer's proposals, and a permanent Activity trail (stage moves, lost reasons, notes) into one chronological log. Moving a deal to **Lost requires a reason**; every stage change and note is logged permanently.
+- **Risk tiers** (`RiskService`) — every customer is assessed as **Critical**, **High**, **Medium**, or **Low**: Critical = a missed Service Review session or a proposal needing action; High = a *demand account* (open pipeline above the tenant threshold) carrying a negotiation-stage deal; Medium = an open deal; Low = no open deals or 60+ days of inactivity. The demand threshold is a tenant-level `AccountSetting` (default **150,000**), editable in Settings by owners/admins. The pipeline and deal pages surface these tiers, and an open deal on a Critical/High account is flagged **possible lost** (linking to Tasks to resolve the underlying review-call task).
+- **Service Reviews** (`ServiceReviewService`) — a recurring per-customer check-in schedule started at the cadence for the account tier (standard 30 / premium 14 / enterprise 7 days). Each schedule keeps a rolling set of **3 upcoming sessions** that top back up when a session is held or cancelled; agents can reschedule (with a time-clash guard), hold, cancel, catch up a missed session, change the cadence (keep future slots or regenerate the series), or end the schedule (removes future sessions only). Creating a deal for a customer without an active schedule prompts to set one up.
+- **Proposal editor** — proposals are editable in place from the engagement log and the Proposals page (name, value, package, quote, status); status changes are logged.
+
+### Removing a member (reassignment plan)
+
+Removing a member from the tenant differs by seat:
+
+- **Sales agents** are never forcibly stripped — deactivation routes through a **reassignment plan** screen that lists the agent's customers with suggested owners (least-loaded eligible agents, weighted by deal priority and risk), lets a manager override per customer, bulk-assign, or recalculate, then approve to transfer ownership and remove the membership.
+- **Team Leader / Solutions Lead** seats never cascade — they get a fill-the-seat screen with a confirm-removal endpoint that redirects back to the Users page.
+- **All other roles** keep the inline Remove form.
+- Records the departing agent owned on accounts *outside* the plan are re-homed to that account's owner so nothing is orphaned.
+
 ## Running the app
 
 The application is served by Laravel Herd at `https://deally.test`. Frontend assets need `npm run dev` (or `npm run build`) running to be reflected in the browser; run `composer run dev` to start both.
@@ -127,7 +176,7 @@ Live calls are transcribed and turned into real-time solution suggestions for th
 php artisan test
 ```
 
-The suite runs against an in-memory SQLite central database. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. Tenant SQLite files are cleaned up after each test.
+The suite runs against an in-memory SQLite central database. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. Feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
 
 ## Formatting
 

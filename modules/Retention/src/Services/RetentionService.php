@@ -6,6 +6,7 @@ use Deally\Calls\Models\Call;
 use Deally\Pipeline\Models\Opportunity;
 use Deally\Proposals\Models\Proposal;
 use Deally\Retention\Models\RetentionSetting;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class RetentionService
@@ -59,6 +60,28 @@ class RetentionService
         }
 
         return $proposal->updated_at->isBefore(now()->subMonths($this->months()));
+    }
+
+    /**
+     * Whether a closed deal's engagement content sits beyond the retention
+     * window — the deal detail banner prompts the user to contact admin.
+     */
+    public function isDealArchived(Opportunity $opportunity): bool
+    {
+        if (! in_array($opportunity->stage, ['won', 'lost'], true)) {
+            return false;
+        }
+
+        $latest = collect([
+            $opportunity->calls()->max('date'),
+            Proposal::query()->where('company', $opportunity->company)->max('updated_at'),
+        ])->filter()->max();
+
+        if ($latest === null) {
+            return false;
+        }
+
+        return Carbon::parse($latest)->isBefore(now()->subMonths($this->months()));
     }
 
     public function archivedCalls(): Collection

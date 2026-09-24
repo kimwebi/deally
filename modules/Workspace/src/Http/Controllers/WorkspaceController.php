@@ -68,7 +68,7 @@ class WorkspaceController extends Controller
 
     private function agentWorkspace()
     {
-        $opportunities = $this->scopeToSeat(Opportunity::query())->orderByDesc('value')->get();
+        $opportunities = $this->scopeDealsToSeat(Opportunity::query())->with('customer')->orderByDesc('value')->get();
         $totalValue = $opportunities->sum('value');
 
         $calls = $this->scopeToSeat(Call::query())->orderByDesc('date')->take(3)->get();
@@ -152,7 +152,7 @@ class WorkspaceController extends Controller
 
         $names = $roster->mapWithKeys(fn ($user) => [$user->getKey() => $user->name]);
 
-        $opportunities = $this->scopeToSeat(Opportunity::query())->get();
+        $opportunities = $this->scopeDealsToSeat(Opportunity::query())->with('customer')->get();
         $calls = $this->scopeToSeat(Call::query())->get();
         $proposals = $this->scopeToSeat(Proposal::query())->get();
 

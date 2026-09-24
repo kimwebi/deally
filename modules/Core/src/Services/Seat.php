@@ -2,7 +2,6 @@
 
 namespace Deally\Core\Services;
 
-use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +42,9 @@ class Seat
         }
 
         if ($membership->hasRole('team-leader')) {
-            $teamIds = Team::query()->forTenant($membership->tenant_id)->pluck('id')->all();
+            // A team leader sees the records of the teams they belong to —
+            // never every team in the tenant.
+            $teamIds = DB::table('team_user')->where('user_id', $user->getKey())->pluck('team_id')->all();
 
             $memberIds = DB::table('team_user')->whereIn('team_id', $teamIds)->pluck('user_id')->all();
 
@@ -55,6 +56,30 @@ class Seat
         }
 
         return null;
+    }
+
+    /**
+     * Agent ids sharing a team with the member — the pool that suggested-owner
+     * options are drawn from. Teams are never assignment targets: assignment
+     * is always to an individual agent.
+     *
+     * @return array<int, int>
+     */
+    public static function suggestedOwnerIds(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        $teamIds = DB::table('team_user')->where('user_id', $user->getKey())->pluck('team_id')->all();
+
+        if ($teamIds === []) {
+            return [];
+        }
+
+        return array_values(array_unique(
+            DB::table('team_user')->whereIn('team_id', $teamIds)->pluck('user_id')->all()
+        ));
     }
 
     public static function scope(Builder $query, string $column = 'owner_user_id', ?User $user = null): Builder

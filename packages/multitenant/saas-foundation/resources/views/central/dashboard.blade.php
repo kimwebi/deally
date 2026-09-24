@@ -10,25 +10,25 @@
 {{-- Flash cards --}}
 <div class="flash-grid">
     <div class="flashcard blue">
-        <div class="flash-icon">&#9632;</div>
+        <div class="flash-icon"><i class="bi bi-people-fill"></i></div>
         <div class="flash-label">Customers</div>
         <div class="flash-value">{{ $customerCount }}</div>
         <div class="flash-sub">Across the whole platform</div>
     </div>
     <div class="flashcard gold">
-        <div class="flash-icon">&#10003;</div>
+        <div class="flash-icon"><i class="bi bi-radioactive"></i></div>
         <div class="flash-label">Active</div>
         <div class="flash-value">{{ $stats['activeTenants'] }}</div>
         <div class="flash-sub">{{ number_format($stats['activeSubscriptions']) }} active subscriptions</div>
     </div>
     <div class="flashcard navy">
-        <div class="flash-icon">&#9733;</div>
+        <div class="flash-icon"><i class="bi bi-stars"></i></div>
         <div class="flash-label">On Trial</div>
         <div class="flash-value">{{ $stats['trialTenants'] }}</div>
         <div class="flash-sub">Winning them over</div>
     </div>
     <div class="flashcard black">
-        <div class="flash-icon">&#9888;</div>
+        <div class="flash-icon"><i class="bi bi-exclamation-triangle"></i></div>
         <div class="flash-label">Suspended</div>
         <div class="flash-value">{{ $stats['suspendedTenants'] }}</div>
         <div class="flash-sub">{{ $stats['totalUsers'] }} people onboard</div>
@@ -38,8 +38,8 @@
 {{-- Milestone / Hurray --}}
 @if ($customerCount >= $milestone)
 <div class="hurray">
-    <div class="hurray-emoji">&#127881; &#127947;&#65039; &#127881;</div>
-    <div class="hurray-title">Hurray! You hit the {{ $milestone }}-customer milestone! &#127881;</div>
+    <div class="hurray-emoji"><i class="bi bi-mailbox2-flag"></i></div>
+    <div class="hurray-title">Hurray! You hit the {{ $milestone }}-customer milestone! <i class="bi bi-emoji-laughing"></i></div>
     <div class="hurray-text">{{ $customerCount }} customers and growing &mdash; keep up the great work selling the shop!</div>
 </div>
 @else
@@ -163,7 +163,7 @@
             </div>
             @empty
             <div class="empty-state">
-                <p>No security events yet &#128077;</p>
+                <p>No security events yet <i class="bi bi-fingerprint"></i></p>
             </div>
             @endforelse
         </div>

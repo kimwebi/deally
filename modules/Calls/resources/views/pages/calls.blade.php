@@ -102,11 +102,28 @@
                     <div class="field-label">Assign to</div>
                     <select class="input-field" name="assignee_user_id">
                         <option value="">Me — {{ auth()->user()->name }}</option>
-                        @foreach ($assignees as $assigneeId => $assigneeName)
-                            @if ($assigneeId !== auth()->id())
-                                <option value="{{ $assigneeId }}">{{ $assigneeName }}</option>
-                            @endif
-                        @endforeach
+                        @php
+                            $suggestedForAssignment = $suggestedOwners ?? collect();
+                            $remainingAssignees = $assignees->reject(fn ($name, $id) => $suggestedForAssignment->has($id));
+                        @endphp
+                        @if ($suggestedForAssignment->isNotEmpty())
+                            <optgroup label="Suggested · your team">
+                                @foreach ($suggestedForAssignment as $assigneeId => $assigneeName)
+                                    @if ($assigneeId !== auth()->id())
+                                        <option value="{{ $assigneeId }}">{{ $assigneeName }}</option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        @if ($remainingAssignees->isNotEmpty())
+                            <optgroup label="Everyone else">
+                                @foreach ($remainingAssignees as $assigneeId => $assigneeName)
+                                    @if ($assigneeId !== auth()->id())
+                                        <option value="{{ $assigneeId }}">{{ $assigneeName }}</option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
                 </div>
             </div>

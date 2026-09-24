@@ -53,8 +53,13 @@ class TenantMigrateCommandTest extends TestCase
         $connection = $this->manager->getTenantConnectionName($this->tenant);
 
         $this->assertTrue(Schema::connection($connection)->hasTable('opportunities'));
+        $this->assertTrue(Schema::connection($connection)->hasTable('customers'));
         $this->assertTrue(Schema::connection($connection)
+            ->hasColumn('opportunities', 'customer_id'));
+        $this->assertFalse(Schema::connection($connection)
             ->hasColumn('opportunities', 'owner_user_id'));
+        $this->assertTrue(Schema::connection($connection)
+            ->hasColumn('customers', 'owner_user_id'));
     }
 
     public function test_tenant_migrate_applies_only_pending_migrations(): void
@@ -62,8 +67,19 @@ class TenantMigrateCommandTest extends TestCase
         $this->manager->createConnection($this->tenant);
         $connection = $this->manager->getTenantConnectionName($this->tenant);
 
+        DB::connection($connection)->statement('drop table if exists customers');
+
+        DB::connection($connection)->statement('drop index if exists opportunities_customer_id_index');
+        DB::connection($connection)->statement('alter table opportunities drop column customer_id');
+
+        DB::connection($connection)->table('migrations')
+            ->whereIn('migration', [
+                '2026_09_24_000001_create_customers_table',
+                '2026_09_24_000002_attach_deals_to_customers_table',
+            ])
+            ->delete();
+
         foreach ([
-            'opportunities' => 'opportunities_owner_user_id_index',
             'calls' => 'calls_owner_user_id_index',
             'tasks' => 'tasks_owner_user_id_index',
             'proposals' => 'proposals_owner_user_id_index',
@@ -79,8 +95,9 @@ class TenantMigrateCommandTest extends TestCase
         $this->artisan('tenant:migrate', ['--tenant' => 'acme-corp'])
             ->assertSuccessful();
 
+        $this->assertTrue(Schema::connection($connection)->hasTable('customers'));
         $this->assertTrue(Schema::connection($connection)
-            ->hasColumn('opportunities', 'owner_user_id'));
+            ->hasColumn('opportunities', 'customer_id'));
         $this->assertTrue(Schema::connection($connection)
             ->hasColumn('calls', 'owner_user_id'));
         $this->assertTrue(Schema::connection($connection)

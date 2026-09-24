@@ -3,10 +3,14 @@
 namespace Deally\Settings\Http\Controllers;
 
 use Deally\Core\Http\Controllers\Controller;
+use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
+use Deally\Core\Services\ReassignmentService;
+use Deally\Pipeline\Models\Customer;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use SaasFoundation\Models\Membership;
@@ -126,12 +130,225 @@ class UserController extends Controller
             return back()->with('toast', 'You cannot remove yourself from the tenant.');
         }
 
+        if ($this->isSalesAgent($membership)) {
+            return redirect()->route('deally.users.deactivate', $membership)
+                ->with('toast', 'Sales agents deactivate through the reassignment plan.');
+        }
+
         $name = $membership->user->name;
+
+        $this->removeMembership($membership);
+
+        $toast = $this->isSeat($membership)
+            ? "{$name} was removed. Their seat is vacant — assign someone from the people page to take over their records."
+            : "{$name} was removed from the tenant.";
+
+        return back()->with('toast', $toast);
+    }
+
+    /**
+     * The deactivation screen. A departing sales agent sees the reassignment
+     * plan; Team Leader / Solutions Lead seats never cascade and show
+     * fill-the-seat instructions instead.
+     */
+    public function deactivate(Membership $membership): View
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        if ($membership->user_id === auth()->id()) {
+            abort(403, 'You cannot deactivate yourself.');
+        }
+
+        $service = app(ReassignmentService::class);
+
+        if ($this->isSalesAgent($membership)) {
+            $overrides = session("reassignment_plan.{$membership->id}", []);
+
+            $plan = $service->buildPlan($membership, $overrides);
+
+            return view('settings::pages.users.reassignment-plan', [
+                'membership' => $membership,
+                'plan' => $plan,
+                'agentOptions' => $service->agentOptions($membership),
+                'unassignedCount' => $plan->filter(fn (array $row): bool => $row['owner_id'] === null)->count(),
+                'canApprove' => $plan->every(fn (array $row): bool => $row['owner_id'] !== null),
+            ]);
+        }
+
+        return view('settings::pages.users.deactivate-simple', [
+            'membership' => $membership,
+            'seat' => $this->isSeat($membership),
+            'ownedCount' => Customer::query()->where('owner_user_id', $membership->user_id)->count(),
+        ]);
+    }
+
+    public function setPlanOwner(Request $request, Membership $membership): RedirectResponse
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        $data = $request->validate([
+            'customer_id' => ['required', 'integer'],
+            'owner_user_id' => ['required', 'integer'],
+        ]);
+
+        $customer = Customer::query()->findOrFail((int) $data['customer_id']);
+
+        abort_unless((int) $customer->owner_user_id === (int) $membership->user_id, 422);
+
+        $allowed = app(ReassignmentService::class)->agentOptions($membership);
+
+        abort_unless($allowed->has((int) $data['owner_user_id']), 422);
+
+        $overrides = session("reassignment_plan.{$membership->id}", []);
+        $overrides[(int) $customer->getKey()] = (int) $data['owner_user_id'];
+
+        session(["reassignment_plan.{$membership->id}" => $overrides]);
+
+        return back()->with('toast', "Owner override saved for {$customer->company}.");
+    }
+
+    public function assignSelected(Request $request, Membership $membership): RedirectResponse
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        $data = $request->validate([
+            'customer_ids' => ['required', 'array', 'min:1'],
+            'customer_ids.*' => ['integer'],
+            'owner_user_id' => ['required', 'integer'],
+        ]);
+
+        $allowed = app(ReassignmentService::class)->agentOptions($membership);
+
+        abort_unless($allowed->has((int) $data['owner_user_id']), 422);
+
+        $overrides = session("reassignment_plan.{$membership->id}", []);
+
+        foreach ($data['customer_ids'] as $customerId) {
+            $customer = Customer::query()->find((int) $customerId);
+
+            if ($customer === null || (int) $customer->owner_user_id !== (int) $membership->user_id) {
+                continue;
+            }
+
+            $overrides[(int) $customer->getKey()] = (int) $data['owner_user_id'];
+        }
+
+        session(["reassignment_plan.{$membership->id}" => $overrides]);
+
+        return back()->with('toast', 'Selected customers assigned to the chosen agent.');
+    }
+
+    public function recalculatePlan(Membership $membership): RedirectResponse
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        session()->forget("reassignment_plan.{$membership->id}");
+
+        return back()->with('toast', 'Suggestions recalculated from the latest loads.');
+    }
+
+    public function approvePlan(Membership $membership): RedirectResponse
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        $service = app(ReassignmentService::class);
+
+        $overrides = session("reassignment_plan.{$membership->id}", []);
+
+        $plan = $service->buildPlan($membership, $overrides);
+
+        $ownerMap = $plan->mapWithKeys(
+            fn (array $row): array => [(int) $row['customer']->getKey() => $row['owner_id']]
+        )->all();
+
+        if (in_array(null, $ownerMap, true)) {
+            return back()->with('toast', 'Every customer needs an owner before the plan can be approved.');
+        }
+
+        $transferred = $service->applyPlan($membership, $ownerMap);
+
+        $name = $membership->user->name;
+
+        $this->removeMembership($membership);
+
+        session()->forget("reassignment_plan.{$membership->id}");
+
+        $count = $transferred['customers'];
+
+        $toast = $count > 0
+            ? "{$name} was removed. {$count} customer(s) reassigned per the approved plan."
+            : "{$name} was removed — they owned no customers to reassign.";
+
+        return redirect()->route('deally.users.index')->with('toast', $toast);
+    }
+
+    /**
+     * Removal confirmation for seats and non-agent members, reached from the
+     * deactivation screen. Redirects to the users page so the deleted member
+     * is never re-bound from a stale referer.
+     */
+    public function confirmRemoval(Membership $membership): RedirectResponse
+    {
+        $this->authorizeManageUsers();
+        $this->abortIfNotInTenant($membership);
+
+        if ($this->isSalesAgent($membership)) {
+            return redirect()->route('deally.users.deactivate', $membership)
+                ->with('toast', 'Sales agents deactivate through the reassignment plan.');
+        }
+
+        $name = $membership->user->name;
+
+        $this->removeMembership($membership);
+
+        $toast = $this->isSeat($membership)
+            ? "{$name} was removed. Their seat is vacant — assign someone from the people page to take over their records."
+            : "{$name} was removed from the tenant.";
+
+        return redirect()->route('deally.users.index')->with('toast', $toast);
+    }
+
+    protected function removeMembership(Membership $membership): void
+    {
+        $tenantId = $membership->tenant_id;
 
         $membership->roles()->detach();
         $membership->delete();
 
-        return back()->with('toast', "{$name} was removed from the tenant.");
+        // Departing members stop being part of this tenant's teams.
+        $teamIds = Team::query()->forTenant($tenantId)->pluck('id');
+
+        if ($teamIds->isNotEmpty()) {
+            DB::table('team_user')
+                ->where('user_id', $membership->user_id)
+                ->whereIn('team_id', $teamIds)
+                ->delete();
+        }
+    }
+
+    /** @return array<int, string> */
+    protected function roleSlugs(Membership $membership): array
+    {
+        return $membership->roles()
+            ->pluck('slug')
+            ->map(fn (mixed $slug): string => (string) $slug)
+            ->values()
+            ->all();
+    }
+
+    protected function isSalesAgent(Membership $membership): bool
+    {
+        return in_array('sales-agent', $this->roleSlugs($membership), true);
+    }
+
+    protected function isSeat(Membership $membership): bool
+    {
+        return array_intersect($this->roleSlugs($membership), ReassignmentService::SEAT_ROLES) !== [];
     }
 
     protected function abortIfNotInTenant(Membership $membership): void

@@ -69,6 +69,18 @@
                 </div>
                 <span class="settings-row-value">{{ app(\Deally\Retention\Services\RetentionService::class)->tierLabel() }}</span>
             </div>
+@if ($canManageAccount)
+            <div style="border-top: 1px solid var(--border-soft); margin-top: 16px; padding-top: 16px;">
+                <div class="settings-title" style="margin-bottom: 6px;">Demand Accounts</div>
+                <div class="field-block">
+                    <div class="field-label">Pipeline value threshold ($)</div>
+                    <input class="input-field" type="number" name="demand_pipeline_threshold" min="0" step="1" value="{{ $accountSetting->demandThreshold() }}">
+                    <div style="font-size: 12px; color: var(--text-3); margin-top: 6px;">
+                        A customer with open pipeline value above this threshold counts as a Demand Account in the risk engine and the reassignment plan.
+                    </div>
+                </div>
+            </div>
+@endif
 <div style="display: flex; gap: 10px; margin-top: 18px;">
                 <button class="btn-sm primary" type="submit">Save Changes</button>
             </div>

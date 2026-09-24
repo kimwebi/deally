@@ -41,6 +41,14 @@ Route::middleware('deally')
                 Route::post('users', [UserController::class, 'store'])->name('store');
                 Route::put('users/{membership}', [UserController::class, 'update'])->name('update');
                 Route::delete('users/{membership}', [UserController::class, 'destroy'])->name('destroy');
+
+                Route::get('users/{membership}/deactivate', [UserController::class, 'deactivate'])->name('deactivate');
+                Route::delete('users/{membership}/remove', [UserController::class, 'confirmRemoval'])->name('confirm-removal');
+
+                Route::post('users/{membership}/reassignment-plan/owner', [UserController::class, 'setPlanOwner'])->name('reassignment.owner');
+                Route::post('users/{membership}/reassignment-plan/assign-selected', [UserController::class, 'assignSelected'])->name('reassignment.assign-selected');
+                Route::post('users/{membership}/reassignment-plan/recalculate', [UserController::class, 'recalculatePlan'])->name('reassignment.recalculate');
+                Route::post('users/{membership}/reassignment-plan/approve', [UserController::class, 'approvePlan'])->name('reassignment.approve');
             });
 
         Route::get('admin/integrations', [IntegrationsController::class, 'index'])->name('integrations.index');

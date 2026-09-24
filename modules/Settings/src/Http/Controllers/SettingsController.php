@@ -3,6 +3,7 @@
 namespace Deally\Settings\Http\Controllers;
 
 use Deally\Core\Http\Controllers\Controller;
+use Deally\Pipeline\Models\AccountSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -20,6 +21,8 @@ class SettingsController extends Controller
             'membership' => $membership,
             'timezones' => $this->timezones(),
             'locales' => $this->locales(),
+            'accountSetting' => AccountSetting::current(),
+            'canManageAccount' => $this->deallyCan('deally.settings.manage'),
         ]);
     }
 
@@ -33,6 +36,14 @@ class SettingsController extends Controller
         ]);
 
         $request->user()->update($data);
+
+        if ($this->deallyCan('deally.settings.manage') && $request->has('demand_pipeline_threshold')) {
+            $threshold = (int) $request->validate([
+                'demand_pipeline_threshold' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            ])['demand_pipeline_threshold'];
+
+            AccountSetting::current()->update(['demand_pipeline_threshold' => $threshold]);
+        }
 
         return back()->with('toast', 'Profile updated.');
     }

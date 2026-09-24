@@ -34,6 +34,7 @@ class TaskController extends Controller
             'tasks' => $tasks,
             'reviewUrls' => $reviewUrls,
             'assignees' => $this->tenantMembershipOptions(),
+            'suggestedOwners' => $this->suggestedOwnerOptions(),
             'todoCount' => $tasks->where('status', '!=', 'closed')->count(),
             'overdueCount' => $tasks->where('status', '!=', 'closed')->filter(fn (Task $task) => $task->due_at !== null && $task->due_at->isPast())->count(),
         ]);

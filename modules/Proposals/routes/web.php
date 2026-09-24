@@ -10,6 +10,8 @@ Route::middleware('deally')
     ->group(function (): void {
         Route::get('proposals', [ProposalController::class, 'index'])->name('proposals.index');
         Route::post('proposals', [ProposalController::class, 'store'])->name('proposals.store');
+        Route::get('proposals/{proposal}', [ProposalController::class, 'show'])->name('proposals.show');
+        Route::put('proposals/{proposal}', [ProposalController::class, 'update'])->name('proposals.update');
         Route::post('proposals/{proposal}/status', [ProposalController::class, 'updateStatus'])->name('proposals.status');
 
         Route::get('kb', [KnowledgeBaseController::class, 'index'])->name('kb.index');

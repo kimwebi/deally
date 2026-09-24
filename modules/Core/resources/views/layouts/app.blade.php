@@ -63,6 +63,7 @@
                 <div class="nav-group-label">Workspace</div>
                 <a href="{{ route('deally.workspace') }}" class="nav-item {{ request()->routeIs('deally.workspace') ? 'active' : '' }}">Home</a>
                 <a href="{{ route('deally.pipeline') }}" class="nav-item {{ request()->routeIs('deally.pipeline') ? 'active' : '' }}">Pipeline<span class="nav-badge">{{ Deally\Pipeline\Models\Opportunity::count() }}</span></a>
+                <a href="{{ route('deally.customers.index') }}" class="nav-item {{ request()->routeIs('deally.customers.*') ? 'active' : '' }}">Customers</a>
                 <a href="{{ route('deally.calls.index') }}" class="nav-item {{ request()->routeIs('deally.calls.*') ? 'active' : '' }}">Calls</a>
                 <a href="{{ route('deally.tasks.index') }}" class="nav-item {{ request()->routeIs('deally.tasks.index') ? 'active' : '' }}">Tasks @if($taskTodoCount > 0)<span class="nav-badge alert">{{ $taskTodoCount }}</span>@endif</a>
                 <a href="{{ route('deally.proposals.index') }}" class="nav-item {{ request()->routeIs('deally.proposals.index') ? 'active' : '' }}">Proposals</a>
@@ -172,6 +173,7 @@
                     {"label":"Home","href":"{{ route('deally.workspace') }}","icon":"bi-house","keywords":"home workspace dashboard"},
                     {"label":"Calls","href":"{{ route('deally.calls.index') }}","icon":"bi-telephone","keywords":"call live review summary history"},
                     {"label":"Pipeline","href":"{{ route('deally.pipeline') }}","icon":"bi-kanban","keywords":"opportunities deals stage"},
+                    {"label":"Customers","href":"{{ route('deally.customers.index') }}","icon":"bi-building","keywords":"customers accounts companies owners"},
                     {"label":"Tasks","href":"{{ route('deally.tasks.index') }}","icon":"bi-check2-square","keywords":"todo follow up action items"},
                     {"label":"Proposals","href":"{{ route('deally.proposals.index') }}","icon":"bi-file-earmark-text","keywords":"proposal docs documents"},
                     {"label":"Knowledge Base","href":"{{ route('deally.kb.index') }}","icon":"bi-book","keywords":"kb knowledge answers pricing features"}

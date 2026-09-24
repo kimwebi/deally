@@ -36,11 +36,22 @@
                                 data-action="{{ route('deally.users.update', $membership) }}"
                                 data-name="{{ $membership->user->name }}"
                                 data-roles="{{ $membership->roles->pluck('id')->implode(',') }}">Edit</button>
-                        <form method="POST" action="{{ route('deally.users.destroy', $membership) }}" onsubmit="return confirm('Remove {{ $membership->user->name }} from this tenant?');" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="row-action danger" style="background:none;border:none;cursor:pointer;font-size:13px;">Remove</button>
-                        </form>
+                        @php
+                            $roleSlugsForAction = $membership->roles->pluck('slug');
+                            $isAgent = $roleSlugsForAction->contains('sales-agent');
+                            $isSeat = $roleSlugsForAction->intersect(['team-leader', 'solutions-lead'])->isNotEmpty();
+                        @endphp
+                        @if ($membership->user_id !== auth()->id())
+                            @if ($isAgent || $isSeat)
+                                <a class="row-action danger" style="text-decoration:none; font-size:13px;" href="{{ route('deally.users.deactivate', $membership) }}">Deactivate</a>
+                            @else
+                                <form method="POST" action="{{ route('deally.users.destroy', $membership) }}" onsubmit="return confirm('Remove {{ $membership->user->name }} from this tenant?');" style="display:inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="row-action danger" style="background:none;border:none;cursor:pointer;font-size:13px;">Remove</button>
+                                </form>
+                            @endif
+                        @endif
                     </td>
                 </tr>
             @empty

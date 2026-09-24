@@ -18,7 +18,7 @@ class ReportingController extends Controller
     {
         $this->authorizeDeally('deally.reporting.view');
 
-        $opportunities = $this->scopeToSeat(Opportunity::query())->get();
+        $opportunities = $this->scopeDealsToSeat(Opportunity::query())->get();
         $calls = $this->scopeToSeat(Call::query())->with('opportunity')->get();
 
         $closed = $opportunities->whereIn('stage', ['won', 'lost']);
@@ -58,7 +58,7 @@ class ReportingController extends Controller
     {
         $this->authorizeDeally('deally.reporting.view');
 
-        $opportunity = $this->scopeToSeat(Opportunity::query()->where('company', $company))->first();
+        $opportunity = $this->scopeDealsToSeat(Opportunity::query()->where('company', $company))->first();
         $calls = $this->scopeToSeat(Call::query()->where('company', $company))->orderByDesc('date')->get();
         $proposals = $this->scopeToSeat(Proposal::query()->where('company', $company))->orderByDesc('updated_at')->get();
         $tasks = $this->scopeToSeat(Task::query()->where('linked_company', $company))->orderByDesc('created_at')->get();

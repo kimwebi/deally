@@ -39,6 +39,9 @@ class DeallyAccessSeeder extends Seeder
             // Proposals
             ['deally.proposals.view', 'Deally — Proposals', 'View proposals', 'See proposals for accounts in your reach.'],
             ['deally.proposals.manage', 'Deally — Proposals', 'Create proposals', 'Draft and send proposals.'],
+            // Customers
+            ['deally.customers.view', 'Deally — Customers', 'View customers', 'See customer accounts and who owns them, within the reach of your seat.'],
+            ['deally.customers.manage', 'Deally — Customers', 'Manage customers', 'Add customer accounts, update contacts and reassign ownership.'],
             // Knowledge base
             ['deally.kb.view', 'Deally — Knowledge base', 'View the knowledge base', 'Browse knowledge base entries.'],
             ['deally.kb.manage', 'Deally — Knowledge base', 'Manage the knowledge base', 'Create and edit knowledge base entries.'],
@@ -82,6 +85,8 @@ class DeallyAccessSeeder extends Seeder
             'deally.tasks.manage',
             'deally.proposals.view',
             'deally.proposals.manage',
+            'deally.customers.view',
+            'deally.customers.manage',
             'deally.kb.view',
             'deally.settings.view',
             'deally.reporting.view',
@@ -102,6 +107,8 @@ class DeallyAccessSeeder extends Seeder
                 'deally.calls.view',
                 'deally.tasks.view',
                 'deally.proposals.view',
+                'deally.customers.view',
+                'deally.customers.manage',
                 'deally.kb.view',
                 'deally.kb.manage',
                 'deally.reporting.view',

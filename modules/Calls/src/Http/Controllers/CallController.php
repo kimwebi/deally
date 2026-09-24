@@ -31,6 +31,7 @@ class CallController extends Controller
         return view('calls::pages.calls', [
             'calls' => $calls,
             'assignees' => $this->tenantMembershipOptions(),
+            'suggestedOwners' => $this->suggestedOwnerOptions(),
             'ownerNames' => $ownerNames,
         ]);
     }

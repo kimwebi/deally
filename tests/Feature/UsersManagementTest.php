@@ -133,9 +133,9 @@ class UsersManagementTest extends TestCase
     public function test_a_member_can_be_removed_from_the_tenant(): void
     {
         $alice = User::query()->where('email', 'alice@example.com')->firstOrFail();
-        $charlie = User::query()->where('email', 'charlie@example.com')->firstOrFail();
+        $support = User::query()->where('email', 'support@example.com')->firstOrFail();
 
-        $membership = $charlie->getMembershipForTenant($this->acme());
+        $membership = $support->getMembershipForTenant($this->acme());
         $this->assertNotNull($membership);
 
         $this->actingAs($alice)

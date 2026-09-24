@@ -67,4 +67,47 @@ class ProposalController extends Controller
 
         return back()->with('toast', "Proposal '{$proposal->name}' marked as {$status}.");
     }
+
+    /**
+     * The editable proposal detail, rendered as a form fragment for the
+     * Proposal Detail modal (opened from the pipeline engagement log and
+     * the proposals page alike).
+     */
+    public function show(Proposal $proposal)
+    {
+        $this->authorizeDeally('deally.proposals.view');
+        $this->authorizeSeatRecord($proposal);
+
+        return view('proposals::partials.detail', [
+            'proposal' => $proposal,
+            'canManage' => $this->deallyCan('deally.proposals.manage'),
+            'statuses' => ['draft', 'viewed', 'sent', 'approved', 'rejected'],
+        ]);
+    }
+
+    public function update(Request $request, Proposal $proposal)
+    {
+        $this->authorizeDeally('deally.proposals.manage');
+        $this->authorizeSeatRecord($proposal);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'value' => ['nullable', 'numeric', 'min:0'],
+            'package' => ['nullable', 'string', 'max:255'],
+            'quote' => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'string', 'in:draft,viewed,sent,approved,rejected'],
+        ]);
+
+        $proposal->update($data);
+
+        app(ActivityLogger::class)->log(
+            'proposal.updated',
+            "Proposal '{$proposal->name}' updated for {$proposal->company}.",
+            ['proposal_id' => $proposal->getKey(), 'status' => $data['status']],
+            'info',
+            $proposal
+        );
+
+        return back()->with('toast', "Proposal '{$proposal->name}' updated.");
+    }
 }

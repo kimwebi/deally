@@ -4,9 +4,11 @@ namespace Deally\Core\Http\Controllers\Concerns;
 
 use Deally\Core\Models\User;
 use Deally\Core\Services\Seat;
+use Deally\Pipeline\Models\Customer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use SaasFoundation\Models\Membership;
 
 trait AuthorizesDeally
@@ -65,6 +67,73 @@ trait AuthorizesDeally
     protected function scopeToSeat(Builder $query, string $column = 'owner_user_id'): Builder
     {
         return Seat::scope($query, $column, $this->deallyUser());
+    }
+
+    /**
+     * Scope deal records by their customer's owner, so ownership always
+     * inherits from the customer and never lives on the deal itself.
+     */
+    protected function scopeDealsToSeat(Builder $query): Builder
+    {
+        $ids = $this->seatUserIds();
+
+        if ($ids === null) {
+            return $query;
+        }
+
+        $customerIds = Customer::query()->whereIn('owner_user_id', $ids)->pluck('id');
+
+        return $query->whereIn('customer_id', $customerIds);
+    }
+
+    /**
+     * Team id of the member in the current tenant — the team a new customer
+     * account belongs to, via its owning agent.
+     */
+    protected function userTeamId(): ?string
+    {
+        return $this->teamIdForMember((int) ($this->deallyUser()?->getKey() ?? 0));
+    }
+
+    /**
+     * Team id for a member in the current tenant, or null when they are not
+     * in a team there. A customer belongs to its owning agent's team, so the
+     * team follows the owner on reassignment.
+     */
+    protected function teamIdForMember(int $userId): ?string
+    {
+        $membership = $this->deallyMembership();
+
+        if ($membership === null) {
+            return null;
+        }
+
+        $teamId = DB::table('team_user')->where('user_id', $userId)->value('team_id');
+
+        if ($teamId === null) {
+            return null;
+        }
+
+        if (! DB::table('teams')->where('id', $teamId)->where('tenant_id', $membership->tenant_id)->exists()) {
+            return null;
+        }
+
+        return (string) $teamId;
+    }
+
+    /**
+     * Suggested (same-team) agent options for assignment controls. The team is
+     * the pool suggestions are drawn from; it is never an assignment target.
+     *
+     * @return Collection<int, string>
+     */
+    protected function suggestedOwnerOptions(): Collection
+    {
+        $options = $this->tenantMembershipOptions();
+
+        $ids = Seat::suggestedOwnerIds($this->deallyUser());
+
+        return $options->filter(fn ($name, $id): bool => in_array((int) $id, $ids, true));
     }
 
     protected function authorizeSeatRecord(Model $record): void
