@@ -32,6 +32,7 @@
     $canSeeIntegrations = $user && ($user->isSuperAdmin() || ($membership && array_intersect(['owner', 'admin'], $membership->roles->pluck('slug')->all())));
     $unreadCount = $user?->unreadNotifications()->count() ?? 0;
     $taskTodoCount = $user ? Deally\Core\Services\Seat::scope(Deally\Tasks\Models\Task::query())->todo()->count() : 0;
+    $opportunityCount = $user ? Deally\Core\Services\Seat::scopeDeals(Deally\Pipeline\Models\Opportunity::query(), $user)->count() : 0;
     $switchableTenants = collect();
     $activeTenant = null;
     $activeTenantId = $membership?->tenant_id;
@@ -62,7 +63,7 @@
             <div class="nav-group">
                 <div class="nav-group-label">Workspace</div>
                 <a href="{{ route('deally.workspace') }}" class="nav-item {{ request()->routeIs('deally.workspace') ? 'active' : '' }}">Home</a>
-                <a href="{{ route('deally.pipeline') }}" class="nav-item {{ request()->routeIs('deally.pipeline') ? 'active' : '' }}">Pipeline<span class="nav-badge">{{ Deally\Pipeline\Models\Opportunity::count() }}</span></a>
+                <a href="{{ route('deally.pipeline') }}" class="nav-item {{ request()->routeIs('deally.pipeline') ? 'active' : '' }}">Pipeline<span class="nav-badge">{{ $opportunityCount }}</span></a>
                 <a href="{{ route('deally.customers.index') }}" class="nav-item {{ request()->routeIs('deally.customers.*') ? 'active' : '' }}">Customers</a>
                 <a href="{{ route('deally.calls.index') }}" class="nav-item {{ request()->routeIs('deally.calls.*') ? 'active' : '' }}">Calls</a>
                 <a href="{{ route('deally.tasks.index') }}" class="nav-item {{ request()->routeIs('deally.tasks.index') ? 'active' : '' }}">Tasks @if($taskTodoCount > 0)<span class="nav-badge alert">{{ $taskTodoCount }}</span>@endif</a>
@@ -172,7 +173,7 @@
                 <script type="application/json" id="cmdbar-nav">[
                     {"label":"Home","href":"{{ route('deally.workspace') }}","icon":"bi-house","keywords":"home workspace dashboard"},
                     {"label":"Calls","href":"{{ route('deally.calls.index') }}","icon":"bi-telephone","keywords":"call live review summary history"},
-                    {"label":"Pipeline","href":"{{ route('deally.pipeline') }}","icon":"bi-kanban","keywords":"opportunities deals stage"},
+                    {"label":"Pipeline","href":"{{ route('deally.pipeline') }}","icon":"bi-pip","keywords":"opportunities deals stage"},
                     {"label":"Customers","href":"{{ route('deally.customers.index') }}","icon":"bi-building","keywords":"customers accounts companies owners"},
                     {"label":"Tasks","href":"{{ route('deally.tasks.index') }}","icon":"bi-check2-square","keywords":"todo follow up action items"},
                     {"label":"Proposals","href":"{{ route('deally.proposals.index') }}","icon":"bi-file-earmark-text","keywords":"proposal docs documents"},

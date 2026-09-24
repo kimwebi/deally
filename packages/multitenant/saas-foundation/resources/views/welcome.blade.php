@@ -4,35 +4,67 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Laravel') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #111827; line-height: 1.6; background: #fff; }
+        :root {
+            color-scheme: dark;
+            --primary: #3b6fe0;
+            --primary-hover: #2f5cc9;
+            --danger: #e5484d;
+            --bg: #14171c;
+            --surface: #1c2027;
+            --surface-2: #232830;
+            --border: #2e343d;
+            --text: #e8ecf0;
+            --text-2: #a8b0bc;
+            --text-3: #757579;
+            --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                color-scheme: light;
+                --primary: #2f5cc9;
+                --primary-hover: #274ea8;
+                --danger: #c3373c;
+                --bg: #f4f5f7;
+                --surface: #ffffff;
+                --surface-2: #f7f8fa;
+                --border: #dfe3e8;
+                --text: #171a1f;
+                --text-2: #5a6470;
+                --text-3: #8a939e;
+            }
+        }
+        body { font-family: var(--font-sans); color: var(--text); line-height: 1.6; background: var(--bg); -webkit-font-smoothing: antialiased; }
         a { text-decoration: none; }
-        .header { border-bottom: 1px solid #e5e7eb; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
-        .header-brand { font-size: 18px; font-weight: 700; color: #111827; }
+        .header { border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+        .header-brand { font-size: 18px; font-weight: 700; color: var(--text); }
         .header-nav { display: flex; gap: 24px; align-items: center; }
-        .header-nav a { font-size: 14px; color: #6b7280; }
-        .header-nav a:hover { color: #111827; }
-        .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; }
-        .btn-secondary:hover { background: #f9fafb; }
+        .header-nav a { font-size: 14px; color: var(--text-2); }
+        .header-nav a:hover { color: var(--text); }
+        .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; font-family: var(--font-sans); }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--surface-2); }
         .hero { text-align: center; padding: 100px 32px 80px; max-width: 720px; margin: 0 auto; }
         .hero h1 { font-size: 48px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
-        .hero p { font-size: 18px; color: #6b7280; margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
+        .hero p { font-size: 18px; color: var(--text-2); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
         .hero-buttons { display: flex; gap: 12px; justify-content: center; }
         .hero .btn-lg { padding: 12px 28px; font-size: 16px; }
-        .features { background: #f9fafb; padding: 80px 32px; }
+        .features { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 80px 32px; }
         .features-inner { max-width: 1100px; margin: 0 auto; }
         .features h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 48px; }
         .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
-        .feature-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; }
+        .feature-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 32px; }
         .feature-icon { font-size: 32px; margin-bottom: 16px; }
         .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-        .feature-card p { font-size: 14px; color: #6b7280; }
-        .footer { padding: 32px; text-align: center; color: #9ca3af; font-size: 14px; border-top: 1px solid #e5e7eb; }
-        .guest-bar { background: #eff6ff; padding: 6px 16px; text-align: center; font-size: 13px; color: #1e40af; }
+        .feature-card p { font-size: 14px; color: var(--text-2); }
+        .footer { padding: 32px; text-align: center; color: var(--text-3); font-size: 14px; border-top: 1px solid var(--border); }
+        .guest-bar { background: var(--primary); padding: 6px 16px; text-align: center; font-size: 13px; color: #fff; }
         @media (max-width: 768px) {
             .hero h1 { font-size: 32px; }
             .features-grid { grid-template-columns: 1fr; }
@@ -46,7 +78,7 @@
     <div class="guest-bar">{{ session('success') }}</div>
     @endif
     @if(session('error'))
-    <div style="background:#fef2f2; padding:6px 16px; text-align:center; font-size:13px; color:#991b1b;">{{ session('error') }}</div>
+    <div style="background:var(--danger); padding:6px 16px; text-align:center; font-size:13px; color:#fff;">{{ session('error') }}</div>
     @endif
 
     <header class="header">

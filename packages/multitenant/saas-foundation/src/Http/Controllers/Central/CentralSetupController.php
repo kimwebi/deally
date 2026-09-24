@@ -27,7 +27,7 @@ class CentralSetupController extends Controller
 {
     /**
      * The celebratory tenant milestone. Reaching this many customers shows
-     * the Hurray! banner on the setup console and the central dashboard.
+     * the milestone panel on the setup console and the central dashboard.
      */
     public const MILESTONE_TARGET = 10;
 

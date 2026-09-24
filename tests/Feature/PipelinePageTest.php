@@ -136,6 +136,29 @@ class PipelinePageTest extends TestCase
         $this->assertSame(1, Opportunity::query()->where('company', 'Acme Corp')->count());
     }
 
+    public function test_the_sidebar_pipeline_badge_is_scoped_to_the_seat(): void
+    {
+        // Charlie owns only Stark Industries, whose single deal is the only one
+        // in their seat — the badge must show 1, not the tenant-wide total (4).
+        $charlie = $this->user('charlie@example.com');
+
+        $this->actingAs($charlie)
+            ->get(route('deally.pipeline'))
+            ->assertOk()
+            ->assertSeeHtml('<span class="nav-badge">1</span>')
+            ->assertDontSeeHtml('<span class="nav-badge">4</span>');
+    }
+
+    public function test_the_sidebar_pipeline_badge_shows_the_tenant_total_for_owners(): void
+    {
+        $alice = $this->user('alice@example.com');
+
+        $this->actingAs($alice)
+            ->get(route('deally.pipeline'))
+            ->assertOk()
+            ->assertSeeHtml('<span class="nav-badge">4</span>');
+    }
+
     private function user(string $email): User
     {
         return User::query()->where('email', $email)->firstOrFail();

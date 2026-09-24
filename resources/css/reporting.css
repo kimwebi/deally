@@ -46,7 +46,7 @@ kbd {
 .risk-panel { background: rgba(204, 41, 54, 0.08); border: 1px solid rgba(204, 41, 54, 0.25); border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 18px; }
 .risk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .risk-item { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; }
-.risk-item::before { content: 'ï¿½'; position: absolute; left: 0; color: var(--red); }
+.risk-item::before { content: '—'; position: absolute; left: 0; color: var(--red); }
 
 .story-convo { border-left: 2px solid var(--violet); padding: 4px 0 12px 14px; margin-bottom: 12px; }
 .story-convo-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-bottom: 3px; }

@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name', 'MultiTenancy') }}</title>
+    <script>
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('saas-theme'); } catch (e) {}
+            document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+        })();
+    </script>
     <link rel="stylesheet" href="{{ asset('vendor/multitenant/saas-foundation/css/app.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,20 +35,20 @@
                 @if(auth()->user() && auth()->user()->is_super_admin)
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Central Admin</div>
-                    <a href="{{ route('central.dashboard') }}" class="sidebar-link {{ request()->routeIs('central.*') ? 'active' : '' }}">
-                        <span class="icon">&#9632;</span> Dashboard
+                    <a href="{{ route('central.dashboard') }}" class="sidebar-link {{ request()->routeIs('central.dashboard') ? 'active' : '' }}">
+                        <i class="icon bi bi-speedometer2"></i> Dashboard
                     </a>
                     <a href="{{ route('central.tenants.index') }}" class="sidebar-link {{ request()->routeIs('central.tenants.*') ? 'active' : '' }}">
-                        <span class="icon">&#9998;</span> Tenants
+                        <i class="icon bi bi-buildings"></i> Tenants
                     </a>
                     <a href="{{ route('central.users.index') }}" class="sidebar-link {{ request()->routeIs('central.users.*') ? 'active' : '' }}">
-                        <span class="icon">&#9787;</span> Users
+                        <i class="icon bi bi-people"></i> Users
                     </a>
                     <a href="{{ route('central.plans.index') }}" class="sidebar-link {{ request()->routeIs('central.plans.*') ? 'active' : '' }}">
-                        <span class="icon">&#9733;</span> Plans
+                        <i class="icon bi bi-stars"></i> Plans
                     </a>
                     <a href="{{ route('central.audit.index') }}" class="sidebar-link {{ request()->routeIs('central.audit.*') ? 'active' : '' }}">
-                        <span class="icon">&#9881;</span> Audit Log
+                        <i class="icon bi bi-shield-check"></i> Audit Log
                     </a>
                 </div>
                 @endif
@@ -50,10 +57,10 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Platform Ops</div>
                     <a href="{{ route('central.setup.index') }}" class="sidebar-link {{ request()->routeIs('central.setup.*') ? 'active' : '' }}">
-                        <span class="icon">&#9881;</span> Setup Console
+                        <i class="icon bi bi-tools"></i> Setup Console
                     </a>
                     <a href="{{ route('central.audit.index') }}" class="sidebar-link {{ request()->routeIs('central.audit.*') ? 'active' : '' }}">
-                        <span class="icon">&#9783;</span> Audit Log
+                        <i class="icon bi bi-journal-text"></i> Audit Log
                     </a>
                 </div>
                 @endif
@@ -62,34 +69,34 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Tenant Panel</div>
                     <a href="{{ route('tenant.dashboard', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.dashboard') ? 'active' : '' }}">
-                        <span class="icon">&#9632;</span> Dashboard
+                        <i class="icon bi bi-grid-1x2"></i> Dashboard
                     </a>
                     <a href="{{ route('tenant.projects.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.projects.*') ? 'active' : '' }}">
-                        <span class="icon">&#9998;</span> Projects
+                        <i class="icon bi bi-briefcase"></i> Projects
                     </a>
                     <a href="{{ route('tenant.pages.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.pages.*') ? 'active' : '' }}">
-                        <span class="icon">&#9737;</span> Pages
+                        <i class="icon bi bi-file-earmark-text"></i> Pages
                     </a>
                     <a href="{{ route('tenant.users.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.users.*') ? 'active' : '' }}">
-                        <span class="icon">&#9787;</span> Members
+                        <i class="icon bi bi-person-badge"></i> Members
                     </a>
                     <a href="{{ route('tenant.roles.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.roles.*') ? 'active' : '' }}">
-                        <span class="icon">&#9733;</span> Roles
+                        <i class="icon bi bi-person-check"></i> Roles
                     </a>
                     <a href="{{ route('tenant.invitations.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.invitations.*') ? 'active' : '' }}">
-                        <span class="icon">&#10003;</span> Invitations
+                        <i class="icon bi bi-envelope-plus"></i> Invitations
                     </a>
                     <a href="{{ route('tenant.domains.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.domains.*') ? 'active' : '' }}">
-                        <span class="icon">&#127760;</span> Domains
+                        <i class="icon bi bi-globe2"></i> Domains
                     </a>
                     <a href="{{ route('tenant.subscription.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.subscription.*') ? 'active' : '' }}">
-                        <span class="icon">&#9813;</span> Subscription
+                        <i class="icon bi bi-credit-card"></i> Subscription
                     </a>
                     <a href="{{ route('tenant.usage.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.usage.*') ? 'active' : '' }}">
-                        <span class="icon">&#9879;</span> Usage
+                        <i class="icon bi bi-bar-chart-line"></i> Usage
                     </a>
                     <a href="{{ route('tenant.settings.index', $tenant) }}" class="sidebar-link {{ request()->routeIs('tenant.settings.*') ? 'active' : '' }}">
-                        <span class="icon">&#9881;</span> Settings
+                        <i class="icon bi bi-gear"></i> Settings
                     </a>
                 </div>
                 @endif
@@ -109,13 +116,16 @@
                     <h1 class="topbar-title">{{ $pageTitle ?? '' }}</h1>
                 </div>
                 <div class="topbar-actions">
+                    <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
+                        <i class="bi bi-sun-fill" id="themeIcon"></i>
+                    </button>
                     @auth
                     <div class="topbar-user">
                         <div class="avatar">{{ substr(auth()->user()->name, 0, 1) }}</div>
                         <span class="topbar-user-name">{{ auth()->user()->name }}</span>
                     </div>
                     <div class="dropdown">
-                        <button class="btn btn-secondary btn-sm" onclick="this.nextElementSibling.classList.toggle('show')">&#9662;</button>
+                        <button class="btn btn-secondary btn-sm" aria-label="Account menu" onclick="this.nextElementSibling.classList.toggle('show')"><i class="bi bi-chevron-down"></i></button>
                         <div class="dropdown-menu">
                             <a href="{{ route('profile.edit') }}" class="dropdown-item">Profile</a>
                             <form method="POST" action="{{ route('logout') }}">
@@ -151,6 +161,20 @@
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('sidebarOverlay').classList.toggle('show');
         }
+        function toggleTheme() {
+            var html = document.documentElement;
+            var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            try { localStorage.setItem('saas-theme', next); } catch (e) {}
+            syncThemeIcon();
+        }
+        function syncThemeIcon() {
+            var icon = document.getElementById('themeIcon');
+            if (!icon) return;
+            var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+            icon.className = dark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+        }
+        document.addEventListener('DOMContentLoaded', syncThemeIcon);
         document.addEventListener('click', function(e) {
             document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
                 if (!menu.parentElement.contains(e.target)) {

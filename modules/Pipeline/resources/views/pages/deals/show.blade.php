@@ -27,7 +27,7 @@
 
     @if ($assessed && $assessed['at_risk'])
         <div class="risk-panel">
-            <div class="report-panel-title">⚠ At-risk account · {{ $assessed['label'] }}</div>
+            <div class="report-panel-title"><i class="bi bi-patch-exclamation-fill"></i> At-risk account · {{ $assessed['label'] }}</div>
             <div class="risk-list">
                 @foreach ($assessed['reasons'] as $reason)
                     <div class="risk-item">{{ $reason }}</div>
@@ -100,7 +100,7 @@
                 @if ($row['type'] === 'call')
                     @php $call = $row['call']; @endphp
                     <div class="engagement-item">
-                        <div class="engagement-marker">📞</div>
+                        <div class="engagement-marker"><i class="bi bi-telephone-fill"></i></div>
                         <div class="engagement-body">
                             <div class="engagement-head">
                                 <strong>Call · {{ $call->name }}</strong>
@@ -119,7 +119,7 @@
                 @elseif ($row['type'] === 'proposal')
                     @php $proposal = $row['proposal']; @endphp
                     <div class="engagement-item">
-                        <div class="engagement-marker">📄</div>
+                        <div class="engagement-marker"><i class="bi bi-file-earmark-text-fill"></i></div>
                         <div class="engagement-body">
                             <div class="engagement-head">
                                 <strong>Proposal · {{ $proposal->name }}</strong>
@@ -135,7 +135,7 @@
                 @else
                     @php $event = $row['activity']; @endphp
                     <div class="engagement-item">
-                        <div class="engagement-marker">📌</div>
+                        <div class="engagement-marker"><i class="bi bi-pin-angle-fill"></i></div>
                         <div class="engagement-body">
                             <div class="engagement-head">
                                 <strong>{{ $event->event === 'opportunity.stage' ? 'Stage change' : 'Note' }}</strong>
@@ -165,7 +165,7 @@
 <div class="modal-overlay" id="modal-proposal-detail">
     <div class="modal wide">
         <div class="modal-header">
-            <div class="modal-header-icon proposal">📄</div>
+            <div class="modal-header-icon proposal"><i class="bi bi-file-earmark-text-fill"></i></div>
             <div class="modal-header-body"><div class="modal-title">Proposal detail</div><div class="modal-subtitle" id="proposal-detail-subtitle">—</div></div>
             <button class="modal-close" data-close-modal>✕</button>
         </div>

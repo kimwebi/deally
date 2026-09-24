@@ -3,6 +3,7 @@
 namespace Deally\Core\Services;
 
 use Deally\Core\Models\User;
+use Deally\Pipeline\Models\Customer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use SaasFoundation\Models\Role;
@@ -91,6 +92,26 @@ class Seat
         }
 
         return $query;
+    }
+
+    /**
+     * Scope deal records by their customer's owner, so ownership always
+     * inherits from the customer and never lives on the deal itself.
+     *
+     * Shared with the sidebar Pipeline badge so the count matches exactly
+     * what the pipeline page lists for the same seat.
+     */
+    public static function scopeDeals(Builder $query, ?User $user = null): Builder
+    {
+        $ids = static::userIds($user ?? auth()->user());
+
+        if ($ids === null) {
+            return $query;
+        }
+
+        $customerIds = Customer::query()->whereIn('owner_user_id', $ids)->pluck('id');
+
+        return $query->whereIn('customer_id', $customerIds);
     }
 
     /**

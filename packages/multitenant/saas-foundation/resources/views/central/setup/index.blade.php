@@ -7,40 +7,42 @@
     <div class="text-muted text-sm">{{ $customerCount }} customers &middot; {{ $provisionedCount }} provisioned</div>
 </div>
 
-{{-- Flash cards --}}
-<div class="flash-grid">
-    <div class="flashcard blue">
-        <div class="flash-icon">&#9632;</div>
-        <div class="flash-label">Customers</div>
-        <div class="flash-value">{{ $customerCount }}</div>
-        <div class="flash-sub">Total on the platform</div>
+{{-- Stat cards --}}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">&#9632;</div>
+        <div class="stat-label">Customers</div>
+        <div class="stat-value">{{ $customerCount }}</div>
+        <div class="stat-sub">Total on the platform</div>
     </div>
-    <div class="flashcard gold">
-        <div class="flash-icon">&#10003;</div>
-        <div class="flash-label">Provisioned</div>
-        <div class="flash-value">{{ $provisionedCount }}</div>
-        <div class="flash-sub">Databases live &amp; seeded</div>
+    <div class="stat-card">
+        <div class="stat-icon blue">&#10003;</div>
+        <div class="stat-label">Provisioned</div>
+        <div class="stat-value">{{ $provisionedCount }}</div>
+        <div class="stat-sub">Databases live &amp; seeded</div>
     </div>
-    <div class="flashcard navy">
-        <div class="flash-icon">&#9881;</div>
-        <div class="flash-label">Pending</div>
-        <div class="flash-value">{{ $pendingCount }}</div>
-        <div class="flash-sub">Awaiting provisioning</div>
+    <div class="stat-card">
+        <div class="stat-icon grey">&#9881;</div>
+        <div class="stat-label">Pending</div>
+        <div class="stat-value">{{ $pendingCount }}</div>
+        <div class="stat-sub">Awaiting provisioning</div>
     </div>
-    <div class="flashcard black">
-        <div class="flash-icon">&#128200;</div>
-        <div class="flash-label">Milestone</div>
-        <div class="flash-value">{{ $customerCount }} / {{ $milestone }}</div>
-        <div class="flash-sub">Progress toward the target</div>
+    <div class="stat-card">
+        <div class="stat-icon grey">&#128200;</div>
+        <div class="stat-label">Milestone</div>
+        <div class="stat-value">{{ $customerCount }} / {{ $milestone }}</div>
+        <div class="stat-sub">Progress toward the target</div>
     </div>
 </div>
 
-{{-- Milestone / Hurray --}}
+{{-- Milestone / milestone reached --}}
 @if ($customerCount >= $milestone)
 <div class="hurray">
-    <div class="hurray-emoji">&#127881; &#127947;&#65039; &#127881;</div>
-    <div class="hurray-title">Hurray! You crossed the {{ $milestone }}-customer mark! &#127881;</div>
-    <div class="hurray-text">{{ $customerCount }} customers are now provisioned on the platform &mdash; fantastic work!</div>
+    <div class="hurray-emoji">&#127881;</div>
+    <div>
+        <div class="hurray-title">Milestone reached &mdash; {{ $milestone }} customers</div>
+        <div class="hurray-text">{{ $customerCount }} customers are now provisioned on the platform.</div>
+    </div>
 </div>
 @else
 <div class="milestone">
@@ -52,7 +54,7 @@
         <div class="milestone-fill" style="width: {{ min(100, (int) round($customerCount / $milestone * 100)) }}%;"></div>
     </div>
     <div class="milestone-note">
-        <strong>{{ $milestone - $customerCount }} to go!</strong> Provision {{ $milestone - $customerCount }} more customer(s) to unlock the celebration.
+        <strong>{{ $milestone - $customerCount }} to go!</strong> Provision {{ $milestone - $customerCount }} more customer(s) to unlock the next milestone.
     </div>
 </div>
 @endif
@@ -116,8 +118,8 @@
                             @php
                             $badgeClass = match($tenant->status) {
                                 'active' => 'badge-success',
-                                'trial' => 'badge-primary',
-                                'suspended' => 'badge-warning',
+                                'trial' => 'badge-warning',
+                                'suspended' => 'badge-danger',
                                 default => 'badge-gray',
                             };
                             @endphp

@@ -4,43 +4,45 @@
 @section('content')
 <div class="page-header">
     <h1>Admin Dashboard</h1>
-    <div class="text-muted text-sm">The shop at a glance &middot; {{ $customerCount }} customers &middot; {{ $stats['totalUsers'] }} users</div>
+    <div class="text-muted text-sm">Platform at a glance &middot; {{ $customerCount }} customers &middot; {{ $stats['totalUsers'] }} users</div>
 </div>
 
-{{-- Flash cards --}}
-<div class="flash-grid">
-    <div class="flashcard blue">
-        <div class="flash-icon"><i class="bi bi-people-fill"></i></div>
-        <div class="flash-label">Customers</div>
-        <div class="flash-value">{{ $customerCount }}</div>
-        <div class="flash-sub">Across the whole platform</div>
+{{-- Stat cards --}}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
+        <div class="stat-label">Customers</div>
+        <div class="stat-value">{{ $customerCount }}</div>
+        <div class="stat-sub">Across the whole platform</div>
     </div>
-    <div class="flashcard gold">
-        <div class="flash-icon"><i class="bi bi-radioactive"></i></div>
-        <div class="flash-label">Active</div>
-        <div class="flash-value">{{ $stats['activeTenants'] }}</div>
-        <div class="flash-sub">{{ number_format($stats['activeSubscriptions']) }} active subscriptions</div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-label">Active</div>
+        <div class="stat-value">{{ $stats['activeTenants'] }}</div>
+        <div class="stat-sub">{{ number_format($stats['activeSubscriptions']) }} active subscriptions</div>
     </div>
-    <div class="flashcard navy">
-        <div class="flash-icon"><i class="bi bi-stars"></i></div>
-        <div class="flash-label">On Trial</div>
-        <div class="flash-value">{{ $stats['trialTenants'] }}</div>
-        <div class="flash-sub">Winning them over</div>
+    <div class="stat-card">
+        <div class="stat-icon grey"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-label">On Trial</div>
+        <div class="stat-value">{{ $stats['trialTenants'] }}</div>
+        <div class="stat-sub">Winning them over</div>
     </div>
-    <div class="flashcard black">
-        <div class="flash-icon"><i class="bi bi-exclamation-triangle"></i></div>
-        <div class="flash-label">Suspended</div>
-        <div class="flash-value">{{ $stats['suspendedTenants'] }}</div>
-        <div class="flash-sub">{{ $stats['totalUsers'] }} people onboard</div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="stat-label">Suspended</div>
+        <div class="stat-value">{{ $stats['suspendedTenants'] }}</div>
+        <div class="stat-sub">{{ $stats['totalUsers'] }} people onboard</div>
     </div>
 </div>
 
-{{-- Milestone / Hurray --}}
+{{-- Milestone / milestone reached --}}
 @if ($customerCount >= $milestone)
 <div class="hurray">
-    <div class="hurray-emoji"><i class="bi bi-mailbox2-flag"></i></div>
-    <div class="hurray-title">Hurray! You hit the {{ $milestone }}-customer milestone! <i class="bi bi-emoji-laughing"></i></div>
-    <div class="hurray-text">{{ $customerCount }} customers and growing &mdash; keep up the great work selling the shop!</div>
+    <div class="hurray-emoji"><i class="bi bi-trophy-fill"></i></div>
+    <div>
+        <div class="hurray-title">Milestone reached &mdash; {{ $milestone }} customers</div>
+        <div class="hurray-text">{{ $customerCount }} customers and growing. Keep up the great work.</div>
+    </div>
 </div>
 @else
 <div class="milestone">
@@ -52,7 +54,7 @@
         <div class="milestone-fill" style="width: {{ min(100, (int) round($customerCount / $milestone * 100)) }}%;"></div>
     </div>
     <div class="milestone-note">
-        <strong>{{ $milestone - $customerCount }} to go!</strong> Reach {{ $milestone }} customers and we&rsquo;ll throw confetti.
+        <strong>{{ $milestone - $customerCount }} to go!</strong> Reach {{ $milestone }} customers to unlock the next milestone.
     </div>
 </div>
 @endif
@@ -63,7 +65,7 @@
         <div class="card-header"><h3>Customer mix</h3></div>
         <div class="card-body">
             @php
-                $conic = 'conic-gradient(#e5e7eb 0% 100%)';
+                $conic = 'conic-gradient(#2e343d 0% 100%)';
                 if ($customerCount > 0) {
                     $parts = [];
                     $start = 0;
@@ -108,9 +110,9 @@
                 @php
                 $barClass = match ($label) {
                     'Active' => 'blue',
-                    'Trial' => 'gold',
-                    'Suspended' => 'navy',
-                    default => 'black',
+                    'Trial' => 'grey',
+                    'Suspended' => 'red',
+                    default => 'dark',
                 };
                 @endphp
                 <div class="bar-col">

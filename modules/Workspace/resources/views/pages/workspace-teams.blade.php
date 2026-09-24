@@ -31,7 +31,7 @@
                         <span>{{ $deal['days'] }} day{{ $deal['days'] === 1 ? '' : 's' }} quiet</span>
                     @endif
                 </div>
-                <div class="risk-reason">⚠ {{ $deal['reason'] }}</div>
+                <div class="risk-reason"><i class="bi bi-patch-exclamation-fill"></i> {{ $deal['reason'] }}</div>
             </div>
         @empty
             <div style="font-size:12px;color:var(--text-3);text-align:center;padding:14px 0;">No at-risk deals right now.</div>
@@ -43,7 +43,8 @@
             <div class="rep-row">
                 <div class="rep-avatar" style="background:{{ $avatarColors[$index] ?? 'linear-gradient(135deg,var(--primary),#0077B5)' }}">{{ $rep['initials'] }}</div>
                 <div class="rep-info"><div class="rep-name">{{ $rep['name'] }}</div><div class="rep-stat">{{ $rep['stat'] }}</div></div>
-                <div class="rep-trend {{ $rep['trend'] }}">{{ $rep['trend'] === 'up' ? '▲' : '▼' }}</div>
+                <div class="rep-trend {{ $rep['trend'] }}"><i class="bi bi-caret-{{ $rep['trend'] }}-fill"></i></div>
+
             </div>
         @empty
             <div style="font-size:12px;color:var(--text-3);text-align:center;padding:14px 0;">No rep activity yet.</div>

@@ -4,7 +4,6 @@ namespace Deally\Core\Http\Controllers\Concerns;
 
 use Deally\Core\Models\User;
 use Deally\Core\Services\Seat;
-use Deally\Pipeline\Models\Customer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -75,15 +74,7 @@ trait AuthorizesDeally
      */
     protected function scopeDealsToSeat(Builder $query): Builder
     {
-        $ids = $this->seatUserIds();
-
-        if ($ids === null) {
-            return $query;
-        }
-
-        $customerIds = Customer::query()->whereIn('owner_user_id', $ids)->pluck('id');
-
-        return $query->whereIn('customer_id', $customerIds);
+        return Seat::scopeDeals($query, $this->deallyUser());
     }
 
     /**

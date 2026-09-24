@@ -12,7 +12,7 @@ class CentralDashboardController extends Controller
 {
     /**
      * The celebratory tenant milestone. Reaching this many customers shows
-     * the Hurray! banner on the dashboard and the setup console.
+     * the milestone panel on the dashboard and the setup console.
      */
     public const MILESTONE_TARGET = 10;
 
@@ -77,10 +77,10 @@ class CentralDashboardController extends Controller
     protected function statusColor(string $label): string
     {
         return match ($label) {
-            'Active' => '#2563eb',
-            'Trial' => '#eab308',
-            'Suspended' => '#f97316',
-            default => '#0b1220',
+            'Active' => '#3b6fe0',
+            'Trial' => '#8b94a3',
+            'Suspended' => '#e5484d',
+            default => '#4a5059',
         };
     }
 }

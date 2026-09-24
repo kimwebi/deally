@@ -76,7 +76,11 @@ class DeallySmokeTest extends TestCase
             ->assertOk()
             ->assertSee('Admin Dashboard')
             ->assertSee('Acme Corp')
-            ->assertSee('Globex');
+            ->assertSee('Globex')
+            ->assertSee('Platform at a glance')
+            // Black/grey/red/dark-blue console — compact stat cards + milestone panel.
+            ->assertSee('stat-card')
+            ->assertSee('Customer milestone');
     }
 
     public function test_superadmin_without_membership_is_redirected_from_workspace(): void
