@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cd304c673776949f2c02ba3e9ef0ac39",
+    "content-hash": "4351159ccb7b796d5aaab0038be064c6",
     "packages": [
         {
             "name": "brick/math",
@@ -1056,6 +1056,58 @@
                 }
             ],
             "time": "2026-08-24T17:13:02+00:00"
+        },
+        {
+            "name": "kimwebi/saas-foundation",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:kimwebi/saas-foundation.git",
+                "reference": "bce05e26c2307db76e99f9758ff7adbe211d8df9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kimwebi/saas-foundation/zipball/bce05e26c2307db76e99f9758ff7adbe211d8df9",
+                "reference": "bce05e26c2307db76e99f9758ff7adbe211d8df9",
+                "shasum": ""
+            },
+            "require": {
+                "laravel/framework": "^11.0|^12.0|^13.0",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.0|^12.0"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "SaasFoundation\\Providers\\SaasFoundationServiceProvider",
+                        "SaasFoundation\\Providers\\BillingServiceProvider",
+                        "SaasFoundation\\Providers\\EventServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "SaasFoundation\\": "src/",
+                    "Database\\Factories\\": "database/factories/",
+                    "Database\\Seeders\\": "database/seeders/"
+                },
+                "files": []
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A production-ready multi-tenancy and SaaS foundation for Laravel",
+            "keywords": [
+                "laravel",
+                "multi-tenancy",
+                "saas",
+                "tenancy"
+            ],
+            "time": "2026-09-24T13:29:48+00:00"
         },
         {
             "name": "laravel/framework",
@@ -2140,54 +2192,6 @@
                 }
             ],
             "time": "2026-09-09T08:34:20+00:00"
-        },
-        {
-            "name": "multitenant/saas-foundation",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "packages/multitenant/saas-foundation",
-                "reference": "235eedd3206f15eb2855183f3620df1ddb2f43b9"
-            },
-            "require": {
-                "laravel/framework": "^11.0|^12.0|^13.0",
-                "php": "^8.3"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^11.0|^12.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "SaasFoundation\\Providers\\SaasFoundationServiceProvider",
-                        "SaasFoundation\\Providers\\BillingServiceProvider",
-                        "SaasFoundation\\Providers\\EventServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "SaasFoundation\\": "src/",
-                    "Database\\Factories\\": "database/factories/",
-                    "Database\\Seeders\\": "database/seeders/"
-                },
-                "files": []
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "A production-ready multi-tenancy and SaaS foundation for Laravel",
-            "keywords": [
-                "laravel",
-                "multi-tenancy",
-                "saas",
-                "tenancy"
-            ],
-            "transport-options": {
-                "symlink": false,
-                "relative": true
-            }
         },
         {
             "name": "nesbot/carbon",
@@ -8859,7 +8863,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "multitenant/saas-foundation": 20
+        "kimwebi/saas-foundation": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

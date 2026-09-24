@@ -149,7 +149,7 @@ same objection automatically.
 
 ## 7. Architecture (a 2-minute version)
 
-- **Laravel 13 / PHP 8.4** multi-tenant SaaS on the `multitenant/saas-foundation` package.
+- **Laravel 13 / PHP 8.4** multi-tenant SaaS on the `kimwebi/saas-foundation` package (installed from GitHub).
 - **Modules** — `modules/<Name>/{src,routes,resources/views}` with PSR-4 autoloading and a
   service provider per module (`Deally\Calls`, `Deally\Core`, `Deally\Pipeline`, etc.).
 - **Multi-tenancy** — a central database holds users/tenants/memberships/subscriptions; each active

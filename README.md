@@ -1,6 +1,6 @@
 # DeAlly
 
-DeAlly is a multi-tenant SaaS application for sales teams to track calls, pipeline, tasks, and proposals. It is built on Laravel 13 and the `multitenant/saas-foundation` package, with feature modules under `modules/`.
+DeAlly is a multi-tenant SaaS application for sales teams to track calls, pipeline, tasks, and proposals. It is built on Laravel 13 and the `kimwebi/saas-foundation` package (installed from GitHub), with feature modules under `modules/`.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ The application is split into feature modules, each with its own `routes/`, `res
 
 - The central database holds users, tenants, memberships, subscriptions, and teams (`teams` and `team_user` live alongside the central `users` and `tenants`, with cascade foreign keys so deleting a user or tenant automatically removes their team memberships).
 - Each active tenant gets its own SQLite database under `database/tenants/` with a random `instance` key.
-- Tenant management (central CRUD, provisioning commands, tenant-scoped users/invitations/roles/domains/settings, instance switching, the sole system-owner `superadmin` flag) lives in the `multitenant/saas-foundation` package under `packages/`. The package's central console also ships the **Setup Console** and the platform-wide **Audit Log**, gated by a `platform.operator` middleware that admits the super-admin or any user carrying the `is_platform_support` flag.
+- Tenant management (central CRUD, provisioning commands, tenant-scoped users/invitations/roles/domains/settings, instance switching, the sole system-owner `superadmin` flag) lives in the `kimwebi/saas-foundation` package, installed from GitHub as `composer require kimwebi/saas-foundation`. The package's central console also ships the **Setup Console** and the platform-wide **Audit Log**, gated by a `platform.operator` middleware that admits the super-admin or any user carrying the `is_platform_support` flag.
 - Module routes run under the `deally` middleware group registered in `bootstrap/app.php`, which applies the session, CSRF, `auth`, and `tenant.context` middleware plus route-model binding substitution. `tenant.context` (`SetTenantContext`) runs before `SubstituteBindings` so route-bound models hydrate from the right tenant connection.
 
 ### Registration
@@ -49,15 +49,13 @@ npm install
 npm run build
 ```
 
-### Syncing package-only changes (`packages/multitenant/saas-foundation`)
+### Syncing package-only changes (`kimwebi/saas-foundation`)
 
-The `multitenant/saas-foundation` package is a composer `path` repository with `"symlink": false`, so the app runs from a real mirrored copy at `vendor/multitenant/saas-foundation` — edits in `packages/multitenant/saas-foundation/` do **not** apply automatically. After changing the package alone, push the changes to the app:
+The `kimwebi/saas-foundation` package is installed from a GitHub `vcs` repository pinned to `dev-main`, so the app runs from a git clone at `vendor/kimwebi/saas-foundation`. The package source of truth is its own repo (`github.com/kimwebi/saas-foundation`, local checkout at `C:\Users\Kimson\Downloads\saas-foundation`). After changing the package, push the changes there, then pull them into the app:
 
 ```bash
-# 1. Re-mirror the package source into vendor/
-#    (use `composer reinstall` when only source files changed; use
-#     `composer update multitenant/saas-foundation` if composer.json changed)
-composer reinstall multitenant/saas-foundation
+# 1. Pull the latest package source into vendor/ (git clones dev-main)
+composer update kimwebi/saas-foundation
 
 # 2. Re-publish the package's CSS/assets into public/vendor/...
 php artisan vendor:publish --provider="SaasFoundation\Providers\SaasFoundationServiceProvider" --tag=saas-assets --force
@@ -71,10 +69,10 @@ php artisan view:clear
 
 Notes:
 
-- **Blade views** are loaded straight from the mirrored package (`loadViewsFrom`), so the re-mirror in step 1 is enough for template changes.
-- **CSS and other assets** are *published* copies: the source lives at `packages/.../resources/css/app.css` and is copied to `public/vendor/multitenant/saas-foundation/css/` by step 2 — skipping it means the old look keeps serving.
-- **New migrations** in `packages/.../database/migrations/` are auto-discovered after the re-mirror and run with the app's regular `php artisan migrate`.
-- `composer reinstall` mirrors the current package source even when the package's `composer.lock` hash hasn't changed; `composer update` is only needed when the package's own `composer.json` (dependencies, autoload, providers) changed.
+- **Blade views** are loaded straight from the cloned package (`loadViewsFrom`), so the composer update in step 1 is enough for template changes.
+- **CSS and other assets** are *published* copies: the source lives in the package's `resources/css/app.css` and is copied to `public/vendor/kimwebi/saas-foundation/css/` by step 2 — skipping it means the old look keeps serving.
+- **New migrations** in the package's `database/migrations/` are auto-discovered after the update and run with the app's regular `php artisan migrate`.
+- The repo has no release tags yet, so the lock pins `dev-main` and a `preferred-install` override forces a git source clone (the GitHub zipball endpoint 404s for an untagged repo).
 
 ### Provisioning demo tenants
 
@@ -111,7 +109,7 @@ All demo users log in with the password `password`:
 | `erica@example.com` | team-leader | — |
 | `support@example.com` | viewer | — |
 
-> Alice is **the** tenant owner — she owns every demo instance (Acme Corp and Globex). The other members carry per-instance roles, which is what exercises multitenancy: Bob is an administrator in both instances; Charlie is a sales agent in Acme and a read-only viewer in Globex; David is an administrator in Acme and Globex's solution lead; Erica leads the Acme East Pod team. Erica's and David's accounts are seeded by `DeallyAccessSeeder` (`Erica Valdez` teammates land in the East Pod, watching the team workspace, team pages and team reporting). Stephanie Orr (`support@example.com`) is platform support: she carries the `is_platform_support` flag on her central user record (she is *not* a tenant role, so nothing platform-related shows up inside a customer's instance) and can open the **Setup Console** and the platform-wide **Audit Log** in the `multitenant/saas-foundation` central console. A tenant owner can change any member's role from the Administration → Users page.
+> Alice is **the** tenant owner — she owns every demo instance (Acme Corp and Globex). The other members carry per-instance roles, which is what exercises multitenancy: Bob is an administrator in both instances; Charlie is a sales agent in Acme and a read-only viewer in Globex; David is an administrator in Acme and Globex's solution lead; Erica leads the Acme East Pod team. Erica's and David's accounts are seeded by `DeallyAccessSeeder` (`Erica Valdez` teammates land in the East Pod, watching the team workspace, team pages and team reporting). Stephanie Orr (`support@example.com`) is platform support: she carries the `is_platform_support` flag on her central user record (she is *not* a tenant role, so nothing platform-related shows up inside a customer's instance) and can open the **Setup Console** and the platform-wide **Audit Log** in the `kimwebi/saas-foundation` central console. A tenant owner can change any member's role from the Administration → Users page.
 
 ## Roles & access (access matrix)
 
@@ -130,8 +128,8 @@ Implementation notes:
 - **Sales Agent / Team Leader / Tenant Admin** seat scoping lives in `Seat::userIds()`: `null` means every record in scope (owner, admin, solutions-lead), a team leader sees team member ids + self, a sales agent only themselves.
 - **VOC trends** (Solutions Lead) is a data-driven pane on the Solutions Lead page (`deally.kb.manage`) that aggregates call sentiment across the whole tenant into a 6-month heatmap plus a 30-day positive/negative summary.
 - **Integrations** (Tenant Admin / Owner) is under Administration → Integrations (`deally.integrations.view/manage`), storing per-tenant toggles in the `tenants.settings` JSON column.
-- **Setup Console & platform-wide Audit Log** (Platform Support + superadmin) live in the `multitenant/saas-foundation` package as `central.setup.*` / `central.audit.index`, under the Platform Ops section of the package's central console, gated by the `platform.operator` middleware (`SaasFoundation\Http\Middleware\EnsurePlatformOperator`, backed by `User::isPlatformOperator()` — super-admin or `is_platform_support` flag). The console lists every customer with provisioning status, provisions tenant databases, and can create a new customer and provision its database in one action. The app binds the package's `TenantProvisioner` to `DeallyTenantProvisioner` (`CoreServiceProvider`), so provisioning from the console uses DeAlly's tenant migrations and seeder. The DeAlly sidebar's Platform group links into the package console (`central.setup.index`). Platform support is a plain boolean on the `users` table (`is_platform_support`) seeded through `DeallyAccessSeeder`'s demo roster — there is no `platform-support` role.
-- The package's central console ships its own black/grey/red/dark-blue theme (`resources/css/app.css`, published to `public/vendor/multitenant/saas-foundation/css`): a soft-dark canvas (`#14171c`), surfaces at `#1c2027`, borders at `#2e343d`, dark-blue primary accents and red for danger — IBM Plex Sans for body type and IBM Plex Mono for all numerics (stat values, chart totals, pagination). A light/dark **theme toggle** lives in the console topbar and on the auth pages (persisted in `localStorage`, defaulting to dark). The dashboard and setup console use compact stat cards (blue/grey/red icon chips), a pure-CSS donut chart for the customer-status mix, a bar graph by status, and a **customer milestone** — a blue progress bar toward `CentralDashboardController::MILESTONE_TARGET` (10 customers), switching to a milestone-reached panel once the target is reached. The sidebar uses Bootstrap Icons on a deep charcoal surface.
+- **Setup Console & platform-wide Audit Log** (Platform Support + superadmin) live in the `kimwebi/saas-foundation` package as `central.setup.*` / `central.audit.index`, under the Platform Ops section of the package's central console, gated by the `platform.operator` middleware (`SaasFoundation\Http\Middleware\EnsurePlatformOperator`, backed by `User::isPlatformOperator()` — super-admin or `is_platform_support` flag). The console lists every customer with provisioning status, provisions tenant databases, and can create a new customer and provision its database in one action. The app binds the package's `TenantProvisioner` to `DeallyTenantProvisioner` (`CoreServiceProvider`), so provisioning from the console uses DeAlly's tenant migrations and seeder. The DeAlly sidebar's Platform group links into the package console (`central.setup.index`). Platform support is a plain boolean on the `users` table (`is_platform_support`) seeded through `DeallyAccessSeeder`'s demo roster — there is no `platform-support` role.
+- The package's central console ships its own black/grey/red/dark-blue theme (`resources/css/app.css`, published to `public/vendor/kimwebi/saas-foundation/css`): a soft-dark canvas (`#14171c`), surfaces at `#1c2027`, borders at `#2e343d`, dark-blue primary accents and red for danger — IBM Plex Sans for body type and IBM Plex Mono for all numerics (stat values, chart totals, pagination). A light/dark **theme toggle** lives in the console topbar and on the auth pages (persisted in `localStorage`, defaulting to dark). The dashboard and setup console use compact stat cards (blue/grey/red icon chips), a pure-CSS donut chart for the customer-status mix, a bar graph by status, and a **customer milestone** — a blue progress bar toward `CentralDashboardController::MILESTONE_TARGET` (10 customers), switching to a milestone-reached panel once the target is reached. The sidebar uses Bootstrap Icons on a deep charcoal surface.
 - The platform-level **Super Admin** (`tech@wyzone.com`, a flag set in `DatabaseSeeder`) bypasses all permission checks and can reach the setup console and the package's central console (`central.*`).
 
 ## Roles, calls and task assignment
