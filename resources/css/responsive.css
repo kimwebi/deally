@@ -119,6 +119,12 @@
   .lc-topbar-right { margin-right: 0; gap: 8px; }
 
   .settings-row { flex-wrap: wrap; row-gap: 8px; }
+
+  /* The replay bar carries five controls; below tablet width they have to wrap
+     onto a second row or the progress bar collapses to nothing. */
+  .review-replay { flex-wrap: wrap; row-gap: 10px; padding: 12px 16px; }
+  .replay-track { order: 3; flex-basis: 100%; }
+  .replay-note { order: 4; flex-basis: 100%; }
 }
 
 @media (max-width: 480px) {

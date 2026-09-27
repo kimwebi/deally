@@ -1063,12 +1063,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:kimwebi/saas-foundation.git",
-                "reference": "bce05e26c2307db76e99f9758ff7adbe211d8df9"
+                "reference": "f3075f92eae578a73c1aa8e07aefac7d042e62b2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kimwebi/saas-foundation/zipball/bce05e26c2307db76e99f9758ff7adbe211d8df9",
-                "reference": "bce05e26c2307db76e99f9758ff7adbe211d8df9",
+                "url": "https://api.github.com/repos/kimwebi/saas-foundation/zipball/f3075f92eae578a73c1aa8e07aefac7d042e62b2",
+                "reference": "f3075f92eae578a73c1aa8e07aefac7d042e62b2",
                 "shasum": ""
             },
             "require": {
@@ -1107,7 +1107,7 @@
                 "saas",
                 "tenancy"
             ],
-            "time": "2026-09-24T13:29:48+00:00"
+            "time": "2026-09-26T12:58:05+00:00"
         },
         {
             "name": "laravel/framework",

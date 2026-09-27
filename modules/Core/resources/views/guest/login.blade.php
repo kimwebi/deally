@@ -44,7 +44,7 @@
 </div>
 
 <div class="auth-footer">
-    <span>DeAlly · AI-powered sales enablement</span>
+    <span>© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
     <div class="auth-docs" id="auth-docs">
         <button class="auth-docs-toggle" id="auth-docs-toggle" type="button" aria-expanded="false" aria-controls="auth-docs-list">
             Docs <i class="bi bi-chevron-up"></i>

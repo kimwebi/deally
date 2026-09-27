@@ -7,11 +7,20 @@
             <span class="lc-company">{{ $call->company }}</span>
             <span class="lc-timer mono" id="call-timer" data-start="{{ $call->date->timestamp }}">00:00</span>
         </div>
+        <div class="lc-topbar-center">
+            <span class="live-pill"><span class="live-dot"></span>Ready</span>
+        </div>
         <div class="lc-topbar-right">
+            <div class="source-statuses" role="status">
+                <span class="source-status"><span class="source-name">You</span> <span class="source-state" id="source-agent-status">○ Off</span></span>
+                <span class="source-status"><span class="source-name">Meeting</span> <span class="source-state" id="source-customer-status">○ Off</span></span>
+            </div>
             <button class="mic-toggle" id="live-mic-toggle"
                 data-transcribe-url="{{ route('deally.calls.live.transcribe', $call) }}"
+                data-start-url="{{ route('deally.calls.live.start', $call) }}"
                 data-query-url="{{ route('deally.calls.live.query', $call) }}"
-                data-flag-url="{{ route('deally.calls.flag', $call) }}"><i class="bi bi-mic-fill"></i> Mic</button>
+                data-feedback-url="{{ route('deally.calls.live.finding.feedback', ['call' => $call, 'finding' => '__ID__']) }}"
+                data-demo-mode="{{ $demoMode ? 'true' : 'false' }}"><i class="bi bi-mic-fill"></i> Start</button>
             <form id="end-call-form" class="end-call-wrap" method="POST" action="{{ route('deally.calls.end', $call) }}">
                 @csrf
                 <input type="hidden" name="duration" id="end-duration">
@@ -22,7 +31,9 @@
         </div>
     </header>
 
-    <div class="call-note">🔒 Recorded for transparency — the customer has been informed this call is recorded.</div>
+    <div class="call-note">
+        <span class="call-note-provider">Transcription &amp; suggestions: <strong>{{ strtoupper($assistantName) }}</strong></span>
+    </div>
 
     <div class="lc-body">
         {{-- Left rail — customer card --}}
@@ -110,9 +121,14 @@
                 <span class="rail-right-count mono" id="findings-count">00</span>
             </div>
 
-            <div class="kb-shelf" id="findings">
-                <div class="kb-empty" id="kb-empty">Waiting for your first suggestion…<br>The AI surfaces say / ask / reference cards here.</div>
+            <div class="kb-shelf" id="findings" data-shelf-limit="{{ $findingsLimit }}">
+                <div class="kb-empty" id="kb-empty">Listening…<br>Findings appear a few seconds after something is said, and you can say the customer's part yourself to try it out.</div>
             </div>
+            <div class="kb-shelf-note mono" id="kb-shelf-note"
+                 data-total="{{ $findingsTotal }}"
+                 data-limit="{{ $findingsLimit }}"
+                 @if ($findingsTotal <= $findingsLimit) hidden @endif>Newest {{ $findingsLimit }} shown · older findings stay saved</div>
+            <script type="application/json" id="initial-findings">@json($findings->map(fn ($finding) => $finding->toCard())->values())</script>
 
             <div class="notes-pinned">
                 <div class="notes-area">

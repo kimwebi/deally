@@ -68,7 +68,7 @@ class CallLifecycleTest extends TestCase
 
     public function test_ending_a_call_in_demo_mode_persists_the_full_conversation(): void
     {
-        config()->set('services.openai.key', '');
+        config()->set('services.live_ai.driver', 'dummy');
 
         [$user, $call] = $this->startCall();
 
@@ -83,16 +83,16 @@ class CallLifecycleTest extends TestCase
         $lines = $call->transcriptLines()->orderBy('sequence')->get();
 
         $this->assertCount(10, $lines);
-        $this->assertSame(0, $lines->first()->is_agent);
-        $this->assertSame(1, $lines->offsetGet(1)->is_agent);
+        $this->assertFalse($lines->first()->is_agent);
+        $this->assertTrue($lines->offsetGet(1)->is_agent);
         $this->assertStringContainsString('legacy tool', $lines->first()->text);
         $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], $lines->pluck('sequence')->all());
-        $this->assertSame(5, $lines->where('is_agent', 1)->count());
+        $this->assertCount(5, $lines->where('is_agent', true));
     }
 
-    public function test_ending_a_call_with_captured_lines_completes_the_conversation(): void
+    public function test_ending_a_call_with_captured_lines_keeps_what_was_recorded(): void
     {
-        config()->set('services.openai.key', '');
+        config()->set('services.live_ai.driver', 'dummy');
 
         [$user, $call] = $this->startCall();
 
@@ -113,13 +113,32 @@ class CallLifecycleTest extends TestCase
 
         $lines = $call->transcriptLines()->orderBy('sequence')->get();
 
-        $this->assertCount(10, $lines);
-        $this->assertSame(5, $lines->where('is_agent', 1)->count());
+        // A call that was genuinely recorded is never overwritten with the
+        // scripted demo conversation.
+        $this->assertCount(1, $lines);
+        $this->assertSame('Real captured line.', $lines->first()->text);
+    }
+
+    public function test_a_started_demo_session_is_never_replaced_by_the_script(): void
+    {
+        config()->set('services.live_ai.driver', 'dummy');
+
+        [$user, $call] = $this->startCall();
+
+        $this->actingAs($user)
+            ->postJson(route('deally.calls.live.start', $call))
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->post(route('deally.calls.end', $call), ['duration' => '357:03', 'sentiment' => 'neutral'])
+            ->assertRedirect(route('deally.calls.summary', $call));
+
+        $this->assertSame(0, $call->transcriptLines()->count());
     }
 
     public function test_ending_a_call_with_a_provider_configured_does_not_seed_demo_lines(): void
     {
-        config()->set('services.openai.key', 'sk-test');
+        config(['services.live_ai.driver' => 'openai', 'services.openai.key' => 'sk-test']);
 
         [$user, $call] = $this->startCall();
 
@@ -151,7 +170,7 @@ class CallLifecycleTest extends TestCase
 
     public function test_demo_transcript_is_rendered_on_the_review_page(): void
     {
-        config()->set('services.openai.key', '');
+        config()->set('services.live_ai.driver', 'dummy');
 
         [$user, $call] = $this->startCall();
 

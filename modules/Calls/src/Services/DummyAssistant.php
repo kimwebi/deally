@@ -2,6 +2,7 @@
 
 namespace Deally\Calls\Services;
 
+use Deally\Calls\Contracts\CallAssistant;
 use Deally\Calls\Models\Call;
 use Deally\Proposals\Models\KnowledgeEntry;
 
@@ -10,10 +11,11 @@ use Deally\Proposals\Models\KnowledgeEntry;
  *
  * Returns deterministic, rule-based transcripts and solution cards so the
  * full two-layer (AI panel / Findings panel) flow works without a real
- * transcription or model provider. Selected automatically whenever no
- * OpenAI key is configured.
+ * transcription or model provider. Selected by AssistantFactory only when no
+ * provider key is configured outside of production, or when the driver is
+ * explicitly pinned to "dummy".
  */
-class DummyAssistant
+class DummyAssistant implements CallAssistant
 {
     /**
      * @var string[]
@@ -66,9 +68,88 @@ class DummyAssistant
         ];
     }
 
-    public function transcribe(Call $call, string $audio, string $filename): ?string
+    public function name(): string
     {
-        return $this->script[$call->transcriptLines()->count() % count($this->script)];
+        return 'dummy';
+    }
+
+    public function transcribe(string $audio, string $filename): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Deterministic signal detection mirroring the scripted demo conversation.
+     *
+     * @param  array<int, array{id: int, speaker: string, is_agent: bool, text: string}>  $lines
+     * @param  array<int, string>  $reported
+     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>}
+     */
+    public function analyze(Call $call, array $lines, array $reported = []): array
+    {
+        $signals = [];
+        $recommendations = [];
+
+        foreach ($lines as $line) {
+            if ($line['is_agent']) {
+                continue;
+            }
+
+            $text = strtolower($line['text']);
+
+            if ($this->isObjection($text)) {
+                $signals[] = [
+                    'kind' => 'objection',
+                    'text' => 'Objection raised — price or switching risk.',
+                    'quote' => $line['text'],
+                    'confidence' => 0.8,
+                    'source_line' => $line['id'],
+                ];
+            }
+
+            if ($this->mentionsCompetitor($text)) {
+                $signals[] = [
+                    'kind' => 'competitor',
+                    'text' => 'Competitor mentioned.',
+                    'quote' => $line['text'],
+                    'confidence' => 0.75,
+                    'source_line' => $line['id'],
+                ];
+            }
+
+            if (str_contains($text, 'need') || str_contains($text, 'looking for')) {
+                $signals[] = [
+                    'kind' => 'intent',
+                    'text' => 'Stated requirement.',
+                    'quote' => $line['text'],
+                    'confidence' => 0.7,
+                    'source_line' => $line['id'],
+                ];
+            }
+        }
+
+        $latest = collect($lines)->filter(fn (array $line): bool => ! $line['is_agent'])->last();
+
+        if ($latest !== null) {
+            $cards = $this->suggest($call, $latest['text']);
+
+            foreach ($cards as $card) {
+                $recommendations[] = [
+                    'role' => $card['role'],
+                    'label' => $card['label'],
+                    'body' => $card['body'],
+                    'package' => $card['package'],
+                    'source' => $card['source'],
+                    'confidence' => 0.9,
+                    'source_line' => $latest['id'],
+                ];
+            }
+        }
+
+        return [
+            'signals' => array_slice($signals, 0, 3),
+            'recommendations' => array_slice($recommendations, 0, 2),
+        ];
     }
 
     /**

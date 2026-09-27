@@ -28,35 +28,125 @@
         <div class="docs-section">
             <div class="docs-heading">How it works</div>
             <p class="docs-text">
-                During a live call, audio chunks from the mic are sent to the server. Each chunk is transcribed with
-                OpenAI Whisper, matched against the tenant knowledge base, and the suggested replies land on the
-                Findings panel in near real time.
+                During a live call, audio chunks from your mic (and the shared meeting audio, when you
+                accept the screen-share prompt) are sent to the server. Each chunk is transcribed by the
+                configured provider — Groq Whisper by default, OpenAI as an alternative — matched against
+                the tenant knowledge base, and the suggested replies land on the Findings panel in near
+                real time.
+            </p>
+            <p class="docs-text">
+                Audio is captured in 4-second windows, and every window is transcribed. Filler that
+                speech-to-text models invent for audio with no speech is discarded server-side, so the
+                transcript only holds what was actually said. Only genuinely silent windows are skipped;
+                if you speak quietly, your words are still transcribed. If a source stops being loud enough
+                to transcribe, the page tells you to check the microphone or the meeting share.
+            </p>
+            <p class="docs-text">
+                If a source stops delivering audio — an ended screen share, a muted microphone — the page
+                reconnects it on its own and tells you what it did. You never need to reload mid-call to
+                get transcription working again.
+            </p>
+            <p class="docs-text">
+                Every card is written to be acted on: a finding names what changed and the next step, and its
+                footer either points at a knowledge base entry to open or states
+                <span class="font-mono">no KB entry — commit to a follow-up</span>. Each pass is told what it
+                already reported, so the shelf shows what is new.
+            </p>
+            <p class="docs-text">
+                General questions are answered from the model's own knowledge — geography, industry norms,
+                definitions, how a product category works — because a visible non-answer costs you credibility
+                with a customer who can already tell the question is answerable. Anything about
+                <strong>our commercial terms</strong> is different: prices, discounts, contract wording, seat
+                limits, SLAs, timelines, and certifications are never guessed. A model answer is labelled
+                <span class="font-mono">answered from model knowledge — verify before quoting</span>, so you
+                know there is no document behind it.
+            </p>
+            <p class="docs-text">
+                Findings appear a few seconds after anything is said, whichever side said it — including your
+                own microphone, so you can try the panel out by speaking the customer's part. Analysis used to
+                run on customer lines only, on the reasoning that advising you on your own words is noise. In
+                practice that made a rep testing on their own look like a provider that had stopped working:
+                a healthy transcript, an always-empty shelf. The judgement now lives in the prompt, not in a
+                hard gate.
+            </p>
+            <p class="docs-text">
+                The source label counts what went missing rather than hiding it.
+                <span class="font-mono">● Live · 2 windows lost</span> means audio never reached the
+                provider — check the microphone or the meeting share.
+                <span class="font-mono">AI unavailable</span> means transcription is fine but the suggestions
+                could not be generated for that window; the call is still recorded and the reason is logged.
             </p>
         </div>
 
         <div class="docs-section">
             <div class="docs-heading">Driver selection</div>
-            <p class="docs-text">The server picks the driver automatically at runtime:</p>
+            <p class="docs-text">The server picks the driver from <span class="font-mono">LIVE_AI_DRIVER</span> at runtime:</p>
             <ul class="docs-list">
-                <li>OpenAI <span class="font-mono">LiveAssistant</span> when <span class="font-mono">OPENAI_API_KEY</span> is set.</li>
-                <li>Simulated <span class="font-mono">DummyAssistant</span> otherwise — the live UI still works for demos.</li>
-                <li>Swapping providers only requires implementing the same three methods (transcribe, suggest, answer).</li>
+                <li><span class="font-mono">auto</span> (default) prefers <strong>Groq</strong> when <span class="font-mono">GROQ_API_KEY</span> is set, then <strong>OpenAI</strong> when <span class="font-mono">OPENAI_API_KEY</span> is set.</li>
+                <li><span class="font-mono">groq</span> or <span class="font-mono">openai</span> pins a provider; <span class="font-mono">dummy</span> runs the simulated demo with no provider requests.</li>
+                <li>Outside production, <span class="font-mono">auto</span> falls back to the simulated driver when no key is set — the live UI still works for demos.</li>
+                <li>Both providers speak OpenAI-compatible endpoints, so only server-side config differs.</li>
             </ul>
         </div>
 
         <div class="docs-section">
-            <div class="docs-heading">Configuration</div>
+            <div class="docs-heading">Configuration (<span class="font-mono">.env</span>)</div>
             <table class="docs-table">
                 <thead>
                     <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td><span class="font-mono">OPENAI_API_KEY</span></td><td>—</td><td>Enables the live driver.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_DRIVER</span></td><td><span class="font-mono">auto</span></td><td>auto · groq · openai · dummy</td></tr>
+                    <tr><td><span class="font-mono">GROQ_API_KEY</span></td><td>—</td><td>Enables the Groq driver.</td></tr>
+                    <tr><td><span class="font-mono">GROQ_TRANSCRIPTION_MODEL</span></td><td><span class="font-mono">whisper-large-v3-turbo</span></td><td>Audio transcription.</td></tr>
+                    <tr><td><span class="font-mono">GROQ_CHAT_MODEL</span></td><td><span class="font-mono">openai/gpt-oss-20b</span></td><td>Suggested replies &amp; answers.</td></tr>
+                    <tr><td><span class="font-mono">GROQ_TIMEOUT</span></td><td><span class="font-mono">45</span></td><td>Request timeout (seconds).</td></tr>
+                    <tr><td><span class="font-mono">GROQ_CA_BUNDLE</span></td><td>—</td><td>Path to a CA bundle used to verify Groq's certificate.</td></tr>
+                    <tr><td><span class="font-mono">OPENAI_CA_BUNDLE</span></td><td>—</td><td>Same, for the OpenAI driver.</td></tr>
+                    <tr><td><span class="font-mono">OPENAI_API_KEY</span></td><td>—</td><td>Enables the OpenAI driver.</td></tr>
                     <tr><td><span class="font-mono">OPENAI_TRANSCRIPTION_MODEL</span></td><td><span class="font-mono">whisper-1</span></td><td>Audio transcription.</td></tr>
-                    <tr><td><span class="font-mono">OPENAI_CHAT_MODEL</span></td><td><span class="font-mono">gpt-4o-mini</span></td><td>Suggested replies.</td></tr>
-                    <tr><td><span class="font-mono">OPENAI_TIMEOUT</span></td><td><span class="font-mono">45</span></td><td>Request timeout (seconds).</td></tr>
+                    <tr><td><span class="font-mono">OPENAI_CHAT_MODEL</span></td><td><span class="font-mono">gpt-4o-mini</span></td><td>Suggested replies &amp; answers.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_WINDOW</span></td><td><span class="font-mono">8</span></td><td>Transcript lines sent for analysis.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_MIN_INTERVAL</span></td><td><span class="font-mono">10</span></td><td>Minimum seconds between analysis runs.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_SHELF_LIMIT</span></td><td><span class="font-mono">10</span></td><td>Newest findings rendered in the shelf; older ones stay saved.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_REPORTED_FINDINGS</span></td><td><span class="font-mono">6</span></td><td>Already-reported cards shown to the model so each pass reports what is new.</td></tr>
                 </tbody>
             </table>
+            <p class="docs-text" style="margin-top:10px;">After changing these, run <span class="font-mono">php artisan config:clear</span>.<br>
+                If suggestions stay empty, your Groq key or the configured chat model may not be available on your
+                account — try a broadly available model such as <span class="font-mono">llama-3.3-70b-versatile</span>.</p>
+            <div class="docs-section">
+                <div class="docs-heading">When nothing transcribes</div>
+                <p class="docs-text">The browser console showing <span class="font-mono">transcription_unavailable</span>
+                    with <span class="font-mono">retryable: true</span> and no HTTP status means the request never
+                    reached the provider. On Windows the usual cause is TLS verification: PHP's cURL keeps no
+                    certificate store of its own unless <span class="font-mono">curl.cainfo</span> is set for the web
+                    server, so a CA bundle that works in <span class="font-mono">artisan tinker</span> still fails in
+                    the browser. Set <span class="font-mono">GROQ_CA_BUNDLE</span> to the absolute path of that
+                    bundle, then run <span class="font-mono">config:clear</span>. The underlying reason is recorded
+                    on the call's activity history as <span class="font-mono">call.provider_failed</span>.</p>
+            </div>
+        </div>
+
+        <div class="docs-section">
+            <div class="docs-heading">After the call: replay and the full conversation</div>
+            <p class="docs-text">
+                Every captured window is kept, whether or not it transcribed. That is deliberate: when the provider
+                drops a window the page tells you the call is still being recorded, and the audio is what makes that
+                true. The review page plays the call back — play, pause, seek, and a filter for your microphone, the
+                meeting, or both — and every transcript line has a <span class="font-mono">▶</span> that jumps to
+                the moment it was said.
+            </p>
+            <p class="docs-text">
+                The review holds the whole exchange, not just the questions: what DeAlly said sits under the line
+                that prompted it, the questions you asked it and its answers are kept, and the downloaded transcript
+                carries the same. Calls started before recording was kept cannot be replayed — the audio was never
+                stored, so there is nothing to recover.
+            </p>
+            <p class="docs-text">
+                Audio costs roughly 0.5 MB per minute of call and nothing prunes it, so a call's recording lives as
+                long as the call does.
+            </p>
         </div>
 
         <div class="docs-section">
@@ -67,6 +157,10 @@
             <p class="docs-text">JSON body with <span class="font-mono">text</span> (max 1000 chars). Returns an answer plus cards.</p>
         </div>
     </div>
+
+    <footer class="system-footer">
+        <span class="system-footer-copy">© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
+    </footer>
 </div>
 
 </body>

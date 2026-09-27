@@ -1,6 +1,6 @@
 # DeAlly
 
-DeAlly is a multi-tenant SaaS application for sales teams to track calls, pipeline, tasks, and proposals. It is built on Laravel 13 and the `kimwebi/saas-foundation` package (installed from GitHub), with feature modules under `modules/`.
+DeAlly is a multi-tenant SaaS application for sales teams to track calls, pipeline, tasks, and proposals, with a server-integrated live AI assistant for live transcription and knowledge-grounded call guidance. It is built on Laravel 13 and the `kimwebi/saas-foundation` package (installed from GitHub), with feature modules under `modules/`.
 
 ## Architecture
 
@@ -9,7 +9,7 @@ The application is split into feature modules, each with its own `routes/`, `res
 | Module | Namespace | Routes prefix | Views namespace | Responsibilities |
 | --- | --- | --- | --- | --- |
 | `Core` | `Deally\Core` | — | `core::` | Shared layouts, guest login, tenant binding middleware |
-| `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call tracking, live call script, summaries |
+| `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call tracking, dual-stream live AI capture, findings, transcripts, and summaries |
 | `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline (list/board), customer accounts & contacts, deals, risk tiers, service reviews |
 | `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management |
 | `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and knowledge base |
@@ -33,6 +33,7 @@ Modules are registered in `bootstrap/providers.php` via their service providers 
 - `Deally\Pipeline\` → `modules/Pipeline/src/`
 - `Deally\Proposals\` → `modules/Proposals/src/`
 - `Deally\Settings\` → `modules/Settings/src/`
+- `Deally\Solutions\` → `modules/Solutions/src/`
 - `Deally\Tasks\` → `modules/Tasks/src/`
 - `Deally\Workspace\` → `modules/Workspace/src/`
 
@@ -94,7 +95,7 @@ Use `--tenant=<uuid|instance>` to provision a single tenant and `--fresh` to reb
 php artisan deally:tenants:setup --fresh
 ```
 
-Tenant-specific tables live in `database/migrations/tenant/` (customers, contacts, service reviews, account settings, deal ownership). To apply *pending* tenant migrations to already-provisioned dev tenant databases without rebuilding them, run `php artisan tenant:migrate`.
+Tenant-specific tables live in `database/migrations/tenant/` (customers, contacts, calls and transcripts, live-call findings, service reviews, account settings, proposals, and deal ownership). To apply *pending* tenant migrations to already-provisioned dev tenant databases without rebuilding them, run `php artisan tenant:migrate`.
 
 ### Demo accounts
 
@@ -166,7 +167,16 @@ The application is served by Laravel Herd at `https://deally.test`. Frontend ass
 
 ## Live AI assistant (LLM integration)
 
-Live calls are transcribed and turned into real-time solution suggestions for the agent using the OpenAI API (`LiveAssistant`), with a deterministic `DummyAssistant` fallback when no API key is set. See [docs/ai-llm-integration.md](docs/ai-llm-integration.md) for the full flow, endpoints, config, and how to swap in another provider.
+The Calls module captures the agent's microphone and, when shared, the meeting audio as two independent 6-second streams. Silent windows are dropped in the browser, Laravel sends the rest to the configured speech-to-text provider, persists the resulting `TranscriptLine`, and periodically analyzes the recent customer conversation for:
+
+- buying signals, intent, objections, competitor mentions, deal risk, and knowledge gaps;
+- knowledge-grounded **say**, **ask**, **reference**, and **objection** recommendations.
+
+Accepted results are stored as `CallFinding` rows, rendered in the live Findings shelf, restored after reload, and linked to the source transcript line. Reps can mark findings **unhelpful**; that feedback creates a deduplicated gap for the Solutions workflow.
+
+Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
+
+See [docs/ai-llm-integration.md](docs/ai-llm-integration.md) for the complete capture flow, endpoints, configuration, structured schema, persistence model, security notes, and provider extension guide.
 
 ## Tests
 
@@ -174,10 +184,14 @@ Live calls are transcribed and turned into real-time solution suggestions for th
 php artisan test
 ```
 
-The suite runs against an in-memory SQLite central database. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. Feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
+The suite runs against an in-memory SQLite central database. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, Groq/OpenAI configuration, and credential non-disclosure. Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
 
 ## Formatting
 
 ```bash
 vendor/bin/pint
 ```
+
+---
+
+© 2026 Wyzone Labs. All rights reserved.

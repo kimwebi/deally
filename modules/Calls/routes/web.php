@@ -10,10 +10,13 @@ Route::middleware('deally')
         Route::get('calls', [CallController::class, 'index'])->name('calls.index');
         Route::post('calls', [CallController::class, 'store'])->name('calls.store');
         Route::get('calls/{call}/live', [CallController::class, 'live'])->name('calls.live');
+        Route::post('calls/{call}/live/start', [CallController::class, 'liveStart'])->name('calls.live.start');
         Route::post('calls/{call}/live/transcribe', [CallController::class, 'liveTranscribe'])->name('calls.live.transcribe');
+        Route::post('calls/{call}/live/findings/{finding}/feedback', [CallController::class, 'liveFindingFeedback'])->name('calls.live.finding.feedback');
         Route::post('calls/{call}/live/query', [CallController::class, 'liveQuery'])->name('calls.live.query');
         Route::get('calls/{call}/summary', [CallController::class, 'summary'])->name('calls.summary');
         Route::get('calls/{call}/review', [CallController::class, 'review'])->name('calls.review');
+        Route::get('calls/{call}/recordings/{recording}', [CallController::class, 'recording'])->name('calls.recording');
         Route::get('calls/{call}/transcript/download', [CallController::class, 'downloadTranscript'])->name('calls.transcript.download');
         Route::get('calls/{call}', [CallController::class, 'show'])->name('calls.show');
         Route::post('calls/{call}/end', [CallController::class, 'end'])->name('calls.end');

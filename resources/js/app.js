@@ -7,6 +7,7 @@ import './analog-clock.js';
 import { initModalSystem } from './modals.js';
 import { initQuickAdd } from './quick-add.js';
 import { initLiveCall } from './live-call.js';
+import { initCallReplay } from './call-replay.js';
 import { initTimer } from './timer.js';
 import { initToasts } from './toasts.js';
 import { initWorkerMode } from './worker-mode.js';
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initModalSystem();
     initQuickAdd();
     initLiveCall();
+    initCallReplay();
     initTimer();
     initToasts();
     initWorkerMode();

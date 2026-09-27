@@ -83,7 +83,7 @@
             <p class="docs-text">The agent opens the live call screen, presses Start, and DeAlly takes over the busywork:</p>
             <ol class="docs-list">
                 <li><b>Listen</b> — the mic streams short audio chunks to the server.</li>
-                <li><b>Transcribe</b> — each chunk becomes a transcript line (OpenAI Whisper).</li>
+                <li><b>Transcribe</b> — each chunk becomes a transcript line (Groq or OpenAI Whisper).</li>
                 <li><b>Suggest</b> — for every customer line the AI proposes two KB-grounded replies on the Findings panel.</li>
                 <li><b>Ask</b> — the agent can type any ad-hoc question and get a plain-English answer to read to the customer.</li>
                 <li><b>Object</b> — flag an objection; if the AI can't answer confidently it opens a knowledge gap, alerts the Solutions Lead, and tells the agent what to ask.</li>
@@ -111,6 +111,10 @@
             </ul>
         </div>
     </div>
+
+    <footer class="system-footer">
+        <span class="system-footer-copy">© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
+    </footer>
 </div>
 
 </body>

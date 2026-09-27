@@ -146,6 +146,135 @@
 }
 .btn-proposal:hover { background: var(--green); color: #fff; }
 
+/* ---- Replay bar ----
+   The audio is stored as one small file per capture window, so the player
+   sequences them rather than seeking inside a single container. */
+.review-replay {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.review-replay.is-absent { color: var(--text-4); font-size: 12px; }
+
+.replay-toggle {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.replay-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.replay-track {
+  flex: 1;
+  min-width: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  position: relative;
+  cursor: pointer;
+}
+.replay-track::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--played, 0%);
+  border-radius: 3px;
+  background: var(--primary);
+}
+.replay-thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--played, 0%);
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+
+.replay-time {
+  flex-shrink: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.replay-sources { display: flex; gap: 6px; flex-shrink: 0; }
+.replay-source {
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.replay-source:hover { background: var(--surface-3); color: var(--text); }
+.replay-source.selected { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+.replay-note { font-size: 11px; color: var(--text-4); }
+
+/* ---- Transcript with the assistant's half of the exchange ---- */
+.transcript-line.is-playing { border-radius: var(--r-sm); box-shadow: inset 2px 0 0 var(--primary); }
+.transcript-play {
+  border: none;
+  background: none;
+  color: var(--text-4);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.transcript-play:hover { color: var(--primary); }
+.transcript-play:disabled { opacity: 0.4; cursor: default; }
+
+.review-ai-turn { margin: 8px 0 14px; padding-left: 14px; border-left: 2px solid var(--border-soft); }
+.review-ai-turn-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-4);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.review-ai-cards { display: flex; flex-direction: column; gap: 8px; }
+
+/* Reuses the live shelf card, scaled down: a review column is narrower than the
+   live rail, and the shelf's 15px body text wraps into a wall at that width. */
+.review-ai-cards .kb-card { border-radius: var(--r-md); padding: 10px 12px; }
+.review-ai-cards .kb-body { font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
+.review-ai-cards .kb-top { margin-bottom: 6px; }
+.review-ai-cards .kb-foot { padding-top: 8px; }
+
+.review-query {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.review-query + .review-query { margin-top: 8px; }
+.review-query-prompt { color: var(--text); font-weight: 500; margin-bottom: 5px; }
+.review-query-answer { color: var(--text-2); line-height: 1.5; }
+.review-query-source { font-size: 10px; color: var(--text-4); font-family: 'IBM Plex Mono', monospace; margin-top: 6px; }
+
 /* ---- Compat (summary page, older nodes) ---- */
 .review-top {
   display: flex;
