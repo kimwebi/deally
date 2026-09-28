@@ -41,15 +41,15 @@
                     </span>
 
                     <span class="sentiment-pill {{ $call->effectiveReadiness() === 'cold' ? 'cool' : 'warm' }}">
-                        {{ match ($call->effectiveReadiness()) {
-                            'hot' => '🔥 Hot — ready to close',
-                            'cold' => '🧊 Cold — not close to a decision',
-                            default => '🌤 Warm — engaged, not committed',
-                        } }}
+                        {!! match ($call->effectiveReadiness()) {
+                            'hot' => '<i class="bi bi-fire"></i> Hot — ready to close',
+                            'cold' => '<i class="bi bi-snow"></i> Cold — not close to a decision',
+                            default => '<i class="bi bi-sun"></i> Warm — engaged, not committed',
+                        } !!}
                     </span>
 
                     @if ($call->sentimentWasCorrected() || $call->readinessWasCorrected())
-                        <span class="sentiment-pill corrected">✎ Corrected by a rep</span>
+                        <span class="sentiment-pill corrected"><i class="bi bi-pencil"></i> Corrected by a rep</span>
                     @endif
                 </div>
 
@@ -67,7 +67,7 @@
 
             @if ($openFlags->isNotEmpty())
                 <div class="add-task-card blocked">
-                    <div class="add-task-icon">⚑</div>
+                    <div class="add-task-icon"><i class="bi bi-flag-fill"></i></div>
                     <div class="add-task-text">
                         <div class="t1">{{ $openFlags->count() === 1 ? 'One deal-status flag' : $openFlags->count().' deal-status flags' }} on this call</div>
                         <div class="t2">

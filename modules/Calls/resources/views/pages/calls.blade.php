@@ -48,7 +48,7 @@
                     </td>
                     <td style="text-align:right;">
                         @if ($isArchived)
-                            <span style="font-size: 12px; color: var(--amber);">🔒 Archived</span>
+                            <span style="font-size: 12px; color: var(--amber);"><i class="bi bi-archive-fill" style="color: darkgoldenrod"></i> Archived</span>
                         @else
                             {{-- The detail is a modal, not a page. The body is
                                  fetched on demand so the list does not carry a
@@ -88,7 +88,7 @@
 <div class="modal-overlay" id="modal-add-call">
     <div class="modal wide">
         <div class="modal-header">
-            <div class="modal-header-icon call">📞</div>
+            <div class="modal-header-icon call"><i class="bi bi-telephone-fill" style="color: #ec4899"></i></div>
             <div class="modal-header-body"><div class="modal-title">New Call</div><div class="modal-subtitle">Starts a DeAlly live session</div></div>
             <button class="modal-close" data-close-modal>✕</button>
         </div>
@@ -147,7 +147,7 @@
                             @endforeach
                             <label class="platform-option is-usable">
                                 <input type="radio" name="meeting_platform" value="" checked>
-                                <span class="platform-option-icon">📞</span>
+                                <span class="platform-option-icon"><i class="bi bi-telephone-fill" style="color: #ec4899"></i></span>
                                 <span class="platform-option-body">
                                     <span class="platform-option-name">DeAlly live session</span>
                                     <span class="platform-option-note">No meeting platform. The customer joins the audio directly.</span>
