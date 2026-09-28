@@ -66,8 +66,6 @@ class LiveAssistant implements CallAssistant
         'bye bye',
         'goodbye',
         'hmm',
-        'mm hmm',
-        'mmhmm',
         'uh',
         'um',
         'huh',
@@ -106,12 +104,13 @@ class LiveAssistant implements CallAssistant
     ];
 
     /**
-     * A recording window holds several seconds of audio, so a transcript that
-     * is a single word is a breath, a click, or room noise that Whisper resolved
-     * to one word — not an utterance. Real speech in a window of this length
-     * produces a sentence.
+     * A recording window holds several seconds of audio, and pure silence makes
+     * Whisper emit a stock phrase rather than nothing; those phrases live in
+     * HALLUCINATION_PHRASES. A single word is not treated as noise on its own:
+     * a backchannel nod like "Mm-hmm." is real speech a rep wants to see, so
+     * the bar for speech is one actual word.
      */
-    protected const MIN_SPEECH_WORDS = 2;
+    protected const MIN_SPEECH_WORDS = 1;
 
     /**
      * @var array<string, mixed>

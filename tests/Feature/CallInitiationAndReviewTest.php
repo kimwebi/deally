@@ -416,8 +416,10 @@ class CallInitiationAndReviewTest extends TestCase
 
     public function test_a_silent_window_is_reported_with_the_same_keys_as_a_real_one(): void
     {
+        // "Thank you." stays in HALLUCINATION_PHRASES, so it still reads as a
+        // silent window; the backchannel "Mm-hmm." is genuine speech now.
         Http::fake([
-            'api.openai.com/v1/audio/transcriptions*' => Http::response(['text' => 'Mm-hmm.']),
+            'api.openai.com/v1/audio/transcriptions*' => Http::response(['text' => ' Thank you. ']),
         ]);
 
         $call = Call::factory()->create();

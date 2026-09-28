@@ -388,7 +388,7 @@ class LiveAssistantTest extends TestCase
         $this->assertStringContainsString('unable to get local issuer certificate', $properties['reason']);
     }
 
-    public function test_a_lone_word_is_not_stored_as_a_transcript_line(): void
+    public function test_a_lone_real_word_is_stored_as_a_transcript_line(): void
     {
         Http::fake([
             'api.openai.com/v1/audio/transcriptions*' => Http::response(['text' => ' The']),
@@ -400,11 +400,30 @@ class LiveAssistantTest extends TestCase
         $this->actingAs($this->alice())
             ->postJson(route('deally.calls.live.transcribe', $call), $this->chunkPayload())
             ->assertOk()
-            ->assertJsonPath('silent', true);
+            ->assertJsonPath('transcript', 'The');
 
-        // A whole recording window resolving to one word is a breath or room
-        // noise, not an utterance.
-        $this->assertSame(0, $call->transcriptLines()->count());
+        // The bar for speech is one word: punctuation, digits, and stock
+        // phrases are still noise, but a single real word is an utterance.
+        $this->assertSame('The', $call->transcriptLines()->sole()->text);
+    }
+
+    public function test_a_backchannel_acknowledgement_is_stored_as_a_transcript_line(): void
+    {
+        Http::fake([
+            'api.openai.com/v1/audio/transcriptions*' => Http::response(['text' => 'Mm-hmm.']),
+            'api.openai.com/v1/chat/completions*' => Http::response($this->analysisPayload()),
+        ]);
+
+        $call = Call::factory()->create();
+
+        // "Mm-hmm." is a real acknowledgement a rep should read back, not a
+        // stock phrase Whisper emits for audio that carries no speech.
+        $this->actingAs($this->alice())
+            ->postJson(route('deally.calls.live.transcribe', $call), $this->chunkPayload())
+            ->assertOk()
+            ->assertJsonPath('transcript', 'Mm-hmm.');
+
+        $this->assertSame('Mm-hmm.', $call->transcriptLines()->sole()->text);
     }
 
     public function test_media_player_filler_is_not_stored_as_a_transcript_line(): void
