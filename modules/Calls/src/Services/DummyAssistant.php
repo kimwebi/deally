@@ -83,7 +83,7 @@ class DummyAssistant implements CallAssistant
      *
      * @param  array<int, array{id: int, speaker: string, is_agent: bool, text: string}>  $lines
      * @param  array<int, string>  $reported
-     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>}
+     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>, noticed: ?string, proposal_intent: bool, proposal_intent_note: ?string}
      */
     public function analyze(Call $call, array $lines, array $reported = []): array
     {
@@ -149,6 +149,9 @@ class DummyAssistant implements CallAssistant
         return [
             'signals' => array_slice($signals, 0, 3),
             'recommendations' => array_slice($recommendations, 0, 2),
+            'noticed' => $latest !== null ? 'considering us against another vendor' : null,
+            'proposal_intent' => false,
+            'proposal_intent_note' => null,
         ];
     }
 

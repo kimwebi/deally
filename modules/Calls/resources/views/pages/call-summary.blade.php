@@ -28,15 +28,57 @@
                 @endif
 
                 <div class="sentiment-row">
-                    @php
-                        $sentPositive = $call->sentiment === 'positive' || $call->sentiment === null;
-                    @endphp
-                    <span class="sentiment-pill {{ $sentPositive ? 'positive' : 'warm' }}">
-                        {{ $sentPositive ? '😊 Positive sentiment' : '😐 Neutral sentiment' }}
+                    {{-- Both reads are the ones actually stored. This used to
+                         hardcode "Warm — high intent" for every call, which is
+                         the single most misleading line on the page a rep lands
+                         on after hanging up. --}}
+                    <span class="sentiment-pill {{ $call->effectiveSentiment() === 'positive' ? 'positive' : 'warm' }}">
+                        {{ match ($call->effectiveSentiment()) {
+                            'positive' => '😊 Positive sentiment',
+                            'negative' => '😟 Negative sentiment',
+                            default => '😐 Neutral sentiment',
+                        } }}
                     </span>
-                    <span class="sentiment-pill warm">🔥 Warm — high intent</span>
+
+                    <span class="sentiment-pill {{ $call->effectiveReadiness() === 'cold' ? 'cool' : 'warm' }}">
+                        {{ match ($call->effectiveReadiness()) {
+                            'hot' => '🔥 Hot — ready to close',
+                            'cold' => '🧊 Cold — not close to a decision',
+                            default => '🌤 Warm — engaged, not committed',
+                        } }}
+                    </span>
+
+                    @if ($call->sentimentWasCorrected() || $call->readinessWasCorrected())
+                        <span class="sentiment-pill corrected">✎ Corrected by a rep</span>
+                    @endif
                 </div>
+
+                @if ($call->proposal_intent)
+                    <div class="proposal-intent">
+                        <div class="proposal-intent-label">Agreed on this call</div>
+                        <div class="proposal-intent-text">
+                            A proposal was the next step{{ $call->proposal_intent_note ? ' — '.$call->proposal_intent_note : '' }}.
+                            <button type="button" class="link-btn" id="create-proposal-btn"
+                                data-proposal-url="{{ route('deally.calls.proposal', $call) }}">Create proposal</button>
+                        </div>
+                    </div>
+                @endif
             </div>
+
+            @if ($openFlags->isNotEmpty())
+                <div class="add-task-card blocked">
+                    <div class="add-task-icon">⚑</div>
+                    <div class="add-task-text">
+                        <div class="t1">{{ $openFlags->count() === 1 ? 'One deal-status flag' : $openFlags->count().' deal-status flags' }} on this call</div>
+                        <div class="t2">
+                            The review task cannot be closed until {{ $openFlags->count() === 1 ? 'this is' : 'these are' }} resolved.
+                            @foreach ($openFlags as $openFlag)
+                                <div class="t2-flag">• {{ $openFlag->headline }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <div class="add-task-card done">
                 <div class="add-task-icon">✓</div>
@@ -48,7 +90,15 @@
                     </div>
                 </div>
                 <div class="review-actions">
-                    <a class="btn-sm" href="{{ route('deally.tasks.index') }}">View task</a>
+                    {{-- Opens the task itself, not the tasks index. Sending a
+                         rep to a list to find the one task this page just
+                         created wastes the only moment they are looking for it. --}}
+                    @if ($reviewTask)
+                        <span class="btn-sm" style="cursor: pointer;"
+                            data-open-modal="modal-task"
+                            data-modal-url="{{ route('deally.tasks.show', $reviewTask) }}"
+                            data-review-url="{{ route('deally.calls.review', $call) }}">View task</span>
+                    @endif
                     <a class="btn-sm primary" href="{{ route('deally.calls.review', $call) }}">Open full review</a>
                 </div>
             </div>
@@ -56,3 +106,11 @@
     </div>
 </div>
 @endsection
+
+@push('modals')
+{{-- The same shell the tasks list uses, so the review reads identically
+     whichever route the rep arrived by. --}}
+<div class="modal-overlay" id="modal-task">
+    <div id="modal-task-host" data-modal-host></div>
+</div>
+@endpush

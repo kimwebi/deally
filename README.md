@@ -9,9 +9,9 @@ The application is split into feature modules, each with its own `routes/`, `res
 | Module | Namespace | Routes prefix | Views namespace | Responsibilities |
 | --- | --- | --- | --- | --- |
 | `Core` | `Deally\Core` | — | `core::` | Shared layouts, guest login, tenant binding middleware |
-| `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call tracking, dual-stream live AI capture, findings, transcripts, and summaries |
+| `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call initiation, dual-stream live AI capture, ephemeral stream, replay, review, corrections, and post-call summary |
 | `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline (list/board), customer accounts & contacts, deals, risk tiers, service reviews |
-| `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management |
+| `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management, including the per-call review task and its deal-status gate |
 | `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and knowledge base |
 | `Solutions` | `Deally\Solutions` | `/app/solutions` | `solutions::` | Solutions lead: gap queue, corrections, VOC trends |
 | `Settings` | `Deally\Settings` | `/app/account` | `settings::` | User account settings, roles, teams, users, integrations |
@@ -95,7 +95,7 @@ Use `--tenant=<uuid|instance>` to provision a single tenant and `--fresh` to reb
 php artisan deally:tenants:setup --fresh
 ```
 
-Tenant-specific tables live in `database/migrations/tenant/` (customers, contacts, calls and transcripts, live-call findings, service reviews, account settings, proposals, and deal ownership). To apply *pending* tenant migrations to already-provisioned dev tenant databases without rebuilding them, run `php artisan tenant:migrate`.
+Tenant-specific tables live in `database/migrations/tenant/` (customers, contacts, calls and transcripts, live-call findings, call recordings and queries, call ephemerals, corrections, flags and invitations, meeting platforms, service reviews, account settings, proposals, deal ownership, and `tasks.call_id`). To apply *pending* tenant migrations to already-provisioned dev tenant databases without rebuilding them, run `php artisan tenant:migrate`.
 
 ### Demo accounts
 
@@ -165,18 +165,71 @@ Removing a member from the tenant differs by seat:
 
 The application is served by Laravel Herd at `https://deally.test`. Frontend assets need `npm run dev` (or `npm run build`) running to be reflected in the browser; run `composer run dev` to start both.
 
+## Calls
+
+The Calls module covers a call from booking to the follow-up it produces.
+
+- **Initiation** — a platform picker, a session type, and a real invitation. The invitation is
+  composed, sent through Laravel Mail, and stored verbatim on the call along with the transcription
+  consent notice, so a later dispute about what was promised is answered with the text that was
+  actually delivered. When no platform is chosen, or delivery fails, the call records that.
+- **Unplanned calls** — a `failed` or `no_show` call is recorded with its reason and raises a
+  reschedule task, because a missed call with no next step leaves the pipeline with a dead deal.
+- **Live call** — dual-stream capture, a real customer panel beside it, and a Findings shelf that
+  holds **say**, **ask**, **reference**, **waiting** and **objection** cards distinguished by edge
+  treatment rather than colour alone.
+- **Post-call summary** — deliberately sparse: real readiness, open deal-status flags, whether a
+  proposal was agreed, and a way into the review task.
+- **Review task** — the real work. It opens in a modal from the tasks list and carries what DeAlly
+  heard, the objections (detected and rep-added, kept apart), what the call left outstanding,
+  correctable sentiment and readiness, the correction log, and the open flags. It **cannot be closed
+  while a flag is open** — from the modal or the list.
+- **Replay and the full conversation** — every captured window is kept on the private disk *before*
+  transcription is attempted, so the review can play the call back and jump to the moment any line was
+  said.
+
+### Meeting platforms: the flow is real, the connectors are not shipped
+
+**No meeting platform is connected, and the app says so.** The picker, the data model, the states, the
+UI and the tests are real; the provider calls are not implemented, because a Zoom Server-to-Server
+OAuth app, a Teams bot registration and a Google service-account joiner all need credentials that
+cannot be simulated.
+
+The alternative — a connector returning a well-formed-looking join URL — is worse than having
+nothing, because a rep will believe the customer has the link. So `calls.meeting_join_url` has **no
+code path that assembles one**, and `bot_join_status` reaches `joined` only from a provider
+confirmation. The only shipped implementation of
+`Deally\Calls\Contracts\MeetingPlatformConnector` is `UnconnectedMeetingPlatform`, which reports what
+it cannot do in the call's own words.
+
+To connect one: add its credentials to the `services.meetings.<key>` block in `config/services.php`
+(already present for all three platforms, and commented to say so), implement the contract, register
+it with `MeetingPlatformManager::register()`, and let `isConnected()` drive the `connected` flag.
+
 ## Live AI assistant (LLM integration)
 
-The Calls module captures the agent's microphone and, when shared, the meeting audio as two independent 6-second streams. Silent windows are dropped in the browser, Laravel sends the rest to the configured speech-to-text provider, persists the resulting `TranscriptLine`, and periodically analyzes the recent customer conversation for:
+The Calls module captures the agent's microphone and, when shared, the meeting audio as two independent 4-second streams. Silent windows are dropped in the browser, Laravel sends the rest to the configured speech-to-text provider, persists the resulting `TranscriptLine`, and periodically analyzes the recent conversation — whichever side spoke — for:
 
 - buying signals, intent, objections, competitor mentions, deal risk, and knowledge gaps;
-- knowledge-grounded **say**, **ask**, **reference**, and **objection** recommendations.
+- knowledge-grounded **say**, **ask**, **reference**, and **objection** recommendations;
+- a one-line paraphrase of what was just said, which is what the ephemeral stream's **Heard** card shows;
+- whether a proposal was actually agreed, which is the only thing that reveals the Create Proposal button.
 
-Accepted results are stored as `CallFinding` rows, rendered in the live Findings shelf, restored after reload, and linked to the source transcript line. Reps can mark findings **unhelpful**; that feedback creates a deduplicated gap for the Solutions workflow.
+Analysis deliberately runs on agent lines too. Gating it to customer lines produced the worst possible failure: a rep testing into their own microphone got a working transcript and an always-empty shelf, which reads as a broken provider rather than a missing second stream. The judgement belongs in the prompt, not in a hard gate.
 
-Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
+Accepted results are stored as `CallFinding` rows, rendered in the live Findings shelf, restored after reloading, and linked to the source transcript line. Every card in the stream is also written to `call_ephemerals` before the response returns, so "clear the findings" hides cards without deleting rows, and the review task and review page read those rows back. Reps can mark findings **unhelpful**; that feedback creates a deduplicated gap for the Solutions workflow.
 
-See [docs/ai-llm-integration.md](docs/ai-llm-integration.md) for the complete capture flow, endpoints, configuration, structured schema, persistence model, security notes, and provider extension guide.
+Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. `LIVE_AI_TRANSCRIPTION_NOTICE` sets the consent wording sent with every invitation, and it is stored on the invitation as the record of what was promised. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
+
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [docs/call-lifecycle.md](docs/call-lifecycle.md) | Booking, invitations, the live surfaces, the post-call summary, the review task, corrections, flags, meeting platforms, and how to add a connector |
+| [docs/ai-llm-integration.md](docs/ai-llm-integration.md) | Browser capture, transcription, the structured schema, the ephemeral stream, endpoints, configuration, persistence, and provider extension |
+| [docs/system-overview.md](docs/system-overview.md) | The product presentation view of DeAlly, with a demo script |
+
+The same setup notes are also served in-app at `/docs` and `/docs/ai`, reachable from the login footer.
 
 ## Tests
 
@@ -184,7 +237,9 @@ See [docs/ai-llm-integration.md](docs/ai-llm-integration.md) for the complete ca
 php artisan test
 ```
 
-The suite runs against an in-memory SQLite central database. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, Groq/OpenAI configuration, and credential non-disclosure. Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
+The suite runs against an in-memory SQLite central database — 271 tests, 1,075 assertions. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, recording retention, replay streaming, the review page's contents, Groq/OpenAI configuration, and credential non-disclosure. `CallLifecycleTest` covers call completion and the demo-transcript guard, including preserving genuinely captured audio. `CallInitiationAndReviewTest` covers the whole initiation and review lifecycle, and a large part of it asserts that the system does **not** invent things: no join URL without a provider response, no `joined` bot without a confirmation, no fabricated customer-panel signals, no paraphrase wrapped in quotation marks, no foreign transcript line on an objection, no "sent" invitation when delivery failed, and a review task that refuses to close while a deal-status flag is open. It also guards the reverse failure — a record nothing reads: the `heard` cards must appear in both the review task and the review page.
+
+Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, call assignment, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
 
 ## Formatting
 

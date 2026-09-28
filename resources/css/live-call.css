@@ -165,6 +165,71 @@
 
 .call-note-provider { margin-left: 8px; opacity: 0.8; text-align: center; }
 
+/* The platform's real state, stated on the live screen. When no bot is in the
+   meeting this must be visible, not implied by an absent control: a rep who
+   believes transcription is running when it is not will tell the customer it is. */
+.call-note-platform {
+  margin-left: 14px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-soft);
+  color: var(--text-3);
+}
+.call-note-platform.is-joined {
+  color: var(--success, #22c55e);
+  border-color: var(--success, #22c55e);
+}
+.call-note-platform.is-unconfirmed {
+  color: var(--text-3);
+  border-style: dashed;
+}
+
+.call-note-actions { margin-left: auto; display: inline-flex; gap: 10px; align-items: center; }
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.link-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* The invitation as the rep will read it before it goes to a customer. */
+.invitation-preview {
+  margin: 0 24px 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.invitation-preview-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.invitation-preview-subject { font-weight: 600; margin-bottom: 10px; }
+.invitation-preview-body {
+  margin: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-2);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.invitation-preview-note { margin: 10px 0 0; font-size: 11px; color: var(--text-4); }
+.invitation-preview-close { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 13px; }
+
+/* An empty rail section says so, rather than leaving the rep to wonder whether
+   it failed to load or genuinely has nothing. */
+.rail-item-quiet { color: var(--text-4); font-style: italic; }
+
 .kb-card.reviewed { opacity: 0.6; }
 
 .end-btn {
@@ -834,7 +899,7 @@
   padding: 26px 26px 22px;
   position: relative;
   overflow: hidden;
-  min-height: 180px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -860,11 +925,47 @@
   border-radius: 0 3px 3px 0;
 }
 
+/* Roles are told apart by structure first, colour second.
+   A solid left bar on every card made "Say this" and "🚩 Objection" the same
+   shape with a different hue, which is unreadable for a rep who is colour
+   blind and, for everyone else, easy to misread at a glance mid-call. Each role
+   now has its own edge treatment, so the shape carries the meaning. */
+
+/* "Say this" — the one card that is speech. Solid. */
 .kb-card.say .kb-accent { background: var(--success); }
-.kb-card.ask .kb-accent { background: var(--warning); }
-.kb-card.reference .kb-accent { background: var(--text-3); }
+
+/* "Ask this" — a question back to the customer. Dashed. */
+.kb-card.ask .kb-accent {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--warning) 0 8px,
+    transparent 8px 15px
+  );
+  width: 3px;
+}
+.kb-card.ask { border-style: dashed; border-color: var(--border); }
+
+/* "Reference" — read-only background, nothing to act on. No accent at all. */
+.kb-card.reference .kb-accent { background: transparent; }
+.kb-card.reference { border-color: var(--border-soft); }
+.kb-card.reference .kb-body { color: var(--text-2); }
+
+/* "⏳ Waiting" — nothing to act on yet. Dotted. */
+.kb-card.waiting .kb-accent {
+  background: radial-gradient(circle, var(--violet) 1.5px, transparent 1.5px);
+  background-size: 4px 7px;
+  background-repeat: repeat-y;
+  opacity: 0.85;
+  animation: lc-pulse 2s infinite;
+}
+
+/* "🚩 Objection" — a subtype of what the customer said, not speech for the
+   agent, so it is distinguished by its own edge rather than by a card type the
+   rep has to learn separately. */
 .kb-card.objection .kb-accent { background: var(--danger); }
-.kb-card.waiting .kb-accent { background: var(--violet); opacity: 0.5; animation: lc-pulse 2s infinite; }
+.kb-card.objection { border-left: 3px solid var(--danger); }
+.kb-card.objection .kb-body { font-weight: 500; }
+
 .kb-card.person .kb-accent { background: var(--violet); }
 
 .kb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 8px; }

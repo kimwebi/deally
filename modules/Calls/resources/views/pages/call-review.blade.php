@@ -2,20 +2,18 @@
 
 @section('content')
 @php
-    $sentiment = $call->sentiment ?: 'neutral';
-    $readiness = $sentiment === 'positive'
-        ? ['score' => 'Very ready', 'class' => 'good', 'chip' => 'hot']
-        : ($sentiment === 'neutral' ? ['score' => 'Somewhat ready', 'class' => 'warn', 'chip' => 'warm'] : ['score' => 'Needs work', 'class' => 'warn', 'chip' => 'cold']);
+    $brief = app(\Deally\Calls\Services\CallReviewBrief::class)->forCalls([$call->id])->get($call->id);
+    $reads = $brief->reads();
 
     $customerLines = $call->transcriptLines->where('is_agent', false)->count();
     $totalLines = max(1, $call->transcriptLines->count());
     $customerPct = round($customerLines / $totalLines * 100);
     $agentPct = 100 - $customerPct;
 
-    $objections = $gaps->whereIn('type', ['objection', 'gap']);
-    $objectionTotal = $objections->count();
-    $objectionHandled = $objections->where('status', 'live')->count();
-    $corrections = $gaps->where('type', 'correction');
+    $objectionLog = $brief->objectionLog();
+    $objectionTotal = count($objectionLog);
+    $objectionHandled = $gaps->whereIn('type', ['objection', 'gap'])->where('status', 'live')->count();
+    $corrections = $brief->correctionLog();
 
     /* Windows are keyed by chunk id so a transcript line can point at the exact
        audio it came from. Interleaved playback is the whole point of keeping
@@ -127,24 +125,73 @@
 
         {{-- Structured review --}}
         <div class="review-panel">
+            {{-- Both reads are correctable, and the AI's original is kept and
+                 shown. A read the rep cannot change is decoration; a read they
+                 can change but which erases the model's own answer throws away
+                 the only comparison worth having. --}}
             <div class="panel-section">
                 <div class="panel-section-label"><span>Sentiment</span></div>
-                <div class="panel-chip-row">
-                    <span class="panel-chip {{ $sentiment === 'positive' ? 'selected positive' : '' }}">😊 Positive</span>
-                    <span class="panel-chip {{ $sentiment === 'neutral' ? 'selected neutral' : '' }}">😐 Neutral</span>
-                    <span class="panel-chip {{ $sentiment === 'negative' ? 'selected negative' : '' }}">😞 Negative</span>
+                <div class="panel-chip-row" data-correct-group="sentiment"
+                    data-correct-url="{{ route('deally.calls.correct', $call) }}">
+                    @foreach (['positive' => '😊 Positive', 'neutral' => '😐 Neutral', 'negative' => '😞 Negative'] as $value => $label)
+                        <span class="panel-chip {{ $reads['sentiment'] === $value ? 'selected '.($value === 'positive' ? 'positive' : ($value === 'neutral' ? 'neutral' : 'negative')) : '' }}"
+                            data-correct-value="{{ $value }}" role="button" tabindex="0">{{ $label }}</span>
+                    @endforeach
                 </div>
-                <div class="ai-read-note">AI read: {{ ucfirst($sentiment) }}</div>
+                <div class="ai-read-note">
+                    AI read: {{ ucfirst($reads['ai_sentiment'] ?? 'neutral') }}
+                    @if ($reads['sentiment_corrected'])
+                        · <span class="ai-read-corrected">corrected by you</span>
+                    @endif
+                </div>
             </div>
 
             <div class="panel-section">
                 <div class="panel-section-label"><span>Close-Readiness</span></div>
-                <div class="panel-chip-row">
-                    <span class="panel-chip {{ $readiness['chip'] === 'hot' ? 'selected hot' : '' }}">🔥 Hot</span>
-                    <span class="panel-chip {{ $readiness['chip'] === 'warm' ? 'selected warm' : '' }}">🌤 Warm</span>
-                    <span class="panel-chip {{ $readiness['chip'] === 'cold' ? 'selected cold' : '' }}">❄ Cold</span>
+                <div class="panel-chip-row" data-correct-group="readiness"
+                    data-correct-url="{{ route('deally.calls.correct', $call) }}">
+                    @foreach (['hot' => '🔥 Hot', 'warm' => '🌤 Warm', 'cold' => '❄ Cold'] as $value => $label)
+                        <span class="panel-chip {{ $reads['readiness'] === $value ? 'selected '.$value : '' }}"
+                            data-correct-value="{{ $value }}" role="button" tabindex="0">{{ $label }}</span>
+                    @endforeach
                 </div>
-                <div class="ai-read-note">AI read: {{ $readiness['score'] }}</div>
+                <div class="ai-read-note">
+                    AI read: {{ ucfirst($reads['ai_readiness'] ?? 'warm') }}
+                    @if ($reads['readiness_corrected'])
+                        · <span class="ai-read-corrected">corrected by you</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-label"><span>Deal status</span><span style="font-size:10px;color:var(--text-4)">{{ $brief->openFlags->count() }} open</span></div>
+
+                @forelse ($brief->openFlags as $flag)
+                    <div class="review-flag" data-flag-id="{{ $flag->id }}">
+                        <div class="review-flag-head">
+                            <strong>{{ $flag->headline }}</strong>
+                            <span class="status-pill rejected">Unresolved</span>
+                        </div>
+                        @if ($flag->rationale)
+                            <p class="review-flag-why">{{ $flag->rationale }}</p>
+                        @endif
+                        <div class="review-flag-actions">
+                            @foreach (['confirmed' => 'Risk is real — deal updated', 'adjusted' => 'Adjusted', 'dismissed' => 'Not a real risk'] as $status => $label)
+                                <button type="button" class="btn-sm" data-resolve-flag="{{ $status }}"
+                                    data-flag-url="{{ route('deally.calls.flags.resolve', ['call' => $call, 'flag' => $flag->id]) }}">{{ $label }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+                @empty
+                    <div class="brief-body">No deal-status flags on this call.</div>
+                @endforelse
+
+                <div class="review-add-flag">
+                    <input class="input-field" type="text" id="review-flag-input" placeholder="Raise a deal-status flag…">
+                    <input class="input-field" type="text" id="review-flag-why" placeholder="Why (optional)">
+                    <button type="button" class="btn-sm" id="review-flag-add"
+                        data-flag-url="{{ route('deally.calls.flags.store', $call) }}">Raise</button>
+                </div>
             </div>
 
             <div class="panel-section">
@@ -155,8 +202,25 @@
                     <div class="score-row"><span class="score-label">Objections handled</span><span class="score-value {{ $objectionHandled >= $objectionTotal && $objectionTotal > 0 ? 'good' : 'warn' }}">{{ $objectionTotal > 0 ? $objectionHandled.' of '.$objectionTotal : 'None logged' }}</span></div>
                     <div class="score-row"><span class="score-label">AI suggestions</span><span class="score-value">{{ $findings->count() }} cards</span></div>
                     <div class="score-row"><span class="score-label">Marked useful</span><span class="score-value {{ $helpful > 0 ? 'good' : '' }}">{{ $helpful }}{{ $unhelpful > 0 ? ' · '.$unhelpful.' not' : '' }}</span></div>
-                    <div class="score-row"><span class="score-label">Overall</span><span class="score-value">{{ $readiness['score'] }}</span></div>
+                    <div class="score-row"><span class="score-label">Overall</span><span class="score-value">{{ ucfirst($reads['readiness']) }}</span></div>
                 </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-label"><span>What DeAlly heard</span><span style="font-size:10px;color:var(--text-4)">{{ $heard->count() }}</span></div>
+                @forelse ($heard as $line)
+                    <div class="review-heard-item">
+                        @if ($line->created_at)
+                            <span class="review-heard-at">{{ $line->created_at->format('H:i:s') }}</span>
+                        @endif
+                        <span>{{ $line->body }}</span>
+                    </div>
+                @empty
+                    <div class="brief-body">
+                        Nothing was paraphrased on this call. The assistant only writes a "heard" line
+                        when the conversation said something that changed the read.
+                    </div>
+                @endforelse
             </div>
 
             <div class="panel-section">
@@ -176,33 +240,67 @@
 
             <div class="panel-section">
                 <div class="panel-section-label"><span>Objection Log</span><span style="font-size:10px;color:var(--text-4)">{{ $objectionTotal }} items</span></div>
-                @forelse ($objections as $gap)
+                @forelse ($objectionLog as $objection)
                     <div class="objection-item">
-                        <span>{{ $gap->text }}</span>
-                        <span class="objection-tag {{ $gap->status === 'live' ? 'answered' : 'gap' }}">{{ $gap->status === 'live' ? 'Answered' : 'Gap' }}</span>
+                        <span>
+                            @if ($objection['added_by_rep'])
+                                <span class="objection-origin">You added</span>
+                            @endif
+                            {{ $objection['text'] }}
+                        </span>
                     </div>
                 @empty
                     <div class="brief-body">No objections or gaps logged.</div>
                 @endforelse
+
+                {{-- An agent hearing resistance the model missed is the most
+                     valuable correction available, so it can be added here
+                     rather than only being raised live. --}}
+                <div class="review-add-objection">
+                    <input class="input-field" type="text" id="review-objection-input"
+                        placeholder="An objection DeAlly missed…">
+                    <button type="button" class="btn-sm" id="review-objection-add"
+                        data-objection-url="{{ route('deally.calls.objections.store', $call) }}">Add</button>
+                </div>
             </div>
 
             <div class="panel-section">
                 <div class="panel-section-label"><span>Corrections</span></div>
                 <div style="display:flex;flex-direction:column;gap:8px">
-                    @forelse ($corrections as $gap)
+                    @forelse ($corrections as $correction)
                         <div style="background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r-md);padding:10px 12px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-                            <span style="color:var(--text-3)">{{ $gap->text }}</span>
-                            <span style="color:var(--text-4);font-weight:500;text-transform:capitalize;flex-shrink:0">{{ $gap->status === 'live' ? '✓ Correct' : ($gap->status === 'rejected' ? '✕ Skipped' : 'Needs review') }}</span>
+                            <span style="color:var(--text-3)">
+                                <strong style="text-transform:capitalize">{{ str_replace('_', ' ', $correction['field']) }}</strong>:
+                                {{ $correction['ai_value'] }} → <strong>{{ $correction['corrected_value'] }}</strong>
+                                @if ($correction['note'])
+                                    <em style="color:var(--text-4)"> — {{ $correction['note'] }}</em>
+                                @endif
+                            </span>
+                            <span style="color:var(--text-4);white-space:nowrap">{{ $correction['at'] }}</span>
                         </div>
                     @empty
-                        <div class="brief-body">No corrections this call.</div>
+                        <div class="brief-body">No corrections this call. Correct sentiment or readiness above and it is recorded here.</div>
                     @endforelse
                 </div>
             </div>
 
             <div class="panel-section">
-                <a class="btn-proposal" href="{{ route('deally.proposals.index') }}">📄 Create Proposal</a>
-                <div style="font-size:11px;color:var(--text-4);text-align:center">Detected intent: a proposal for {{ $call->company }} can be drafted from this call</div>
+                @if ($call->proposal_intent)
+                    {{-- Only when the call actually agreed one. An unconditional
+                         button on every call is a suggestion the rep has to
+                         evaluate and discard. --}}
+                    <a class="btn-proposal" href="{{ route('deally.proposals.index') }}">📄 Create Proposal</a>
+                    <div style="font-size:11px;color:var(--text-4);text-align:center">
+                        Agreed on this call{{ $call->proposal_intent_note ? ': '.$call->proposal_intent_note : '' }}
+                    </div>
+                @else
+                    <div class="brief-body" style="text-align:center">
+                        No proposal was agreed on this call, so none is offered.
+                        @if ($brief->gaps->where('type', 'proposal')->isNotEmpty())
+                            Pricing or scope came up — see the gaps above.
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>

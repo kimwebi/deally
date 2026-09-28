@@ -33,16 +33,25 @@
                     <td class="mono" @if ($isOverdue) style="color: var(--red);" @endif>
                         {{ $task->due_at ? $task->due_at->format('M d, g:ia') : '—' }}{{ $isOverdue ? ' · Overdue' : '' }}
                     </td>
-                    <td><span class="status-pill {{ $statusPill }}">{{ $statusLabel }}</span></td>
+                    <td>
+                        <span class="status-pill {{ $statusPill }}">{{ $statusLabel }}</span>
+                        @if ($blockedReason = $blockedTasks->get($task->id))
+                            {{-- Blocked is shown on the row, not only inside the
+                                 modal. Hiding it means a rep clicks ✓, gets a
+                                 flash they may not read, and concludes the task
+                                 is unclosable. --}}
+                            <span class="status-pill blocked" title="{{ $blockedReason }}">⚑ Needs a decision</span>
+                        @endif
+                    </td>
                     <td style="text-align:right; white-space: nowrap;">
-                        <button class="row-action" data-open-modal="modal-task"
-                            data-review-url="{{ $reviewUrls[$task->linked_company] ?? '' }}"
-                            data-title="{{ $task->title }}"
-                            data-subtitle="{{ $task->linked_company ?: 'Unlinked' }} · {{ $task->due_at ? $task->due_at->format('M d, g:ia') : 'no due date' }}"
-                            data-desc="{{ $task->status === 'closed' ? 'This task is complete.' : 'Open follow-up for '.($task->linked_company ?: 'the deal').'.' }}">{{ $isClosed ? 'Reopen' : 'View' }}</button>
+                        <button class="row-action"
+                            data-open-modal="modal-task"
+                            data-modal-url="{{ route('deally.tasks.show', $task) }}"
+                            data-review-url="{{ $reviewUrls[$task->id] ?? '' }}">{{ $isClosed ? 'Reopen' : 'Review' }}</button>
                         <form method="POST" action="{{ route('deally.tasks.toggle', $task) }}" style="display: inline;">
                             @csrf
-                            <button class="row-action" type="submit">{{ $isClosed ? '↺' : '✓' }}</button>
+                            <button class="row-action" type="submit" @disabled($blockedReason !== null)
+                                title="{{ $blockedReason ?? 'Close this task' }}">{{ $isClosed ? '↺' : '✓' }}</button>
                         </form>
                         <form method="POST" action="{{ route('deally.tasks.destroy', $task) }}" style="display: inline;">
                             @csrf
@@ -60,6 +69,11 @@
 @endsection
 
 @push('modals')
+{{-- One shell; the review task body is fetched per task. --}}
+<div class="modal-overlay" id="modal-task">
+    <div id="modal-task-host" data-modal-host></div>
+</div>
+
 <div class="modal-overlay" id="modal-add-task">
     <div class="modal">
         <div class="modal-header">
@@ -116,29 +130,6 @@
                 <button class="btn-sm primary" type="submit">Create Task</button>
             </div>
         </form>
-    </div>
-</div>
-
-<div class="modal-overlay" id="modal-task">
-    <div class="modal">
-        <div class="modal-header">
-            <div class="modal-header-icon task">📋</div>
-            <div class="modal-header-body">
-                <div class="modal-title" data-fill="title">Task</div>
-                <div class="modal-subtitle" data-fill="subtitle">Task details</div>
-            </div>
-            <button class="modal-close" data-close-modal>✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-section">
-                <div class="modal-section-label"><span class="dot"></span>Description</div>
-                <div style="font-size: 13px; color: var(--text-2);" data-fill="desc">—</div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <a href="#" class="btn-sm primary" data-review-target style="display:none;">Open full review</a>
-            <button class="btn-sm" data-close-modal>Close</button>
-        </div>
     </div>
 </div>
 @endpush

@@ -322,7 +322,11 @@ export function initLiveAssistant() {
         }, 6500);
     }
 
-    function summarise(text) {
+    /* Clips the rep's own typed input for the stream card. This is not a
+       summary and is not used as one — it only ever shortens text the rep
+       themselves just typed, where showing their words verbatim is correct.
+       Anything attributed to the customer comes from the model as a paraphrase. */
+    function clipOwnWords(text) {
         var t = String(text || '').replace(/\s+/g, ' ').trim();
         if (t.length <= 90) return t;
         return t.slice(0, 90).replace(/\s+\S*$/, '') + '…';
@@ -592,7 +596,7 @@ export function initLiveAssistant() {
     function submitQuery(text, hideHeroAfter) {
         text = (text || '').trim();
         if (!text) return;
-        appendEphem('asked', 'You asked', esc(summarise(text)));
+        appendEphem('asked', 'You asked', esc(clipOwnWords(text)));
         queryFetch({ text: text }).then(function (json) {
             if (!json.ok) return;
             replyCards(json).forEach(function (c) { appendFindingsCard(c); });
@@ -604,7 +608,7 @@ export function initLiveAssistant() {
         var objInput = document.getElementById('obj-input');
         var text = (objInput && objInput.value || '').trim();
         appendEphem('objection', 'Objection', text
-            ? 'Objection raised: ' + esc(summarise(text))
+            ? 'Objection raised: ' + esc(clipOwnWords(text))
             : 'Objection raised — logged for the Solutions Lead.');
 
         queryFetch({ text: text, objection: 1 }).then(function (json) {
@@ -977,9 +981,22 @@ export function initLiveAssistant() {
            drain, so a single bad card would otherwise stop the source uploading
            for the rest of the call. */
         try {
-            if (json.transcript) {
-                appendEphem('heard', SOURCE_LABELS[source.key] + ' heard', esc(summarise(json.transcript)));
-            }
+            /* The "Heard" card is the model's paraphrase, sent by the server and
+               already written to the call's record. It used to be a 90-character
+               truncation of the raw transcript, which put the customer's exact
+               sentence under a label claiming it was a summary — and a
+               truncation is not a summary, it is the beginning of a quote with
+               no indication that it stops there.
+
+               Analysis is throttled, so most windows carry no paraphrase. Those
+               show nothing at all: a card that repeats the transcript the rep
+               can already see adds nothing, and inventing one client-side would
+               reintroduce exactly the problem this replaced. */
+            (json.ephemerals || []).forEach(function (ephemeral) {
+                if (ephemeral.kind === 'heard' && ephemeral.body) {
+                    appendEphem('heard', 'Heard', esc(ephemeral.body));
+                }
+            });
 
             (json.findings || []).forEach(function (card) { appendFindingsCard(card); });
 

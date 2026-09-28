@@ -8,6 +8,7 @@ class DeallyTenantDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(MeetingPlatformSeeder::class);
         $this->call(DeallyDemoSeeder::class);
     }
 }

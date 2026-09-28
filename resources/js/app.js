@@ -16,6 +16,8 @@ import { initKbTabs } from './kb-tabs.js';
 import { initSidebarMenu } from './sidebar.js';
 import { initGlobalAsk } from './global-ask.js';
 import { initAuthDocs } from './auth-docs.js';
+import { initReviewTask } from './review-task.js';
+import { initCallSetup } from './call-setup.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     initModalSystem();
@@ -30,4 +32,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initSidebarMenu();
     initGlobalAsk();
     initAuthDocs();
+    initReviewTask();
+    initCallSetup();
 });

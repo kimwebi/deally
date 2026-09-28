@@ -1,0 +1,261 @@
+/* ---------- Meeting platform picker, call detail modal, review task ----------
+ *
+ * Appended rather than interleaved: these are the surfaces added when call
+ * initiation, the call detail modal and the review task became real, and they
+ * share a vocabulary — a platform's honest state, a correction, a blocked close.
+ */
+
+/* ---------- Platform picker ---------- */
+
+.platform-picker { display: flex; flex-direction: column; gap: 8px; }
+
+.platform-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.platform-option:hover { border-color: var(--primary); }
+.platform-option input { margin-top: 3px; flex-shrink: 0; }
+.platform-option-icon { font-size: 15px; line-height: 1.2; }
+.platform-option-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.platform-option-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.platform-option-note { font-size: 11px; line-height: 1.5; color: var(--text-4); }
+
+/* An unconnected platform is visibly incomplete rather than merely labelled
+   "not connected" in small grey text that a rep clicking quickly will miss. */
+.platform-option.is-unconnected {
+  border-style: dashed;
+  background: var(--surface-2, transparent);
+}
+.platform-option.is-usable:has(input:checked) {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.field-hint { font-size: 11px; color: var(--text-4); line-height: 1.5; margin: 6px 0 0; }
+
+/* ---------- Call detail modal ---------- */
+
+.call-detail-body { display: flex; flex-direction: column; gap: 18px; }
+
+.call-detail-archived {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: rgba(232, 162, 43, 0.08);
+  border: 1px solid rgba(232, 162, 43, 0.3);
+  font-size: 12px;
+  color: var(--amber, #e8a22b);
+}
+
+.call-detail-summary {
+  padding: 14px 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--surface-2, transparent);
+}
+.call-detail-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.call-detail-summary-text { font-size: 13px; line-height: 1.6; color: var(--text-2); margin: 0; }
+
+.call-detail-correction {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-soft);
+  font-size: 11px;
+  color: var(--text-4);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.call-detail-correction-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.call-detail-correction em { font-style: normal; color: var(--text-3); }
+
+.call-detail-flags { display: flex; flex-direction: column; gap: 8px; }
+.call-detail-flag {
+  padding: 10px 12px;
+  border-left: 3px solid var(--danger, #ef4444);
+  background: var(--surface);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.call-detail-flag strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+.call-detail-section { display: flex; flex-direction: column; gap: 8px; }
+.call-detail-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+.call-detail-count { color: var(--text-4); font-weight: 500; }
+
+.call-detail-finding {
+  padding: 11px 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.call-detail-finding-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.call-detail-finding-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+.call-detail-flag-unhelpful { font-size: 10px; color: var(--text-4); }
+.call-detail-finding-body { font-size: 13px; line-height: 1.55; color: var(--text); }
+.call-detail-finding-foot { margin-top: 6px; font-size: 11px; color: var(--primary); }
+
+.call-detail-transcript { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.call-detail-empty { font-size: 12px; color: var(--text-4); line-height: 1.6; margin: 0; }
+.call-detail-empty code { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+/* ---------- Review task ---------- */
+
+.modal-review-task .modal-body { max-height: 62vh; overflow-y: auto; }
+
+.review-task-body { display: flex; flex-direction: column; gap: 4px; }
+.review-task-empty { font-size: 12px; color: var(--text-4); line-height: 1.6; margin: 0 0 4px; font-style: italic; }
+.review-task-hint { font-size: 11px; color: var(--text-4); line-height: 1.5; margin: 8px 0 0; }
+
+.review-task-blocked {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--amber, #e8a22b);
+  background: rgba(232, 162, 43, 0.08);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.review-task-blocked strong { color: var(--amber, #e8a22b); }
+
+.review-task-reads { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.review-task-read { display: flex; flex-direction: column; gap: 5px; }
+.review-task-read label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); }
+.review-task-read-value { font-size: 14px; font-weight: 600; color: var(--text); }
+.review-task-was { display: block; font-size: 11px; font-weight: 400; color: var(--text-4); font-style: italic; }
+
+/* "What DeAlly heard" is a timeline of moments, not a set of signals, so it
+   carries no accent edge — the accent edges are reserved for the roles that
+   mean "do something", and borrowing one here would make a summary look like
+   a recommendation. */
+.review-task-heard {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.review-task-heard:last-child { border-bottom: 0; }
+.review-task-heard-at {
+  flex: 0 0 auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.review-task-flag, .review-flag {
+  padding: 11px 13px;
+  border-left: 3px solid var(--danger, #ef4444);
+  background: var(--surface);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  margin-bottom: 8px;
+}
+.review-task-flag-head, .review-flag-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.review-task-flag-head strong, .review-flag-head strong { font-size: 12px; color: var(--text); }
+.review-task-flag-why, .review-flag-why { font-size: 12px; color: var(--text-3); line-height: 1.55; margin: 6px 0 0; }
+.review-task-flag-actions, .review-flag-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+.review-task-add-flag, .review-add-flag { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.review-task-add-flag .input-field, .review-add-flag .input-field { flex: 1 1 160px; min-width: 0; }
+
+.review-task-add-objection, .review-add-objection { display: flex; gap: 6px; margin-top: 10px; }
+.review-task-add-objection .input-field, .review-add-objection .input-field { flex: 1; min-width: 0; }
+
+.review-task-objection {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+.review-task-objection.is-rep { border-left: 3px solid var(--violet, #8b5cf6); }
+.review-task-objection-origin {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-4); flex-shrink: 0;
+}
+
+.review-task-action {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 8px 11px;
+  border-left: 3px solid var(--amber, #e8a22b);
+  background: var(--surface);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 12px; color: var(--text-2); line-height: 1.5;
+  margin-bottom: 6px;
+}
+.review-task-action-type {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-4); flex-shrink: 0;
+}
+
+.review-task-correction {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 8px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  font-size: 12px; color: var(--text-2);
+  margin-bottom: 6px;
+}
+.review-task-correction-field { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); font-weight: 600; }
+.review-task-correction-note { color: var(--text-4); font-style: italic; }
+.review-task-correction-at { color: var(--text-4); margin-left: auto; font-size: 11px; }
+
+.review-task-proposal { font-size: 12px; color: var(--text-2); line-height: 1.6; margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Review page: correction chips ---------- */
+
+.panel-chip[data-correct-value] { cursor: pointer; }
+.panel-chip[data-correct-value]:hover { border-color: var(--primary); }
+.panel-chip[data-correct-value]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.ai-read-note.is-saving { opacity: 0.6; }
+.ai-read-corrected { color: var(--primary); font-style: normal; }
+
+.objection-origin {
+  display: inline-block;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--violet-bright, var(--violet, #8b5cf6));
+  margin-right: 6px;
+}
+
+/* ---------- Post-call summary ---------- */
+
+.sentiment-pill.cool { color: var(--text-2); border-color: var(--border); }
+.sentiment-pill.corrected { color: var(--primary); border-color: var(--primary); }
+
+.proposal-intent {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--success, #22c55e);
+  background: var(--surface-2, transparent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.proposal-intent-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 5px; }
+.proposal-intent-text { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+
+.add-task-card.blocked { border-color: rgba(232, 162, 43, 0.4); background: rgba(232, 162, 43, 0.06); }
+.add-task-card.blocked .add-task-icon { color: var(--amber, #e8a22b); }
+.t2-flag { margin-top: 4px; color: var(--text-3); }
+
+.status-pill.blocked { color: var(--amber, #e8a22b); border-color: rgba(232, 162, 43, 0.4); }
+
+.row-action[aria-disabled="true"], .row-action:disabled { opacity: 0.4; cursor: not-allowed; }

@@ -32,9 +32,16 @@ interface CallAssistant
     /**
      * Structured analysis of a rolling window of transcript lines.
      *
+     * `noticed` is a short paraphrase of what the newest line is about, never a
+     * quotation. It is what the "Heard" card shows, so it is authored here
+     * rather than assembled from the raw line in the browser.
+     *
+     * `proposal_intent` is true only when the call agreed a written proposal is
+     * the next step — it gates the Create Proposal action after the call.
+     *
      * @param  array<int, array{id: int, speaker: string, is_agent: bool, text: string}>  $lines
      * @param  array<int, string>  $reported  Finding bodies already surfaced for this call.
-     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>}
+     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>, noticed: ?string, proposal_intent: bool, proposal_intent_note: ?string}
      *
      * @throws AssistantProviderException
      */

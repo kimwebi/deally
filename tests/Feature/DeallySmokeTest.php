@@ -120,12 +120,22 @@ class DeallySmokeTest extends TestCase
             ->assertSee('Product Overview')
             ->assertSee('flagship feature');
 
+        $this->get(route('docs.calls'))
+            ->assertOk()
+            ->assertSee('Call Lifecycle')
+            ->assertSee('Meeting platforms');
+
+        $this->get(route('docs.index'))
+            ->assertRedirect(route('docs.overview'));
+
         $this->get('/login')
             ->assertOk()
             ->assertSee('AI setup docs')
             ->assertSee('Product overview')
+            ->assertSee('Call lifecycle')
             ->assertSee(route('docs.ai'))
-            ->assertSee(route('docs.overview'));
+            ->assertSee(route('docs.overview'))
+            ->assertSee(route('docs.calls'));
     }
 
     public function test_call_pages_render(): void

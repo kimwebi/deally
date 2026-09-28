@@ -5,8 +5,9 @@ use Deally\Core\Http\Controllers\DocsController;
 use Deally\Core\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('docs/ai', [DocsController::class, 'ai'])->name('docs.ai');
 Route::get('docs/overview', [DocsController::class, 'overview'])->name('docs.overview');
+Route::get('docs/calls', [DocsController::class, 'calls'])->name('docs.calls');
+Route::get('docs/ai', [DocsController::class, 'ai'])->name('docs.ai');
 
 Route::middleware('deally')
     ->prefix('app')

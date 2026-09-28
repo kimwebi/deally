@@ -23,7 +23,12 @@
 
         <div class="login-logo"><div class="bolt"><i class="bi bi-lightning-fill"></i></div>DeAlly</div>
         <div class="login-sub">Live AI assistant — configuration guide</div>
-        <a href="{{ route('docs.overview') }}" class="docs-back" style="margin-top:14px;">Product overview →</a>
+
+        <div style="display: flex; gap: 8px; margin: 16px 0 24px; flex-wrap: wrap;">
+            <a href="{{ route('docs.overview') }}" class="btn-sm {{ request()->routeIs('docs.overview') ? 'primary' : '' }}">Product Overview</a>
+            <a href="{{ route('docs.calls') }}" class="btn-sm {{ request()->routeIs('docs.calls') ? 'primary' : '' }}">Call Lifecycle</a>
+            <a href="{{ route('docs.ai') }}" class="btn-sm {{ request()->routeIs('docs.ai') ? 'primary' : '' }}">Live AI Assistant</a>
+        </div>
 
         <div class="docs-section">
             <div class="docs-heading">How it works</div>
@@ -79,6 +84,41 @@
         </div>
 
         <div class="docs-section">
+            <div class="docs-heading">The stream beside the findings</div>
+            <p class="docs-text">
+                Short-lived cards run down the middle of the call screen: what was just said, what just
+                got detected, a question the knowledge base cannot answer, something you asked, an
+                objection. The panel on the right is for things that still matter; the stream is for
+                things that just happened, said once and gone.
+            </p>
+            <p class="docs-text">
+                <b>Every card is saved before it is shown.</b> The card is written to the call's record
+                and only then sent to the browser, so the six-second fade is a rule about visibility and
+                nothing else. The review task and the review page read those rows back — which is the
+                only reason the review can tell you what the assistant was attending to instead of
+                leaving you to reconstruct it from a scrolling panel.
+            </p>
+            <p class="docs-text">
+                <b>Clearing the findings only clears the screen.</b> It empties the panel; it does not
+                delete anything.
+            </p>
+            <p class="docs-text">
+                <b>The "Heard" card is a summary, not a quote.</b> It is the model's own paraphrase of
+                what the customer just said — at most about a dozen words, in the present tense, and
+                never wrapped in quotation marks. A card labelled as a summary that is actually the
+                customer's exact sentence is worse than no card, because you read it as their words.
+                Nothing is ever filled in locally: if the model has nothing to add, no card appears.
+            </p>
+            <p class="docs-text">
+                Cards are told apart by their <b>edge</b>, not their colour — a solid edge means "say
+                this", a dashed edge "ask this", no accent a reference, a dotted edge something waiting,
+                and a red rule an objection. A colour alone excludes anyone with a colour vision
+                deficiency, and a screenshot in a handover has to survive being printed in black and
+                white.
+            </p>
+        </div>
+
+        <div class="docs-section">
             <div class="docs-heading">Driver selection</div>
             <p class="docs-text">The server picks the driver from <span class="font-mono">LIVE_AI_DRIVER</span> at runtime:</p>
             <ul class="docs-list">
@@ -110,6 +150,7 @@
                     <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_MIN_INTERVAL</span></td><td><span class="font-mono">10</span></td><td>Minimum seconds between analysis runs.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_SHELF_LIMIT</span></td><td><span class="font-mono">10</span></td><td>Newest findings rendered in the shelf; older ones stay saved.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_REPORTED_FINDINGS</span></td><td><span class="font-mono">6</span></td><td>Already-reported cards shown to the model so each pass reports what is new.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_TRANSCRIPTION_NOTICE</span></td><td>—</td><td>Consent wording sent with every call invitation, and stored on the invitation as the record of what was promised.</td></tr>
                 </tbody>
             </table>
             <p class="docs-text" style="margin-top:10px;">After changing these, run <span class="font-mono">php artisan config:clear</span>.<br>
@@ -140,19 +181,50 @@
             <p class="docs-text">
                 The review holds the whole exchange, not just the questions: what DeAlly said sits under the line
                 that prompted it, the questions you asked it and its answers are kept, and the downloaded transcript
-                carries the same. Calls started before recording was kept cannot be replayed — the audio was never
-                stored, so there is nothing to recover.
+                carries the same. The <b>Heard</b> cards come back too, as a timeline of what the assistant was
+                tracking, and the review task you get afterwards carries them as well — so you are not left
+                scrolling a live panel trying to remember what it caught. Calls started before recording was kept
+                cannot be replayed — the audio was never stored, so there is nothing to recover.
             </p>
             <p class="docs-text">
                 Audio costs roughly 0.5 MB per minute of call and nothing prunes it, so a call's recording lives as
-                long as the call does.
+                long as the call does. DeAlly does not delete a recording on its own: a recording someone might
+                still need is not something to tidy away on a schedule nobody agreed to.
+            </p>
+        </div>
+
+        <div class="docs-section">
+            <div class="docs-heading">Recording consent</div>
+            <p class="docs-text">
+                Set <span class="font-mono">LIVE_AI_TRANSCRIPTION_NOTICE</span> to the wording you want sent with
+                every call invitation — that the call is being transcribed and an AI assistant is listening, and
+                what happens to the recording. It is stored on each invitation alongside the message that was
+                actually delivered, so a disagreement about consent is settled with the text the customer
+                received rather than with whatever the current setting happens to say.
+            </p>
+        </div>
+
+        <div class="docs-section">
+            <div class="docs-heading">Meeting platforms</div>
+            <p class="docs-text">
+                DeAlly can book a meeting and admit a transcription bot, but <b>no platform is connected out of the
+                box and the app will say so</b>. It is not a limitation of the booking flow — the flow, the states,
+                and the screens are all real — it is that creating a meeting and admitting a bot need credentials
+                for a real Zoom, Teams, or Meet integration.
+            </p>
+            <p class="docs-text">
+                A join link that looks real but is not would be worse than no link at all, because you would send
+                it to a customer and wait for them at a meeting that does not exist. So a link is only ever shown
+                when the provider actually returned one, and the bot is only ever reported as joined when the
+                provider confirmed it. Any other outcome is written to the call with the reason, and the live-call
+                header shows the platform's real state while the call is running.
             </p>
         </div>
 
         <div class="docs-section">
             <div class="docs-heading">Endpoints</div>
             <div class="code-block mono"><span class="code-method">POST</span> /app/calls/{call}/live/transcribe</div>
-            <p class="docs-text">Multipart upload, <span class="font-mono">audio</span> field (max 10 MB). Returns the transcript plus suggested cards.</p>
+            <p class="docs-text">Multipart upload, <span class="font-mono">audio</span> field (max 10 MB). Returns the transcript, any new findings, and the stream's cards.</p>
             <div class="code-block mono" style="margin-top:10px;"><span class="code-method">POST</span> /app/calls/{call}/live/query</div>
             <p class="docs-text">JSON body with <span class="font-mono">text</span> (max 1000 chars). Returns an answer plus cards.</p>
         </div>

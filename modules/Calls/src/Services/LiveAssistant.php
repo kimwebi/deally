@@ -229,7 +229,13 @@ class LiveAssistant implements CallAssistant
     public function analyze(Call $call, array $lines, array $reported = []): array
     {
         if ($lines === []) {
-            return ['signals' => [], 'recommendations' => []];
+            return [
+                'signals' => [],
+                'recommendations' => [],
+                'noticed' => null,
+                'proposal_intent' => false,
+                'proposal_intent_note' => null,
+            ];
         }
 
         $response = $this->post('/chat/completions', [
@@ -553,6 +559,15 @@ class LiveAssistant implements CallAssistant
             .'- Set "confidence" between 0 and 1.'.PHP_EOL
             .'- Prefer fewer, high-signal items. An empty array is correct when nothing is happening yet.'.PHP_EOL
             .'- Keep "body" and "text" to short, plain spoken english a rep can say aloud.'.PHP_EOL.PHP_EOL
+            .'- "noticed" is what the agent should understand the customer is talking about right now, phrased in your '
+            .'own words. It must NOT be a quotation: no quotation marks, no wording copied from the transcript, and '
+            .'never the customer\'s sentence with a word changed. Do not restate a question as a question. Write it in '
+            .'the present tense as a description of the topic, at most 12 words — for example "weighing us against '
+            .'Cisco on support coverage", not "the customer asked about Cisco support". Leave it as an empty string '
+            .'when the newest line is not worth summarising, which is usually.'.PHP_EOL.PHP_EOL
+            .'- "proposal_intent" is true only when this call has actually agreed that a written proposal, quote, or '
+            .'formal pricing document is the next step. A customer asking what it costs is not enough on its own. Put '
+            .'the few words describing what it would cover in "proposal_intent_note", or leave that empty.'.PHP_EOL.PHP_EOL
             .'Worked example, answered from your own knowledge:'.PHP_EOL
             .'Customer asks whether the US is considered a third-world country.'.PHP_EOL
             .'recommendation body: "No, the US is not a third-world country. That term describes countries with low '
@@ -643,8 +658,11 @@ class LiveAssistant implements CallAssistant
                         'additionalProperties' => false,
                     ],
                 ],
+                'noticed' => ['type' => 'string'],
+                'proposal_intent' => ['type' => 'boolean'],
+                'proposal_intent_note' => ['type' => 'string'],
             ],
-            'required' => ['signals', 'recommendations'],
+            'required' => ['signals', 'recommendations', 'noticed', 'proposal_intent', 'proposal_intent_note'],
             'additionalProperties' => false,
         ];
     }
@@ -654,7 +672,7 @@ class LiveAssistant implements CallAssistant
      * enumerations, and drop anything that does not survive validation.
      *
      * @param  array<int, array{id: int, speaker: string, is_agent: bool, text: string}>  $lines
-     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>}
+     * @return array{signals: array<int, array<string, mixed>>, recommendations: array<int, array<string, mixed>>, noticed: ?string, proposal_intent: bool, proposal_intent_note: ?string}
      */
     protected function normalizeAnalysis(string $content, array $lines): array
     {
@@ -680,7 +698,43 @@ class LiveAssistant implements CallAssistant
             ->values()
             ->all();
 
-        return ['signals' => $signals, 'recommendations' => $recommendations];
+        return [
+            'signals' => $signals,
+            'recommendations' => $recommendations,
+            'noticed' => $this->normalizeParaphrase($decoded['noticed'] ?? null),
+            'proposal_intent' => (bool) ($decoded['proposal_intent'] ?? false),
+            'proposal_intent_note' => $this->normalizeParaphrase($decoded['proposal_intent_note'] ?? null, 160),
+        ];
+    }
+
+    /**
+     * Keep a model-authored paraphrase inside the bounds the panel assumes.
+     *
+     * The length cap is not cosmetic: the ephemeral card is a fixed-height slot,
+     * so a long paraphrase either clips or pushes the shelf around. Quotation
+     * marks are stripped because this is a summary in the agent's own words,
+     * and a quoted card reads as the customer having said exactly that.
+     */
+    protected function normalizeParaphrase(mixed $value, int $maxWords = 12): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $text = trim(preg_replace('/["“”]/u', '', $value) ?? '');
+
+        if ($text === '') {
+            return null;
+        }
+
+        $words = preg_split('/\s+/u', $text, $maxWords + 1) ?: [];
+        $text = trim(implode(' ', array_slice($words, 0, $maxWords)));
+
+        if ($maxWords === 12) {
+            $text = rtrim($text, " \t\n\r\0\x0B,;:.-");
+        }
+
+        return $text === '' ? null : $text;
     }
 
     /**

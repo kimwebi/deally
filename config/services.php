@@ -95,6 +95,43 @@ return [
         'analysis_min_interval' => (int) env('LIVE_AI_ANALYSIS_MIN_INTERVAL', 10),
         'shelf_limit' => (int) env('LIVE_AI_SHELF_LIMIT', 10),
         'reported_findings' => (int) env('LIVE_AI_REPORTED_FINDINGS', 6),
+
+        /* The consent wording sent with every call invitation. It is stored on
+           the invitation row, so a later dispute about what was promised is
+           answered with the text that was actually delivered. */
+        'transcription_notice' => env('LIVE_AI_TRANSCRIPTION_NOTICE'),
+    ],
+
+    /*
+     | Meeting platforms.
+     |
+     | No platform is connected by default, and that is the honest state: the
+     | initiation flow exists and runs, but creating a meeting or admitting a
+     | transcription bot needs a real OAuth app and bot credentials, which cannot
+     | be simulated. A connector implements Deally\Calls\Contracts\MeetingPlatformConnector
+     | and returns real identifiers; until one is registered every platform
+     | reports itself unavailable and the UI says so, rather than offering a join
+     | link that resolves to nothing.
+     |
+     | Each key below is the credential set a connector for that platform reads.
+     */
+    'meetings' => [
+        'zoom' => [
+            'account_id' => env('ZOOM_ACCOUNT_ID'),
+            'client_id' => env('ZOOM_CLIENT_ID'),
+            'client_secret' => env('ZOOM_CLIENT_SECRET'),
+        ],
+
+        'microsoft_teams' => [
+            'tenant_id' => env('MICROSOFT_TENANT_ID'),
+            'client_id' => env('MICROSOFT_CLIENT_ID'),
+            'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        ],
+
+        'google_meet' => [
+            'client_id' => env('GOOGLE_CLIENT_ID'),
+            'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        ],
     ],
 
 ];

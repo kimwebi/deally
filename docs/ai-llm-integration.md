@@ -1,6 +1,8 @@
 # DeAlly — Live Call AI / LLM Integration
 
-This guide describes DeAlly's production live-call flow: browser audio capture, server-side transcription, structured conversation analysis, knowledge-grounded suggestions, findings feedback, and call persistence.
+This guide describes DeAlly's production live-call flow: browser audio capture, server-side transcription, structured conversation analysis, knowledge-grounded suggestions, the ephemeral stream, findings feedback, recording retention, and call persistence.
+
+The surrounding flow — booking a call, sending the invitation, the customer panel, the post-call summary, the review task, corrections, flags and meeting platforms — is documented in [call-lifecycle.md](call-lifecycle.md).
 
 Provider credentials and provider requests stay on the Laravel server. The browser sends audio and interaction requests to DeAlly; it never receives a provider API key or calls Groq or OpenAI directly.
 
@@ -10,25 +12,27 @@ Provider credentials and provider requests stay on the Laravel server. The brows
 Agent microphone ──▶ agent chunks ───────┐
                                        ├─▶ POST /live/transcribe
 Shared meeting audio ─▶ customer chunks ─┘
-                                                │
-                                                ▼
+                                                 │
+                        audio kept on disk     │  written BEFORE transcription
+                                                 ▼
                                   provider speech-to-text
-                                                │
-                                                ▼
-                                   TranscriptLine persisted
-                                                │
-                         customer chunks only  ▼
+                                                 │
+                                                 ▼
+                                    TranscriptLine persisted
+                                                 │
+                        every chunk, both sides  ▼
                                   structured LLM analysis
-                                      │              │
-                                      ▼              ▼
-                                  signals    recommendations
-                                      └──────┬───────┘
-                                             ▼
-                                      CallFinding rows
-                                             │
-                         ┌───────────────────┴──────────────────┐
-                         ▼                                      ▼
-                  Findings shelf                    KnowledgeGap / feedback
+                             │              │            │
+                             ▼              ▼            ▼
+                        signals   recommendations    noticed
+                             │              │            │
+                             └──────────────┴────────────┘
+                                            ▼
+                        CallFinding rows + CallEphemeral rows
+                                            │
+                            ┌───────────────┴──────────────────┐
+                            ▼                                  ▼
+                     Findings shelf                 KnowledgeGap / corrections
 ```
 
 The browser continues recording while transcription and analysis requests are in flight. The two audio sources have independent queues so a slow customer upload does not pause the agent recorder, and vice versa.
@@ -110,6 +114,20 @@ public function analyze(Call $call, array $lines, array $reported = []): array;
 public function answer(Call $call, string $query): ?string;
 public function answerGlobal(string $query): ?string;
 ```
+
+`analyze()` returns `signals`, `recommendations`, `noticed`, `proposal_intent` and
+`proposal_intent_note`. The last three were added when the ephemeral stream and the post-call
+summary needed them:
+
+- **`noticed`** is a paraphrase of what the newest line means for the deal, at most ~12 words, in
+  present tense, with no quotation marks. It becomes the stream's **Heard** card and the review's
+  "what was heard" list. `LiveAssistant::normalizeParaphrase()` enforces the shape server-side,
+  because provider output is untrusted and a "paraphrase" that comes back as a verbatim quote is
+  exactly the failure the card exists to prevent — a rep reads it as the customer's exact words.
+- **`proposal_intent`** is set only when the conversation actually agreed a proposal.
+  `proposal_intent_note` records the terms that were agreed. Together these are the only thing that
+  reveals the **Create Proposal** button, because an unconditional button on every call is a
+  suggestion the rep has to evaluate and discard rather than an action.
 
 `AssistantFactory` resolves the implementation from `LIVE_AI_DRIVER`:
 
@@ -232,7 +250,7 @@ Multipart fields:
 | `duration_ms` | Optional integer, maximum `60000` | Chunk duration |
 | `is_final` | Optional boolean | Marks the final recorder flush for the source |
 
-A successful, non-silent response contains the stored transcript line and any findings produced by that request:
+A successful, non-silent response contains the stored transcript line, any findings produced by that request, and the ephemeral cards the stream should show:
 
 ```json
 {
@@ -246,18 +264,30 @@ A successful, non-silent response contains the stored transcript line and any fi
     "sequence": 7
   },
   "findings": [],
-  "analysis_failed": false,
-  "suggestions": []
+  "suggestions": [],
+  "ephemerals": [
+    {
+      "id": 118,
+      "kind": "heard",
+      "label": "Heard",
+      "body": "weighing us against Cisco on support coverage",
+      "source": "openai",
+      "line_id": 42
+    }
+  ],
+  "analysis_failed": false
 }
 ```
 
 `suggestions` is retained as an alias of `findings` for compatibility with the existing findings renderer.
 
+Every ephemeral in the response is already a `call_ephemerals` row. The stream is DOM-only, but the cards it was showing are written to the call's permanent record first, so the review task and the review page can show what the AI was attending to at each moment. A card fading after a few seconds is a *visibility* rule, not a deletion — and there is no expiry column to tempt anyone into treating it as one.
+
 `analysis_failed` separates "the AI had nothing to say" from "the AI could not be reached". An empty `findings` array on its own is indistinguishable from a provider that has stopped working, which is what made the shelf look permanently broken while the transcript kept arriving. The browser shows the distinction on the source label.
 
 #### Silence
 
-Whitespace-only provider transcription is a normal outcome, not an error. No line is stored and the chunk succeeds:
+Whitespace-only provider transcription is a normal outcome, not an error. No line is stored and the chunk succeeds. The response carries the same keys as a real one, so the renderer does not need a branch to learn there was nothing:
 
 ```http
 200 OK
@@ -268,7 +298,10 @@ Whitespace-only provider transcription is a normal outcome, not an error. No lin
   "ok": true,
   "silent": true,
   "transcript": null,
+  "line": null,
   "findings": [],
+  "suggestions": [],
+  "ephemerals": [],
   "analysis_failed": false
 }
 ```
@@ -305,10 +338,13 @@ There is deliberately no `retryable` flag on this response. The chunk succeeded,
     "sequence": 8
   },
   "findings": [],
-  "analysis_failed": false,
-  "suggestions": []
+  "suggestions": [],
+  "ephemerals": [],
+  "analysis_failed": false
 }
 ```
+
+A duplicate is never re-analyzed: the original response already carried the cards, and re-running the model for a chunk the rep's browser retried would put the same advice on the shelf twice.
 
 #### Errors
 
@@ -432,13 +468,13 @@ The browser drains both source queues before submitting this form.
 
 ## Structured live-call analysis
 
-`LiveAssistant::analyze()` is the real-time analysis path. It runs only after a **customer** chunk produces a stored line; analyzing the agent's own words on every turn would create noisy advice.
+`LiveAssistant::analyze()` is the real-time analysis path. It runs after **any** chunk that produced a stored line, whichever side spoke. See [Which speech produces findings](#which-speech-produces-findings) for why that gate was removed.
 
 ### Rolling window and throttling
 
 - The most recent `LIVE_AI_ANALYSIS_WINDOW` transcript lines are sent in chronological order.
 - Each source continues transcribing at the normal chunk rate; analysis is independently throttled.
-- `calls.last_analyzed_at` records the latest attempt. This prevents a provider outage from causing every subsequent customer chunk to make another immediate request.
+- `calls.last_analyzed_at` records the latest attempt. This prevents a provider outage from causing every subsequent chunk to make another immediate request.
 - The default 4-second source chunks and 10-second analysis interval are tuned for a responsive findings cadence while keeping two-stream steady-state usage within the expected Groq request budget. Two streams at 4 seconds is roughly 30 transcription requests a minute, so a plan's rate limit is the binding constraint, not this default. These are not a global concurrency control: multiple simultaneous calls can exceed a provider account's limits. Raise `CHUNK_MS` in `resources/js/live-call.js` or `LIVE_AI_ANALYSIS_MIN_INTERVAL` if your account budget is tight.
 - `CHUNK_MS` is also a transcription-quality trade-off, not only a cost one. A window has to be long enough to contain a whole sentence with its context, and too long a window delays the first card. Below roughly 3 seconds, Whisper starts returning fragments; above roughly 8 seconds, a question that starts late in the window is cut off. 4 seconds sits inside that band.
 
@@ -475,7 +511,15 @@ Supported recommendation roles:
 - `reference`
 - `objection`
 
-The prompt asks for high-signal observations rather than a fixed number of cards, and an empty `signals` or `recommendations` array is valid.
+Alongside the arrays, the schema carries three scalar fields:
+
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `noticed` | string, nullable | Paraphrase of what the newest line changes for the deal; the **Heard** card |
+| `proposal_intent` | boolean | Whether a proposal was actually agreed |
+| `proposal_intent_note` | string | The terms that were agreed, in the model's words |
+
+The prompt asks for high-signal observations rather than a fixed number of cards, and an empty `signals` or `recommendations` array is valid. An empty or absent `noticed` simply produces no Heard card — it is never filled in locally, because a locally-written summary of a customer's words is a quotation the rep did not hear.
 
 ### Knowledge grounding
 
@@ -494,7 +538,7 @@ The prompt is explicit that only facts present in the knowledge base may be stat
 A card has to answer "what do I do with this?" the moment it lands, so:
 
 - A signal's `text` must name what is missing or what changed **and** the next step. The prompt forbids restating the customer's question back as the finding.
-- Analysis is anchored on the **newest** customer line; earlier lines are context only.
+- Analysis is anchored on the **newest** line, whichever side spoke; earlier lines are context only.
 - The most recent `LIVE_AI_REPORTED_FINDINGS` finding bodies are sent back with the prompt, so a pass reports what is new instead of re-deriving a card that is already on the shelf. `persistFindings()` still dedupes by body, so without this the shelf would show one finding while the conversation moved on.
 - A recommendation's `package` is the footer telling the rep what to open. It is verified against real `KnowledgeEntry` titles: anything else — a blank, `default`, `general`, or the signal kind echoed back — becomes `LiveAssistant::NO_KNOWLEDGE_PACKAGE` (`no KB entry — commit to a follow-up`). The rep therefore always sees either a document to open or an explicit commitment to make.
 
@@ -522,6 +566,74 @@ The feedback flow closes the learning loop:
 2. The status is stored on the finding.
 3. One linked `KnowledgeGap` is created or reused.
 4. The Solutions workflow can review the correction and update the Knowledge Base.
+
+## The ephemeral stream
+
+Alongside the shelf, the live page runs a **stream** of short-lived cards: the newest thing that
+happened, said once, then faded. It is the right shape for a call, where the shelf is for things that
+still matter and the stream is for things that just did.
+
+| `kind` | What it is |
+| --- | --- |
+| `heard` | The model's paraphrase of what the customer just said |
+| `detected` | A signal the analysis picked up |
+| `gap` | A question the knowledge base cannot answer |
+| `asked` | What the rep asked DeAlly and what it answered |
+| `objection` | An objection, detected or added by the rep during review |
+
+Three rules keep the stream honest:
+
+**Every card is a row first.** The card is written to `call_ephemerals` before the response is
+returned, and the response carries it back in `ephemerals`. The fade governs live *visibility* and
+nothing else — there is no expiry column, so nothing can be swept up as stale. `CallReviewBrief`
+and the review page read those rows back, which is the only reason a rep asking "what did it catch?"
+after the call gets an answer from the record rather than from their memory of a scrolling panel.
+
+**"Clear the findings" is display-only.** It empties the DOM. It does not delete rows — "clear" in a
+sales tool that also means "no longer know what was said" is a trap, and a rep who pressed it
+believing the cards were gone would be right.
+
+**The client never writes a customer's words.** `clipOwnWords()` in `resources/js/live-call.js` only
+ever shortens the rep's **own typed input** for the chat echo. Anything attributed to the customer
+comes from the model, and the `heard` shape is enforced server-side by
+`LiveAssistant::normalizeParaphrase()`.
+
+Cards are distinguished by **edge treatment**, not colour: a solid edge is a *say*, a dashed edge an
+*ask*, no accent a *reference*, a dotted edge *waiting*, and a red left border an *objection*. Colour
+alone excludes anyone with a colour vision deficiency, and "important" needs to survive a screenshot
+in a doc. The hero card is separated by structure — a rule above it and the choice in its body — and
+is dismissed by answering rather than by closing.
+
+## Corrections, flags and proposal intent
+
+Three endpoints exist because a review that cannot change anything is a report.
+
+### `POST /app/calls/{call}/corrections`
+
+Corrects `sentiment`, `readiness`, `competitor_tag`, `objection_tag` or `gap_classification`. The
+effective value is written onto the call, the model's read is kept in `ai_sentiment` / `ai_readiness`,
+and the difference is stored as a `call_corrections` row. Overwriting the AI's read would throw away
+the only part of a correction worth learning from.
+
+### `POST /app/calls/{call}/flags` and `POST /app/calls/{call}/flags/{flag}/resolve`
+
+A deal-status flag is what makes the review task *unclosable*. `Task::unresolvedFlags()` and
+`Task::blockedReason()` are the single predicate, used by both the tasks list and the review modal,
+and `TaskController::toggle()` refuses the close. Resolving requires a note, because "resolved" with
+no reason is indistinguishable from "ignored".
+
+### `POST /app/calls/{call}/proposal`
+
+Refuses with `409 no_proposal_intent` unless the analysis set `proposal_intent`. On success it
+raises a `Draft proposal — {company}` task carrying `proposal_intent_note` and the call date, so
+whoever writes it knows the terms that were agreed rather than starting from the recording.
+
+### `POST /app/calls/{call}/objections`
+
+Records an objection the model missed as both a `knowledge_gap` and an `objection` ephemeral, so it
+belongs in the objection log and the stream alike. An optional `transcript_line_id` is scoped to the
+call in the URL; a line from another call returns `422 line_not_in_call` rather than being quietly
+unattached.
 
 ## Persistence model
 
@@ -563,6 +675,8 @@ Rows are metadata only. The audio lives on the private disk, and the row is what
 
 What the rep asked the assistant during the call and what it answered: `prompt`, `answer`, `cards` (JSON), and `provider`.
 
+The initiation and review schema is a second migration, `2026_09_28_000001_add_initiation_and_review_support_to_calls_tables.php`, which adds `meeting_platforms`, `call_invitations`, `call_ephemerals`, `call_corrections` and `call_flags`, seventeen `calls` columns, and `tasks.call_id`. It is covered in [call-lifecycle.md](call-lifecycle.md#data-model), including the one rule that catches people out: a tenant table cannot declare a foreign key to a central table such as `users`.
+
 For existing tenant databases, run:
 
 ```bash
@@ -597,9 +711,9 @@ A call with `started_at` or any real captured transcript is never overwritten by
 
 ## Security and operational notes
 
-- Provider keys remain in server environment variables and are never rendered into Blade, JSON, browser storage, or client JavaScript.
+- Provider keys remain in server environment variables and are never rendered into Blade, JSON, browser storage, or client JavaScript. There is no in-app provider login: a key is configured on the server or not at all.
 - The client talks only to tenant-scoped DeAlly routes protected by authentication, CSRF, permission, and seat checks.
-- Generic `AssistantProviderException` messages prevent upstream payloads and credentials from leaking through HTTP responses.
+- Generic `AssistantProviderException` messages prevent upstream payloads and credentials from leaking through HTTP responses. The underlying transport error is preserved on the exception and logged as the `reason` on the `call.provider_failed` Activity entry, so a failure is diagnosable from the call's own history rather than only from the server log.
 - Captured audio is written to the **private** disk, never to a public path, and is served only through a route that checks the call in the URL actually owns the window.
 - Transcript and finding writes occur only after a usable provider response; silence does not create fake rows. Recording writes are the deliberate exception, so a provider outage cannot destroy the call.
 - Provider rate limits are partly controlled by chunk size and analysis throttling, but concurrent-call queuing or account-level capacity management is not implemented yet.
@@ -611,8 +725,11 @@ The primary coverage is in:
 
 - `tests/Feature/LiveAssistantTest.php` — driver selection, dual-stream upload, speaker labeling, idempotency, sequencing, silence, controlled failures, lifecycle timestamps, analysis throttling, strict provider output validation, findings persistence, knowledge gaps, feedback, Groq configuration, credential non-disclosure, query behavior, and authorization. It also covers recording retention across provider failures, replay streaming and its cross-call guard, the review page's contents, and the assistant's half of the downloaded transcript.
 - `tests/Feature/CallLifecycleTest.php` — call completion and demo transcript guards, including preserving genuinely captured audio.
+- `tests/Feature/CallInitiationAndReviewTest.php` — the `analyze()` contract's new scalars, the uniform silence response, the ephemeral stream's persistence, and the whole initiation and review lifecycle. See [call-lifecycle.md](call-lifecycle.md).
 
-Tests fake provider HTTP responses, so the suite does not require or make real AI provider calls. Run the narrowest relevant tests while developing, then the full suite:
+Tests fake provider HTTP responses, so the suite does not require or make real AI provider calls. They also do not fake mail: the invitation is really rendered through the `log` mailer, so a change that breaks the mailable template fails the suite.
+
+The whole suite is 271 tests and 1,075 assertions. Run the narrowest relevant tests while developing, then the full suite:
 
 ```bash
 php artisan test --compact

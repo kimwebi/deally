@@ -5,7 +5,13 @@ export function initModalSystem() {
         var trigger = e.target.closest('[data-open-modal]');
         if (trigger) {
             var id = trigger.getAttribute('data-open-modal');
-            openModal(id, trigger);
+            var url = trigger.getAttribute('data-modal-url');
+
+            if (url) {
+                openRemoteModal(id, trigger, url);
+            } else {
+                openModal(id, trigger);
+            }
         }
 
         var close = e.target.closest('[data-close-modal]');
@@ -26,6 +32,46 @@ export function initModalSystem() {
             });
         }
     });
+}
+
+/**
+ * Open a modal whose body is fetched on demand.
+ *
+ * A list of past calls cannot carry a full transcript per row, so each row
+ * carries only a URL and the fragment is swapped into one reusable shell. The
+ * previous body stays visible while the next one loads: replacing it with a
+ * blank host would read as an empty record.
+ */
+export function openRemoteModal(id, trigger, url) {
+    var modal = document.getElementById(id);
+    if (!modal) return;
+
+    var host = modal.querySelector('[data-modal-host]') || modal;
+    var cached = trigger.getAttribute('data-modal-loaded');
+
+    if (cached === url) {
+        openModal(id, trigger);
+        return;
+    }
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (response) {
+            if (!response.ok) throw new Error('Request failed: ' + response.status);
+            return response.text();
+        })
+        .then(function (html) {
+            host.innerHTML = html;
+            trigger.setAttribute('data-modal-loaded', url);
+            openModal(id, trigger);
+        })
+        .catch(function (error) {
+            host.innerHTML =
+                '<div class="modal"><div class="modal-header"><div class="modal-header-icon call">📞</div>' +
+                '<div class="modal-header-body"><div class="modal-title">Could not load this call</div>' +
+                '<div class="modal-subtitle">' + String(error.message) + '</div></div>' +
+                '<button class="modal-close" data-close-modal>✕</button></div></div>';
+            openModal(id, trigger);
+        });
 }
 
 export function openModal(id, trigger) {

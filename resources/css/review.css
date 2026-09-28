@@ -275,6 +275,29 @@
 .review-query-answer { color: var(--text-2); line-height: 1.5; }
 .review-query-source { font-size: 10px; color: var(--text-4); font-family: 'IBM Plex Mono', monospace; margin-top: 6px; }
 
+/* The stream's "heard" cards, read back after the call. Deliberately plain:
+   these are the assistant's own summary of the conversation, not advice, and
+   giving them the same card treatment would make a recap look like a
+   recommendation. The time stamp is the structure that carries the sequence. */
+.review-heard-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.review-heard-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.review-heard-at {
+  flex: 0 0 auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-4);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Compat (summary page, older nodes) ---- */
 .review-top {
   display: flex;

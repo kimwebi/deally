@@ -51,6 +51,7 @@
         </button>
         <div class="auth-docs-list" id="auth-docs-list" hidden>
             <a href="{{ route('docs.overview') }}" title="Product overview"><i class="bi bi-card-heading"></i> Product overview</a>
+            <a href="{{ route('docs.calls') }}" title="Call lifecycle documentation"><i class="bi bi-telephone"></i> Call lifecycle</a>
             <a href="{{ route('docs.ai') }}" title="AI setup documentation"><i class="bi bi-book"></i> AI setup docs</a>
         </div>
     </div>
