@@ -57,7 +57,7 @@
 <div class="modal-overlay" id="modal-addkb">
     <div class="modal">
         <div class="modal-header">
-            <div class="modal-header-icon kb">📚</div>
+            <div class="modal-header-icon kb"><i class="bi bi-node-plus-fill"></i></div>
             <div class="modal-header-body"><div class="modal-title">Add Knowledge Base Entry</div><div class="modal-subtitle">Choose a template</div></div>
             <button class="modal-close" data-close-modal>✕</button>
         </div>
