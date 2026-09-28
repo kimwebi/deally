@@ -39,7 +39,7 @@
         <span class="call-note-provider">Transcription &amp; suggestions: <strong>{{ strtoupper($assistantName) }}</strong></span>
         {{-- The platform's real state, including when it is not connected.
              Silence here would let a rep believe a bot is in the meeting. --}}
-       {{-- <span class="call-note-platform {{ $call->bot_join_status === Call::BOT_JOIN_JOINED ? 'is-joined' : 'is-unconfirmed' }}">
+        <span class="call-note-platform {{ $call->bot_join_status === Call::BOT_JOIN_JOINED ? 'is-joined' : 'is-unconfirmed' }}">
             <i class="bi bi-robot" style="color: rebeccapurple"></i> {{ $platform }}
         </span>
         <span class="call-note-actions">
@@ -47,7 +47,7 @@
                 data-preview-url="{{ route('deally.calls.invite.preview', $call) }}">Preview invitation</button>
             <button type="button" class="link-btn" id="bot-join-btn"
                 data-join-url="{{ route('deally.calls.join', $call) }}">Admit bot</button>
-        </span>--}}
+        </span>
     </div>
 
     <div class="lc-body">

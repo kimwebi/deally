@@ -1,6 +1,5 @@
 <?php
 
-use Deally\Core\Http\Controllers\DocsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -10,8 +9,6 @@ $signedInRedirect = function () {
         ? redirect()->route('central.dashboard')
         : redirect()->route('deally.workspace');
 };
-
-Route::get('docs', [DocsController::class, 'index'])->name('docs.index');
 
 Route::get('/', function () use ($signedInRedirect) {
     if (auth()->check()) {
