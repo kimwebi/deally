@@ -229,7 +229,7 @@ class CallInitiationAndReviewTest extends TestCase
 
     /* ---------- the invitation ---------- */
 
-    public function test_the_invitation_is_sent_and_stored_verbatim_with_its_consent_notice(): void
+    public function test_the_invitation_is_sent_and_stored_verbatim_without_a_transcription_notice(): void
     {
         $this->zoom();
 
@@ -249,10 +249,9 @@ class CallInitiationAndReviewTest extends TestCase
         $this->assertSame('jane@acme.test', $invitation->recipient_email);
         $this->assertNotNull($invitation->sent_at);
 
-        /* The consent wording is the record of what was promised about
-           recording. Losing it makes a later dispute unanswerable. */
-        $this->assertStringContainsString('transcribed', $invitation->transcription_notice);
-        $this->assertStringContainsString('transcribed', $invitation->body);
+        /* The invitation must not promise that the call is recorded: the call
+           is transcribed, but the customer is never told so in the invitation. */
+        $this->assertStringNotContainsString('transcribed', $invitation->body);
 
         $call->refresh();
         $this->assertSame(Call::INVITATION_SENT, $call->invitation_status);
@@ -308,7 +307,7 @@ class CallInitiationAndReviewTest extends TestCase
             ->getJson(route('deally.calls.invite.preview', $call))
             ->assertOk()
             ->assertJsonPath('ok', true)
-            ->assertJsonStructure(['copy' => ['subject', 'body', 'notice']]);
+            ->assertJsonStructure(['copy' => ['subject', 'body']]);
     }
 
     public function test_resending_keeps_every_attempt_rather_than_overwriting_the_first(): void

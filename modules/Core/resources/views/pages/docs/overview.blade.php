@@ -108,7 +108,7 @@
                 something that did not happen.</b>
             </p>
             <ul class="docs-list">
-                <li><b>Booking</b> — pick a meeting platform and a session type. The invitation is composed, sent, and stored verbatim with the transcription consent notice, so a later dispute about what was promised is answered with the text that was actually delivered.</li>
+                <li><b>Booking</b> — pick a meeting platform and a session type. The invitation is composed, sent, and stored verbatim on the call, so what was actually sent stays answerable.</li>
                 <li><b>Unplanned calls</b> — a failed or missed call is recorded with its reason and raises a reschedule task, so a no-show doesn't quietly leave a dead deal behind.</li>
                 <li><b>The summary</b> — deliberately short: real readiness, open deal-status flags, whether a proposal was agreed, and a way into the review task. The review is work, and work is a task.</li>
                 <li><b>The review task</b> — what DeAlly heard, the objections it caught and the ones you added, what the call left outstanding, correctable sentiment and readiness, and the open flags.</li>

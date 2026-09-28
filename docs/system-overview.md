@@ -165,8 +165,7 @@ guidance and review as any other call, because giving one call type different be
 it unpredictable for the rep.
 
 The invitation is real. It is composed from the call, sent through Laravel Mail, and stored verbatim
-on the call along with the transcription consent notice, so a later dispute about what was promised
-is answered with the text that was actually delivered. When no meeting exists yet, the invitation
+on the call, so what was actually sent stays answerable. When no meeting exists yet, the invitation
 says the joining details will follow instead of including a link that goes nowhere. A failed delivery
 is recorded on both the invitation and the call, with the transport error.
 

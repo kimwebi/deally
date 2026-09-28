@@ -10,9 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * The invitation the customer received, kept verbatim.
  *
- * Storing the exact body matters for one reason above all: it is the record of
- * what was told about transcription. A rep who later disputes consent can read
- * the promise that was actually made.
+ * Storing the exact body matters so the record of what was actually sent to a
+ * customer stays answerable, whatever happens to the call later.
  */
 class CallInvitation extends Model
 {
@@ -34,7 +33,6 @@ class CallInvitation extends Model
         'recipient_email',
         'subject',
         'body',
-        'transcription_notice',
         'status',
         'delivery_error',
         'sent_at',

@@ -51,7 +51,7 @@ function showInvitationCopy(copy) {
         '<div class="invitation-preview-subject">' + escapeHtml(copy.subject) + '</div>' +
         '<pre class="invitation-preview-body">' + escapeHtml(copy.body) + '</pre>' +
         '<p class="invitation-preview-note">' +
-        'This exact wording is stored on the call, so what was promised about recording can be checked later.' +
+        'This exact wording is stored on the call, so what was sent can be checked later.' +
         '</p>';
 
     var anchor = document.querySelector('.call-note') || document.body;

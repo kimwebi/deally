@@ -22,7 +22,6 @@ class CallInvitationFactory extends Factory
             'recipient_email' => fake()->safeEmail(),
             'subject' => 'DeAlly call with '.fake()->name(),
             'body' => fake()->paragraph(),
-            'transcription_notice' => 'This call will be transcribed and analyzed by DeAlly AI.',
             'status' => CallInvitation::STATUS_PENDING,
             'delivery_error' => null,
             'sent_at' => null,

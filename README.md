@@ -170,9 +170,8 @@ The application is served by Laravel Herd at `https://deally.test`. Frontend ass
 The Calls module covers a call from booking to the follow-up it produces.
 
 - **Initiation** — a platform picker, a session type, and a real invitation. The invitation is
-  composed, sent through Laravel Mail, and stored verbatim on the call along with the transcription
-  consent notice, so a later dispute about what was promised is answered with the text that was
-  actually delivered. When no platform is chosen, or delivery fails, the call records that.
+  composed, sent through Laravel Mail, and stored verbatim on the call, so what was actually sent
+  stays answerable. When no platform is chosen, or delivery fails, the call records that.
 - **Unplanned calls** — a `failed` or `no_show` call is recorded with its reason and raises a
   reschedule task, because a missed call with no next step leaves the pipeline with a dead deal.
 - **Live call** — dual-stream capture, a real customer panel beside it, and a Findings shelf that
@@ -219,7 +218,7 @@ Analysis deliberately runs on agent lines too. Gating it to customer lines produ
 
 Accepted results are stored as `CallFinding` rows, rendered in the live Findings shelf, restored after reloading, and linked to the source transcript line. Every card in the stream is also written to `call_ephemerals` before the response returns, so "clear the findings" hides cards without deleting rows, and the review task and review page read those rows back. Reps can mark findings **unhelpful**; that feedback creates a deduplicated gap for the Solutions workflow.
 
-Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. `LIVE_AI_TRANSCRIPTION_NOTICE` sets the consent wording sent with every invitation, and it is stored on the invitation as the record of what was promised. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
+Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
 
 ## Documentation
 

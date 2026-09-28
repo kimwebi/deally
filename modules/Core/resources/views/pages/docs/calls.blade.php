@@ -40,7 +40,7 @@
             <ul class="docs-list">
                 <li><b>No fabricated join URLs</b> — <span class="font-mono">meeting_join_url</span> is only set when confirmed by an integrated platform provider.</li>
                 <li><b>No invented bot joins</b> — the bot join status is marked <span class="font-mono">joined</span> only upon real provider confirmation.</li>
-                <li><b>Verbatim invitation records</b> — invitations store the exact message text and consent notice sent to the customer.</li>
+                <li><b>Verbatim invitation records</b> — invitations store the exact message text sent to the customer.</li>
                 <li><b>Durable live ephemeral stream</b> — every ephemeral card is stored in the database before display, so post-call reviews reflect exactly what the AI observed.</li>
             </ul>
         </div>
@@ -58,9 +58,8 @@
                 via DeAlly's own live session.
             </p>
             <p class="docs-text">
-                <b>Invitations and consent</b> — if a customer email is provided, an invitation is generated containing
-                the scheduled details and the mandatory transcription consent disclosure (<span class="font-mono">LIVE_AI_TRANSCRIPTION_NOTICE</span>).
-                The copy is stored permanently on the call record.
+                <b>Invitations</b> — if a customer email is provided, an invitation is generated with
+                the scheduled details. The copy is stored permanently on the call record.
             </p>
         </div>
 
@@ -131,7 +130,7 @@
                     <tr><td><span class="code-method">POST</span></td><td><span class="font-mono">/app/calls/{call}/objections</span></td><td>Record customer objection</td></tr>
                     <tr><td><span class="code-method">POST</span></td><td><span class="font-mono">/app/calls/{call}/proposal</span></td><td>Create draft proposal from agreed intent</td></tr>
                     <tr><td><span class="code-method">POST</span></td><td><span class="font-mono">/app/calls/{call}/invitations</span></td><td>Send customer email invitation</td></tr>
-                    <tr><td><span class="code-method">GET</span></td><td><span class="font-mono">/app/calls/{call}/invitations/preview</span></td><td>Preview invitation text and consent notice</td></tr>
+                    <tr><td><span class="code-method">GET</span></td><td><span class="font-mono">/app/calls/{call}/invitations/preview</span></td><td>Preview invitation text</td></tr>
                     <tr><td><span class="code-method">POST</span></td><td><span class="font-mono">/app/calls/{call}/fail</span></td><td>Record failed or no-show call with optional reschedule</td></tr>
                     <tr><td><span class="code-method">GET</span></td><td><span class="font-mono">/app/calls/{call}/recordings/{recording}</span></td><td>Stream recorded audio segment for replay</td></tr>
                     <tr><td><span class="code-method">GET</span></td><td><span class="font-mono">/app/calls/{call}/transcript/download</span></td><td>Download complete formatted transcript</td></tr>

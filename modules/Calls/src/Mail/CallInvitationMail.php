@@ -37,7 +37,6 @@ class CallInvitationMail extends Mailable
             with: [
                 'invitation' => $this->invitation,
                 'body' => $this->invitation->body,
-                'notice' => $this->invitation->transcription_notice,
             ],
         );
     }

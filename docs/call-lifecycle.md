@@ -62,7 +62,6 @@ produces a second row, so the history of what was actually sent to a customer is
 | `channel` | `email` today; present so a second channel is an added column, not a new table |
 | `recipient_name`, `recipient_email` | Who it went to |
 | `subject`, `body` | The message **verbatim**, exactly as delivered |
-| `transcription_notice` | The consent wording promised in that message |
 | `status` | `pending`, `sent`, `failed` |
 | `delivery_error` | The transport error, when delivery failed |
 | `sent_at` | When the attempt was made |
@@ -206,14 +205,13 @@ The Picker lives in `resources/js/call-setup.js`; the modal and its markup are i
 
 `GET /app/calls/{call}/invitations/preview` — `deally.calls.invite.preview`
 
-`CallInvitationService::compose()` builds subject, body and notice without sending, so an agent can
-read the exact copy before it reaches a customer. The preview endpoint returns the same three strings
-the send path uses.
+`CallInvitationService::compose()` builds subject and body without sending, so an agent can read the
+exact copy before it reaches a customer. The preview endpoint returns the same two strings the send
+path uses.
 
 `compose()` never includes a join link unless `meeting_join_url` is populated. It says nothing about
-a link when the platform has a name but no meeting, and it appends the transcription notice from
-`services.live_ai.transcription_notice` in every case. That notice is stored on the invitation row:
-it is the record of what was promised, and it is the answer to a later consent dispute.
+a link when the platform has a name but no meeting. The body is stored verbatim on the invitation
+row, so what was actually sent stays answerable.
 
 Delivery failures are recorded rather than thrown. A failed send sets the invitation to `failed` with
 the transport error, sets the call to `invitation_status = failed`, and returns `502`. A rep reading
@@ -483,8 +481,8 @@ status, sentiment, duration and next action. Filters and search are unchanged.
 
 ## 7. Security and operational notes
 
-- Provider credentials, platform credentials and the transcription notice stay in server
-  configuration. None of them are rendered into Blade, JSON or browser storage.
+- Provider credentials and platform credentials stay in server configuration. None of them are
+  rendered into Blade, JSON or browser storage.
 - Every route requires authentication, a valid CSRF token, the `deally.calls.manage` permission for
   anything that writes and `deally.calls.view` for anything that reads, plus seat access to the
   individual record — a rep with the permission still cannot open another owner's call.

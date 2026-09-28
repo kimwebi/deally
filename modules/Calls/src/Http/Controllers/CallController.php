@@ -322,8 +322,8 @@ class CallController extends Controller
      * Send the invitation for a call that was already created.
      *
      * Re-sending is allowed and does not overwrite the earlier record: each
-     * attempt is its own row, because what matters in a consent dispute is the
-     * full sequence of what was promised, not just the latest version.
+     * attempt is its own row, so the full sequence of what was actually sent
+     * stays answerable.
      */
     public function invite(Request $request, Call $call)
     {
@@ -366,8 +366,7 @@ class CallController extends Controller
     /**
      * Preview the invitation without sending it.
      *
-     * The rep can see the exact wording — including the transcription notice —
-     * before it reaches a customer. A consent promise should not be a surprise.
+     * The rep can see the exact wording before it reaches a customer.
      */
     public function invitePreview(Call $call)
     {

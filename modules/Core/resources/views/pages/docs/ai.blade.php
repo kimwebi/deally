@@ -150,7 +150,6 @@
                     <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_MIN_INTERVAL</span></td><td><span class="font-mono">10</span></td><td>Minimum seconds between analysis runs.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_SHELF_LIMIT</span></td><td><span class="font-mono">10</span></td><td>Newest findings rendered in the shelf; older ones stay saved.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_REPORTED_FINDINGS</span></td><td><span class="font-mono">6</span></td><td>Already-reported cards shown to the model so each pass reports what is new.</td></tr>
-                    <tr><td><span class="font-mono">LIVE_AI_TRANSCRIPTION_NOTICE</span></td><td>—</td><td>Consent wording sent with every call invitation, and stored on the invitation as the record of what was promised.</td></tr>
                 </tbody>
             </table>
             <p class="docs-text" style="margin-top:10px;">After changing these, run <span class="font-mono">php artisan config:clear</span>.<br>
@@ -190,17 +189,6 @@
                 Audio costs roughly 0.5 MB per minute of call and nothing prunes it, so a call's recording lives as
                 long as the call does. DeAlly does not delete a recording on its own: a recording someone might
                 still need is not something to tidy away on a schedule nobody agreed to.
-            </p>
-        </div>
-
-        <div class="docs-section">
-            <div class="docs-heading">Recording consent</div>
-            <p class="docs-text">
-                Set <span class="font-mono">LIVE_AI_TRANSCRIPTION_NOTICE</span> to the wording you want sent with
-                every call invitation — that the call is being transcribed and an AI assistant is listening, and
-                what happens to the recording. It is stored on each invitation alongside the message that was
-                actually delivered, so a disagreement about consent is settled with the text the customer
-                received rather than with whatever the current setting happens to say.
             </p>
         </div>
 

@@ -160,7 +160,7 @@
                     <div class="field-label">Invite the customer by email</div>
                     <input class="input-field" type="email" name="invite_email" placeholder="jane@acme.com">
                     <p class="field-hint">
-                        The invitation states that the call is transcribed and analyzed, and the exact wording is stored on the call.
+                        The exact wording is stored on the call, so what was sent can be checked later.
                     </p>
                 </div>
                 <div class="field-block">

@@ -3,12 +3,6 @@
 
 {!! $body !!}
 
-@component('mail::panel')
-**Recording and transcription notice**
-
-{!! $notice !!}
-@endcomponent
-
 @component('mail::button', ['url' => config('app.url')])
 Open DeAlly
 @endcomponent

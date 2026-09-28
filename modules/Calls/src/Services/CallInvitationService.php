@@ -11,10 +11,8 @@ use Throwable;
 /**
  * Composes and sends the call invitation.
  *
- * The transcription notice is not decoration. DeAlly records the call, so the
- * customer has to be told that in the same message that invites them, and that
- * notice is stored on the invitation row so a later consent dispute can be
- * answered with the text that was actually sent.
+ * The exact body is stored on the invitation row, so what was actually
+ * delivered to a customer stays answerable.
  */
 class CallInvitationService
 {
@@ -22,14 +20,13 @@ class CallInvitationService
      * Build the invitation without sending it, so an agent can read the exact
      * copy before it goes to a customer.
      *
-     * @return array{subject: string, body: string, notice: string}
+     * @return array{subject: string, body: string}
      */
     public function compose(Call $call, array $platform = []): array
     {
         $customer = $call->contact_name ?: $call->company;
         $host = auth()->user()?->name ?: 'your DeAlly account';
         $when = $call->date?->format('l j F \a\t g:ia') ?? 'the agreed time';
-        $notice = $this->transcriptionNotice($call);
 
         $subject = "DeAlly call with {$host} — ".($call->name ?: $call->company);
 
@@ -50,24 +47,13 @@ class CallInvitationService
             $lines[] = '';
         }
 
-        $lines[] = $notice;
-        $lines[] = '';
         $lines[] = 'Best,';
         $lines[] = $host;
 
         return [
             'subject' => $subject,
             'body' => implode("\n", $lines),
-            'notice' => $notice,
         ];
-    }
-
-    public function transcriptionNotice(Call $call): string
-    {
-        $consent = config('services.live_ai.transcription_notice')
-            ?: 'This call will be transcribed and analyzed by DeAlly AI so you can both get accurate notes and real-time suggestions. Only you and the DeAlly account holder can access the recording and transcript. You can ask us to delete it at any time.';
-
-        return (string) $consent;
     }
 
     /**
@@ -88,7 +74,6 @@ class CallInvitationService
             'recipient_email' => $email,
             'subject' => $copy['subject'],
             'body' => $copy['body'],
-            'transcription_notice' => $copy['notice'],
             'status' => CallInvitation::STATUS_PENDING,
         ]);
 
