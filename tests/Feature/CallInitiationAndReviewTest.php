@@ -1039,7 +1039,10 @@ class CallInitiationAndReviewTest extends TestCase
         $this->actingAs($this->alice())
             ->get(route('deally.calls.summary', $call))
             ->assertOk()
-            ->assertSee(route('deally.tasks.show', $task));
+            ->assertSee(route('deally.tasks.show', $task))
+            /* The call layout must render the pushed modal shell, or the
+               "View task" button has nothing to open. */
+            ->assertSee('id="modal-task"', false);
     }
 
     /* ---------- post-call summary honesty ---------- */

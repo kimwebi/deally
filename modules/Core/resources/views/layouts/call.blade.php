@@ -26,5 +26,7 @@
 
 @include('core::partials.toast')
 
+@stack('modals')
+
 </body>
 </html>
