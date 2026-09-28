@@ -113,17 +113,54 @@ class SolutionsController extends Controller
         $data = $request->validate([
             'action' => ['required', 'string', Rule::in(['approve', 'reject', 'edit'])],
             'text' => ['nullable', 'string', 'max:2000'],
+            'type' => ['nullable', 'string', 'required_if:action,approve', Rule::in(KnowledgeEntry::types())],
+            'answer' => ['nullable', 'string', 'required_if:action,approve', 'max:2000'],
         ]);
 
-        match ($data['action']) {
-            'approve' => $gap->update(['status' => 'live']),
-            'reject' => $gap->update(['status' => 'rejected']),
-            'edit' => $gap->update([
-                'status' => 'pending',
-                'text' => $data['text'] ?? $gap->text,
-            ]),
+        $toast = match ($data['action']) {
+            'approve' => $this->approveIntoKb($gap, (string) $data['type'], (string) $data['answer']),
+            'reject' => $this->rejectGap($gap),
+            'edit' => $this->editGap($gap, $data['text']),
         };
 
-        return back()->with('toast', 'Gap resolved.');
+        return back()->with('toast', $toast);
+    }
+
+    /**
+     * Approving a gap writes the answer into the knowledge base.
+     *
+     * A gap that is only marked "live" never becomes something the AI can
+     * answer from, so a queue full of approvals would change nothing about the
+     * questions being missed. The question is the title, the lead's answer is
+     * the description, and the type is chosen by them.
+     */
+    protected function approveIntoKb(KnowledgeGap $gap, string $type, string $answer): string
+    {
+        KnowledgeEntry::create([
+            'type' => $type,
+            'title' => $gap->text,
+            'description' => $answer,
+        ]);
+
+        $gap->update(['status' => 'live']);
+
+        return 'Answer approved into the knowledge base.';
+    }
+
+    protected function rejectGap(KnowledgeGap $gap): string
+    {
+        $gap->update(['status' => 'rejected']);
+
+        return 'Gap rejected.';
+    }
+
+    protected function editGap(KnowledgeGap $gap, ?string $text): string
+    {
+        $gap->update([
+            'status' => 'pending',
+            'text' => $text ?? $gap->text,
+        ]);
+
+        return 'Gap updated.';
     }
 }

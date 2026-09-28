@@ -126,6 +126,24 @@
 .sl-btn.edit:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
 
 .sl-gap-edit { width: 100%; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.sl-edit-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.sl-form-error {
+  grid-column: 1 / -1;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger-bright);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
 .sl-edit-input {
   width: 100%;
   resize: vertical;

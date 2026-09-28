@@ -76,6 +76,9 @@
         </div>
 
         <div class="sl-gap-list">
+            @if ($errors->any())
+                <div class="sl-form-error" role="alert">{{ $errors->first() }}</div>
+            @endif
             @forelse ($pendingGaps as $gap)
                 <div class="sl-gap-item">
                     <div class="sl-gap-eyebrow">Gap log · {{ strtoupper(str_replace('-', ' ', $gap->type)) }}</div>
@@ -83,9 +86,21 @@
                     <div class="sl-gap-meta">{{ $gap->source }} · {{ $gap->created_at->diffForHumans() }}</div>
                     <form method="POST" action="{{ route('deally.solutions.gaps.resolve', $gap) }}" class="sl-gap-actions">
                         @csrf
-                        <button class="sl-btn yes" name="action" value="approve">✓ Approve</button>
+                        <button class="sl-btn yes" type="button" data-edit-target="sl-approve-{{ $gap->id }}">✓ Approve</button>
                         <button class="sl-btn edit" type="button" data-edit-target="sl-edit-{{ $gap->id }}">✎ Edit</button>
                         <button class="sl-btn no" name="action" value="reject">✕ Reject</button>
+                        <div class="sl-gap-edit" id="sl-approve-{{ $gap->id }}" hidden>
+                            <label class="sl-edit-label" for="sl-approve-type-{{ $gap->id }}">Type</label>
+                            <select class="sl-edit-input" id="sl-approve-type-{{ $gap->id }}" name="type">
+                                @foreach (\Deally\Proposals\Models\KnowledgeEntry::types() as $type)
+                                    <option value="{{ $type }}">{{ ucfirst($type) }}</option>
+                                @endforeach
+                            </select>
+                            <label class="sl-edit-label" for="sl-approve-answer-{{ $gap->id }}">Answer</label>
+                            <textarea class="sl-edit-input" id="sl-approve-answer-{{ $gap->id }}" name="answer" rows="3"
+                                placeholder="The correct answer — this is what the AI will answer from next time."></textarea>
+                            <button class="sl-btn yes" name="action" value="approve">Approve into KB</button>
+                        </div>
                         <div class="sl-gap-edit" id="sl-edit-{{ $gap->id }}" hidden>
                             <textarea name="text" class="sl-edit-input">{{ $gap->text }}</textarea>
                             <button class="sl-btn yes" name="action" value="edit">Apply Edit</button>
