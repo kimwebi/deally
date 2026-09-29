@@ -18,6 +18,7 @@ import { initGlobalAsk } from './global-ask.js';
 import { initAuthDocs } from './auth-docs.js';
 import { initReviewTask } from './review-task.js';
 import { initCallSetup } from './call-setup.js';
+import { initCallRolePicker } from './call-role.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     initModalSystem();
@@ -34,4 +35,5 @@ document.addEventListener('DOMContentLoaded', function () {
     initAuthDocs();
     initReviewTask();
     initCallSetup();
+    initCallRolePicker();
 });

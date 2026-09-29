@@ -228,8 +228,9 @@ class CallController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string'],
             'company' => ['required', 'string'],
-            'contact_name' => ['nullable', 'string'],
-            'contact_role' => ['nullable', 'string'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_role' => ['nullable', 'string', 'max:255'],
+            'contact_role_other' => ['nullable', 'string', 'max:255'],
             'contact_id' => ['nullable', 'integer'],
             'session_type' => ['nullable', 'string', 'in:discovery,service_review,follow_up'],
             'meeting_platform' => ['nullable', 'string', 'max:40'],
@@ -261,6 +262,17 @@ class CallController extends Controller
         if ($platform === null || ! $platform->enabled) {
             $platform = null;
         }
+
+        /* "Other…" carries the title the rep typed. The select cannot submit a
+           value it does not offer, so the client copies the typed text onto the
+           wire as contact_role — but a crafted or non-JS request can still send
+           the marker, and that must never be stored as a role. */
+        if (($data['contact_role'] ?? null) === Call::CONTACT_ROLE_OTHER) {
+            $other = trim((string) ($data['contact_role_other'] ?? ''));
+
+            $data['contact_role'] = $other !== '' ? $other : null;
+        }
+        unset($data['contact_role_other']);
 
         $attributes = $data;
         unset($attributes['assignee_user_id'], $attributes['meeting_platform'], $attributes['invite_email']);

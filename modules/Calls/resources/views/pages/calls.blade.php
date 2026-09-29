@@ -108,6 +108,19 @@
                     <input class="input-field" name="contact_name" placeholder="Jane Doe">
                 </div>
                 <div class="field-block">
+                    <div class="field-label">Contact role</div>
+                    <select class="input-field" name="contact_role" id="contact-role-select">
+                        <option value="">— Select or type one (optional) —</option>
+                        @foreach (\Deally\Calls\Models\Call::contactRoles() as $role)
+                            <option value="{{ $role }}">{{ $role }}</option>
+                        @endforeach
+                        <option value="{{ \Deally\Calls\Models\Call::CONTACT_ROLE_OTHER }}">Other…</option>
+                    </select>
+                    <input class="input-field" name="contact_role_other" id="contact-role-other"
+                        placeholder="Type their role" hidden>
+                    <p class="field-hint">Shown on the live-call context card and the call detail.</p>
+                </div>
+                <div class="field-block">
                     <div class="field-label">Date</div>
                     <input class="input-field" type="date" name="date" value="{{ today()->toDateString() }}">
                 </div>

@@ -33,6 +33,35 @@ class Call extends Model
 
     public const SESSION_FOLLOW_UP = 'follow_up';
 
+    /** Select value that means "type their title instead of picking one". */
+    public const CONTACT_ROLE_OTHER = '__other__';
+
+    /**
+     * The customer contact roles a rep can pick from when scheduling a call.
+     *
+     * Stored as a plain string on the call; this list is the picker, not a
+     * constraint, so a rep can always type a title that is not listed here.
+     *
+     * @return array<int, string>
+     */
+    public static function contactRoles(): array
+    {
+        return [
+            'CEO',
+            'CFO / Finance',
+            'COO / Operations',
+            'CTO',
+            'Vice President',
+            'Director',
+            'Manager',
+            'Procurement',
+            'Solutions Admin',
+            'IT Lead',
+            'Legal',
+            'Founder',
+        ];
+    }
+
     public const INVITATION_NOT_SENT = 'not_sent';
 
     public const INVITATION_SENT = 'sent';
