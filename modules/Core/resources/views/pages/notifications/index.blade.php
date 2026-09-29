@@ -27,6 +27,9 @@
                 <div class="notif-card-main">
                     <div class="notif-card-top">
                         <span class="kb-tag">{{ $notification->data['type'] ?? 'DeAlly' }}</span>
+                        @if(($notification->data['unresolved'] ?? false))
+                            <span class="status-pill pending">unresolved</span>
+                        @endif
                         @if($notification->unread())
                             <span class="status-pill pending">new</span>
                         @endif

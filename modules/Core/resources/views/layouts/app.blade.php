@@ -55,6 +55,9 @@
             ->reject(fn ($tenant) => $tenant->id === $activeTenantId)
             ->values();
     }
+    $pendingGapCount = ($canSeeSolutions && $activeTenantId)
+        ? Deally\Proposals\Models\KnowledgeGap::query()->where('status', 'pending')->count()
+        : 0;
     @endphp
     <aside class="sidebar">
         <div class="sidebar-brand"><div class="bolt"><i class="bi bi-lightning-fill" style="color: #ef0427"></i></div>DeAlly</div>
@@ -74,7 +77,7 @@
                 <div class="nav-group-label">Knowledge</div>
                 <a href="{{ route('deally.kb.index') }}" class="nav-item {{ request()->routeIs('deally.kb.index') ? 'active' : '' }}">Knowledge Base</a>
                 @if($canSeeSolutions)
-                <a href="{{ route('deally.solutions.index') }}" class="nav-item {{ request()->routeIs('deally.solutions.*') ? 'active' : '' }}">Expert Answers</a>
+                <a href="{{ route('deally.solutions.index') }}" class="nav-item {{ request()->routeIs('deally.solutions.*') ? 'active' : '' }}">Expert Answers @if($pendingGapCount > 0)<span class="nav-badge alert">{{ $pendingGapCount }}</span>@endif</a>
                 @endif
             </div>
 

@@ -23,6 +23,7 @@ use Deally\Core\Services\ActivityLogger;
 use Deally\Core\Services\Notifier;
 use Deally\Pipeline\Models\Contact;
 use Deally\Proposals\Models\KnowledgeGap;
+use Deally\Proposals\Services\KnowledgeGapNotifier;
 use Deally\Tasks\Models\Task;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -1112,13 +1113,22 @@ class CallController extends Controller
         // Only dedupe on a finding id: a null lookup would match every
         // unlinked gap in the tenant and silently reuse one of them.
         if (blank($attributes['call_finding_id'] ?? null)) {
-            return KnowledgeGap::query()->create($payload);
+            $gap = KnowledgeGap::query()->create($payload);
+        } else {
+            $gap = KnowledgeGap::query()->firstOrCreate(
+                ['call_finding_id' => $attributes['call_finding_id']],
+                $payload
+            );
         }
 
-        return KnowledgeGap::query()->firstOrCreate(
-            ['call_finding_id' => $attributes['call_finding_id']],
-            $payload
-        );
+        // A freshly created gap is new in the queue: tell the people who
+        // resolve gaps about it. Repeated feedback on the same finding reuses
+        // the existing gap, so it must not re-notify.
+        if ($gap->wasRecentlyCreated) {
+            app(KnowledgeGapNotifier::class)->notifyUnresolved($gap);
+        }
+
+        return $gap;
     }
 
     public function liveQuery(Request $request, Call $call)

@@ -8,7 +8,10 @@ use SaasFoundation\Models\User;
 
 class Notifier
 {
-    public function notify(User|int|null $user, string $title, string $body, string $type = 'info', ?string $url = null): ?DatabaseNotification
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    public function notify(User|int|null $user, string $title, string $body, string $type = 'info', ?string $url = null, array $extra = []): ?DatabaseNotification
     {
         if (is_int($user)) {
             $user = User::query()->find($user);
@@ -25,6 +28,7 @@ class Notifier
                 'title' => $title,
                 'body' => $body,
                 'url' => $url,
+                ...$extra,
             ],
         ]);
     }

@@ -6,6 +6,7 @@ use Deally\Calls\Models\Call;
 use Deally\Core\Http\Controllers\Controller;
 use Deally\Proposals\Models\KnowledgeEntry;
 use Deally\Proposals\Models\KnowledgeGap;
+use Deally\Proposals\Services\KnowledgeGapNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -122,6 +123,13 @@ class SolutionsController extends Controller
             'reject' => $this->rejectGap($gap),
             'edit' => $this->editGap($gap, $data['text']),
         };
+
+        // Approving or rejecting resolves the question — its notifications
+        // leave the queue members' inboxes. An edit keeps it pending, so the
+        // notification stays.
+        if ($data['action'] !== 'edit') {
+            app(KnowledgeGapNotifier::class)->clearResolved($gap);
+        }
 
         return back()->with('toast', $toast);
     }
