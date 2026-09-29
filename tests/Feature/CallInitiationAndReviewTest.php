@@ -15,6 +15,7 @@ use Deally\Calls\Services\MeetingPlatformManager;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Deally\Core\Services\TenantConnectionBinder;
+use Deally\Pipeline\Models\Customer;
 use Deally\Proposals\Models\KnowledgeGap;
 use Deally\Tasks\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -215,6 +216,77 @@ class CallInitiationAndReviewTest extends TestCase
             ->assertOk()
             ->assertSee('Contact job title')
             ->assertSee('e.g. CTO, VP Engineering');
+    }
+
+    public function test_call_creation_offers_the_customer_picker_and_inline_create(): void
+    {
+        $this->actingAs($this->alice())
+            ->get(route('deally.calls.index'))
+            ->assertOk()
+            ->assertSee('Pick a customer')
+            ->assertSee('call-customer-select')
+            ->assertSee('call-new-customer-toggle', false);
+    }
+
+    public function test_creating_a_call_for_an_existing_customer_uses_that_account(): void
+    {
+        $acme = Customer::query()->where('company', 'Acme Corp')->firstOrFail();
+        $deal = $acme->opportunities()->firstOrFail();
+
+        $this->actingAs($this->alice())
+            ->post(route('deally.calls.store'), [
+                'name' => 'Renewal check',
+                'customer_id' => $acme->getKey(),
+                'opportunity_id' => $deal->getKey(),
+            ])
+            ->assertRedirect();
+
+        $call = Call::query()->where('name', 'Renewal check')->firstOrFail();
+
+        $this->assertSame('Acme Corp', $call->company);
+        $this->assertSame('Jane Doe', $call->contact_name);
+        $this->assertSame('CTO', $call->contact_role);
+        $this->assertSame((string) $deal->getKey(), (string) $call->opportunity_id);
+    }
+
+    public function test_creating_a_call_can_create_the_customer_inline(): void
+    {
+        $this->actingAs($this->alice())
+            ->post(route('deally.calls.store'), [
+                'name' => 'Onboarding kickoff',
+                'new_customer_company' => 'Initech',
+                'new_customer_contact_name' => 'Sam King',
+                'new_customer_contact_title' => 'IT Lead',
+            ])
+            ->assertRedirect();
+
+        $customer = Customer::query()->where('company', 'Initech')->firstOrFail();
+        $call = Call::query()->where('name', 'Onboarding kickoff')->firstOrFail();
+
+        $this->assertSame('Initech', $call->company);
+        $this->assertSame('Sam King', $call->contact_name);
+        $this->assertSame('IT Lead', $call->contact_role);
+        $this->assertSame((string) auth()->id(), (string) $customer->owner_user_id);
+    }
+
+    public function test_an_opportunity_from_another_customer_is_dropped(): void
+    {
+        $acme = Customer::query()->where('company', 'Acme Corp')->firstOrFail();
+        $globex = Customer::query()->where('company', 'Globex Inc')->firstOrFail();
+        $globexDeal = $globex->opportunities()->firstOrFail();
+
+        $this->actingAs($this->alice())
+            ->post(route('deally.calls.store'), [
+                'name' => 'Cross-link attempt',
+                'customer_id' => $acme->getKey(),
+                'opportunity_id' => $globexDeal->getKey(),
+            ])
+            ->assertRedirect();
+
+        $call = Call::query()->where('name', 'Cross-link attempt')->firstOrFail();
+
+        $this->assertSame('Acme Corp', $call->company);
+        $this->assertNull($call->opportunity_id);
     }
 
     public function test_admitting_the_bot_reports_unavailable_rather_than_claiming_success(): void

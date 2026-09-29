@@ -22,6 +22,7 @@ use Deally\Core\Models\User;
 use Deally\Core\Services\ActivityLogger;
 use Deally\Core\Services\Notifier;
 use Deally\Pipeline\Models\Contact;
+use Deally\Pipeline\Models\Customer;
 use Deally\Proposals\Models\KnowledgeGap;
 use Deally\Proposals\Services\KnowledgeGapNotifier;
 use Deally\Tasks\Models\Task;
@@ -57,12 +58,22 @@ class CallController extends Controller
             ? User::whereIn('id', $ownerIds)->pluck('name', 'id')
             : collect();
 
+        /* The accounts a call can be filed under, each with the open deals the
+           call may be attached to. Ownership mirrors the Calls list — a rep
+           only ever sees the customers their seat is responsible for. */
+        $customers = $this->scopeToSeat(Customer::query())
+            ->with(['opportunities' => fn ($query) => $query->where('stage', '!=', 'lost')])
+            ->orderBy('company')
+            ->get();
+
         return view('calls::pages.calls', [
             'calls' => $calls,
             'platforms' => app(MeetingPlatformManager::class)->available(),
             'assignees' => $this->tenantMembershipOptions(),
             'suggestedOwners' => $this->suggestedOwnerOptions(),
             'ownerNames' => $ownerNames,
+            'customers' => $customers,
+            'canManageCustomers' => $this->deallyCan('deally.customers.manage'),
         ]);
     }
 
@@ -240,7 +251,11 @@ class CallController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string'],
-            'company' => ['required', 'string'],
+            'customer_id' => ['nullable', 'integer'],
+            'new_customer_company' => ['nullable', 'string', 'max:255'],
+            'new_customer_contact_name' => ['nullable', 'string', 'max:255'],
+            'new_customer_contact_title' => ['nullable', 'string', 'max:255'],
+            'company' => ['nullable', 'string'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'contact_role' => ['nullable', 'string', 'max:255'],
             'contact_id' => ['nullable', 'integer'],
@@ -249,6 +264,7 @@ class CallController extends Controller
             'invite_email' => ['nullable', 'email'],
             'date' => ['nullable', 'date'],
             'assignee_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'opportunity_id' => ['nullable', 'integer'],
         ]);
 
         $assigneeId = $data['assignee_user_id'] ?? null;
@@ -257,11 +273,45 @@ class CallController extends Controller
             $assigneeId = null;
         }
 
+        /* The customer is either an existing account picked from the modal or
+           a new one created inline — never both, and never a bare company
+           string the caller made up. The company written on the call comes
+           from the account, which is what keeps the two in step. */
+        $customer = $this->resolveCallCustomer($data['customer_id'] ?? null, [
+            'company' => $data['new_customer_company'] ?? null,
+            'contact_name' => $data['new_customer_contact_name'] ?? null,
+            'contact_title' => $data['new_customer_contact_title'] ?? null,
+        ]);
+
+        $contactName = trim((string) ($data['contact_name'] ?? ''));
+        $contactRole = trim((string) ($data['contact_role'] ?? ''));
+
+        $attributes = $data;
+        unset(
+            $attributes['assignee_user_id'],
+            $attributes['meeting_platform'],
+            $attributes['invite_email'],
+            $attributes['customer_id'],
+            $attributes['new_customer_company'],
+            $attributes['new_customer_contact_name'],
+            $attributes['new_customer_contact_title'],
+            $attributes['opportunity_id'],
+        );
+
+        $attributes['company'] = $customer?->company ?: trim((string) ($data['company'] ?? ''));
+        $attributes['contact_name'] = $contactName !== '' ? $contactName : $this->customerContactName($customer);
+        $attributes['contact_role'] = $contactRole !== '' ? $contactRole : ($customer !== null ? $this->customerContactTitle($customer) : null);
+        $attributes['opportunity_id'] = $this->resolveCallOpportunity($customer, $data['opportunity_id'] ?? null);
+
+        if ($attributes['company'] === '') {
+            return back()->withErrors(['customer_id' => 'Pick a customer or add one — a call is always filed under an account.'])->withInput();
+        }
+
         /* `contacts` lives on the tenant connection, which the `exists` rule does
            not read, so it is checked here and an unknown id is dropped rather
            than written onto the call. */
-        if (($data['contact_id'] ?? null) !== null) {
-            $data['contact_id'] = Contact::query()->whereKey($data['contact_id'])->value('id');
+        if (($attributes['contact_id'] ?? null) !== null) {
+            $attributes['contact_id'] = Contact::query()->whereKey($attributes['contact_id'])->value('id');
         }
 
         $platforms = app(MeetingPlatformManager::class);
@@ -274,9 +324,6 @@ class CallController extends Controller
         if ($platform === null || ! $platform->enabled) {
             $platform = null;
         }
-
-        $attributes = $data;
-        unset($attributes['assignee_user_id'], $attributes['meeting_platform'], $attributes['invite_email']);
 
         $call = Call::create([...$attributes,
             'session_type' => $data['session_type'] ?? Call::SESSION_DISCOVERY,
@@ -329,6 +376,93 @@ class CallController extends Controller
         }
 
         return redirect()->route('deally.calls.live', $call);
+    }
+
+    /**
+     * The account a new call is filed under: an existing seat customer picked
+     * from the modal, or a brand-new account created inline. An inline account
+     * wins over a picked one, so a request cannot carry both and prefer a
+     * customer the caller does not own.
+     *
+     * @param  array{company: ?string, contact_name: ?string, contact_title: ?string}  $newCustomer
+     */
+    protected function resolveCallCustomer(?int $customerId, array $newCustomer): ?Customer
+    {
+        if (filled(trim((string) ($newCustomer['company'] ?? '')))) {
+            $this->authorizeDeally('deally.customers.manage');
+
+            return Customer::query()->create([
+                'company' => trim((string) $newCustomer['company']),
+                'contact_name' => $newCustomer['contact_name'] ?? null,
+                'contact_title' => $newCustomer['contact_title'] ?? null,
+                'owner_user_id' => auth()->id(),
+                'team_id' => $this->userTeamId(),
+            ]);
+        }
+
+        if ($customerId === null) {
+            return null;
+        }
+
+        return $this->scopeToSeat(Customer::query())->whereKey($customerId)->first();
+    }
+
+    /**
+     * The customer's primary contact, falling back to the account-level name
+     * and then the first recorded person when the account keeps contacts in
+     * the extended table instead.
+     */
+    protected function customerContactName(?Customer $customer): ?string
+    {
+        if ($customer === null) {
+            return null;
+        }
+
+        if (filled($customer->contact_name)) {
+            return $customer->contact_name;
+        }
+
+        return $this->customerPrimaryContact($customer)?->name;
+    }
+
+    protected function customerContactTitle(?Customer $customer): ?string
+    {
+        if ($customer === null) {
+            return null;
+        }
+
+        if (filled($customer->contact_title)) {
+            return $customer->contact_title;
+        }
+
+        return $this->customerPrimaryContact($customer)?->title;
+    }
+
+    protected function customerPrimaryContact(?Customer $customer): ?Contact
+    {
+        if ($customer === null) {
+            return null;
+        }
+
+        return $customer->contacts()->where('is_primary', true)->first()
+            ?? $customer->contacts()->first();
+    }
+
+    /**
+     * The deal a call is filed under must belong to the resolved account and
+     * be open, mirroring the picker — a crafted request can never pin a call
+     * to a stranger's or a lost deal.
+     */
+    protected function resolveCallOpportunity(?Customer $customer, mixed $opportunityId): ?int
+    {
+        if ($customer === null || blank($opportunityId)) {
+            return null;
+        }
+
+        return $customer->opportunities()
+            ->where('stage', '!=', 'lost')
+            ->whereKey((int) $opportunityId)
+            ->value('id');
     }
 
     /**

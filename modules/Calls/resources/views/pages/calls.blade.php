@@ -100,18 +100,60 @@
                     <input class="input-field" name="name" placeholder="Demo & Discovery" required>
                 </div>
                 <div class="field-block">
-                    <div class="field-label">Company</div>
-                    <input class="input-field" name="company" placeholder="Acme Corp" required>
+                    <div class="field-label">Customer</div>
+                    {{-- The customer is a real account, picked from the list —
+                         not a free-typed company. Company and contact on the
+                         call come from the chosen account so the two can never
+                         drift apart. --}}
+                    <select class="input-field" name="customer_id" id="call-customer-select">
+                        <option value="">Pick a customer…</option>
+                        @foreach ($customers as $customer)
+                            <option value="{{ $customer->getKey() }}"
+                                @if ((string) old('customer_id') === (string) $customer->getKey()) selected @endif
+                                data-contact-name="{{ $customer->contact_name ?? '' }}"
+                                data-contact-title="{{ $customer->contact_title ?? '' }}"
+                                data-deals='@json($customer->opportunities->map(fn ($deal): array => [
+                                    'id' => $deal->getKey(),
+                                    'label' => $deal->company.' · '.ucfirst((string) $deal->stage).($deal->value !== null ? ' · $'.number_format((float) $deal->value) : ''),
+                                ])->values())'>{{ $customer->company }}</option>
+                        @endforeach
+                    </select>
+                    @if ($canManageCustomers)
+                        <p class="field-hint" style="margin-top: 6px;">
+                            <a href="#" id="call-new-customer-toggle"
+                                data-text-off="＋ Add a new customer"
+                                data-text-on="‹ Pick an existing customer">＋ Add a new customer</a>
+                            — or pick an existing account above.
+                        </p>
+                    @endif
                 </div>
+
+                <div class="field-block" id="call-new-customer-fields" style="{{ old('new_customer_company') ? 'display: block;' : 'display: none;' }}">
+                    <div class="field-label">New customer</div>
+                    <input class="input-field" name="new_customer_company" placeholder="Company — e.g. Acme Corp" value="{{ old('new_customer_company') }}">
+                    <input class="input-field" name="new_customer_contact_name" placeholder="Contact (optional)" value="{{ old('new_customer_contact_name') }}" style="margin-top: 8px;">
+                    <input class="input-field" name="new_customer_contact_title" placeholder="Job title (optional)" value="{{ old('new_customer_contact_title') }}" style="margin-top: 8px;">
+                </div>
+
+                <div class="field-block" id="call-deal-block" style="display: none;">
+                    <div class="field-label">Deal <span style="font-weight: 400; color: var(--text-4);">(optional)</span></div>
+                    <select class="input-field" name="opportunity_id" id="call-deal-select">
+                        <option value="">No deal attached</option>
+                    </select>
+                    <p class="field-hint">The call is filed under the customer; attach the deal it belongs to if there is one.</p>
+                </div>
+
                 <div class="field-block">
                     <div class="field-label">Contact</div>
-                    <input class="input-field" name="contact_name" placeholder="Jane Doe">
+                    <input class="input-field" name="contact_name" id="call-contact-name" placeholder="Jane Doe" value="{{ old('contact_name') }}">
                 </div>
                 <div class="field-block">
                     {{-- The customer's role is their job title, typed by the rep,
-                         not a value from the account's role system. --}}
+                         not a value from the account's role system. It is
+                         prefilled from the account but stays editable — a call
+                         can be with another person at the same company. --}}
                     <div class="field-label">Contact job title</div>
-                    <input class="input-field" name="contact_role" placeholder="e.g. CTO, VP Engineering">
+                    <input class="input-field" name="contact_role" id="call-contact-role" placeholder="e.g. CTO, VP Engineering" value="{{ old('contact_role') }}">
                     <p class="field-hint">Shown on the live-call context card and the call detail.</p>
                 </div>
                 <div class="field-block">
@@ -206,4 +248,72 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var select = document.getElementById('call-customer-select');
+    if (!select) { return; }
+
+    var contactName = document.getElementById('call-contact-name');
+    var contactRole = document.getElementById('call-contact-role');
+    var dealBlock = document.getElementById('call-deal-block');
+    var dealSelect = document.getElementById('call-deal-select');
+    var toggle = document.getElementById('call-new-customer-toggle');
+    var newFields = document.getElementById('call-new-customer-fields');
+
+    function inNewMode() {
+        return newFields !== null && newFields.style.display !== 'none';
+    }
+
+    function dealsOf(option) {
+        try { return JSON.parse(option.dataset.deals || '[]'); } catch (e) { return []; }
+    }
+
+    function refresh() {
+        if (inNewMode()) {
+            contactName.value = '';
+            contactRole.value = '';
+            dealBlock.style.display = 'none';
+            return;
+        }
+
+        var option = select.selectedOptions[0];
+
+        if (!option || !option.value) {
+            contactName.value = '';
+            contactRole.value = '';
+            dealBlock.style.display = 'none';
+            return;
+        }
+
+        contactName.value = option.dataset.contactName || '';
+        contactRole.value = option.dataset.contactTitle || '';
+
+        var deals = dealsOf(option);
+        dealSelect.innerHTML = '<option value="">No deal attached</option>' + deals.map(function (deal) {
+            return '<option value="' + deal.id + '">' + deal.label + '</option>';
+        }).join('');
+        dealBlock.style.display = deals.length ? 'block' : 'none';
+    }
+
+    select.addEventListener('change', refresh);
+
+    if (toggle !== null && newFields !== null) {
+        toggle.addEventListener('click', function (event) {
+            event.preventDefault();
+            var active = !inNewMode();
+            newFields.style.display = active ? 'block' : 'none';
+            select.disabled = active;
+            toggle.textContent = active ? toggle.dataset.textOn : toggle.dataset.textOff;
+            refresh();
+            if (active) {
+                var first = newFields.querySelector('input');
+                if (first) { first.focus(); }
+            }
+        });
+    }
+
+    refresh();
+})();
+</script>
 @endpush
