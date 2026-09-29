@@ -119,20 +119,16 @@
                         @endforeach
                     </select>
                     @if ($canManageCustomers)
-                        <p class="field-hint" style="margin-top: 6px;">
-                            <a href="#" id="call-new-customer-toggle"
-                                data-text-off="＋ Add a new customer"
-                                data-text-on="‹ Pick an existing customer">＋ Add a new customer</a>
-                            — or pick an existing account above.
-                        </p>
+                        <button type="button" id="call-new-customer-toggle" class="add-customer-toggle"
+                            data-text-off="＋ Add a new customer"
+                            data-text-on="‹ Use an existing customer">＋ Add a new customer</button>
                     @endif
                 </div>
 
                 <div class="field-block" id="call-new-customer-fields" style="{{ old('new_customer_company') ? 'display: block;' : 'display: none;' }}">
                     <div class="field-label">New customer</div>
                     <input class="input-field" name="new_customer_company" placeholder="Company — e.g. Acme Corp" value="{{ old('new_customer_company') }}">
-                    <input class="input-field" name="new_customer_contact_name" placeholder="Contact (optional)" value="{{ old('new_customer_contact_name') }}" style="margin-top: 8px;">
-                    <input class="input-field" name="new_customer_contact_title" placeholder="Job title (optional)" value="{{ old('new_customer_contact_title') }}" style="margin-top: 8px;">
+                    <p class="field-hint">The contact and job title typed below are saved to this account too.</p>
                 </div>
 
                 <div class="field-block" id="call-deal-block" style="display: none;">

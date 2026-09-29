@@ -12,6 +12,7 @@ use Deally\Calls\Models\MeetingPlatform;
 use Deally\Calls\Models\TranscriptLine;
 use Deally\Calls\Services\CallReviewBrief;
 use Deally\Calls\Services\MeetingPlatformManager;
+use Deally\Core\Models\Team;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Deally\Core\Services\TenantConnectionBinder;
@@ -225,7 +226,8 @@ class CallInitiationAndReviewTest extends TestCase
             ->assertOk()
             ->assertSee('Pick a customer')
             ->assertSee('call-customer-select')
-            ->assertSee('call-new-customer-toggle', false);
+            ->assertSee('call-new-customer-toggle', false)
+            ->assertDontSee('new_customer_contact_name', false);
     }
 
     public function test_creating_a_call_for_an_existing_customer_uses_that_account(): void
@@ -251,22 +253,38 @@ class CallInitiationAndReviewTest extends TestCase
 
     public function test_creating_a_call_can_create_the_customer_inline(): void
     {
+        /* Alice owns the account it is about to create, so she must belong to
+           a team: the new customer's team_id is that team's UUID, and the
+           column stores it as-is rather than truncating it (MySQL strict
+           mode rejects a UUID in the old numeric column — 1265). */
+        $acmeMembership = $this->alice()->memberships()->active()->with('tenant')->first();
+        $eastPod = Team::query()->where('tenant_id', $acmeMembership->tenant_id)->firstOrCreate(
+            ['name' => 'East Pod', 'tenant_id' => $acmeMembership->tenant_id],
+            ['description' => 'Test pod.']
+        );
+        $eastPod->members()->syncWithoutDetaching($this->alice()->id);
+
         $this->actingAs($this->alice())
             ->post(route('deally.calls.store'), [
                 'name' => 'Onboarding kickoff',
                 'new_customer_company' => 'Initech',
-                'new_customer_contact_name' => 'Sam King',
-                'new_customer_contact_title' => 'IT Lead',
+                'contact_name' => 'Sam King',
+                'contact_role' => 'IT Lead',
             ])
             ->assertRedirect();
 
         $customer = Customer::query()->where('company', 'Initech')->firstOrFail();
         $call = Call::query()->where('name', 'Onboarding kickoff')->firstOrFail();
 
+        /* The account inherits the contact typed for the call — nothing is
+           entered twice. */
         $this->assertSame('Initech', $call->company);
         $this->assertSame('Sam King', $call->contact_name);
         $this->assertSame('IT Lead', $call->contact_role);
+        $this->assertSame('Sam King', $customer->contact_name);
+        $this->assertSame('IT Lead', $customer->contact_title);
         $this->assertSame((string) auth()->id(), (string) $customer->owner_user_id);
+        $this->assertSame((string) $eastPod->id, (string) $customer->team_id);
     }
 
     public function test_an_opportunity_from_another_customer_is_dropped(): void

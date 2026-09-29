@@ -397,6 +397,28 @@ textarea.input-field {
   margin-bottom: 18px;
 }
 
+.add-customer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px dashed var(--violet);
+  border-radius: var(--r-pill);
+  color: var(--violet);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.add-customer-toggle:hover {
+  background: var(--violet-soft);
+  border-style: solid;
+}
+
 .template-option {
   display: flex;
   align-items: center;

@@ -253,8 +253,6 @@ class CallController extends Controller
             'name' => ['required', 'string'],
             'customer_id' => ['nullable', 'integer'],
             'new_customer_company' => ['nullable', 'string', 'max:255'],
-            'new_customer_contact_name' => ['nullable', 'string', 'max:255'],
-            'new_customer_contact_title' => ['nullable', 'string', 'max:255'],
             'company' => ['nullable', 'string'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'contact_role' => ['nullable', 'string', 'max:255'],
@@ -276,11 +274,13 @@ class CallController extends Controller
         /* The customer is either an existing account picked from the modal or
            a new one created inline — never both, and never a bare company
            string the caller made up. The company written on the call comes
-           from the account, which is what keeps the two in step. */
+           from the account, which is what keeps the two in step. A new account
+           inherits the contact fields typed below, so nothing is entered
+           twice. */
         $customer = $this->resolveCallCustomer($data['customer_id'] ?? null, [
             'company' => $data['new_customer_company'] ?? null,
-            'contact_name' => $data['new_customer_contact_name'] ?? null,
-            'contact_title' => $data['new_customer_contact_title'] ?? null,
+            'contact_name' => $data['contact_name'] ?? null,
+            'contact_title' => $data['contact_role'] ?? null,
         ]);
 
         $contactName = trim((string) ($data['contact_name'] ?? ''));
@@ -293,8 +293,6 @@ class CallController extends Controller
             $attributes['invite_email'],
             $attributes['customer_id'],
             $attributes['new_customer_company'],
-            $attributes['new_customer_contact_name'],
-            $attributes['new_customer_contact_title'],
             $attributes['opportunity_id'],
         );
 
