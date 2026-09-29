@@ -9,6 +9,7 @@ use Deally\Calls\Models\CallFinding;
 use Deally\Core\Models\User;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Deally\Core\Services\TenantConnectionBinder;
+use Deally\Proposals\Models\KnowledgeEntry;
 use Deally\Proposals\Models\KnowledgeGap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -198,6 +199,143 @@ class KnowledgeGapNotificationTest extends TestCase
         foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
             $this->assertCount(1, $this->gapNotifications($this->user($email), $gap->id));
         }
+    }
+
+    /* ---------- a question already in the queue is not re-added ---------- */
+
+    public function test_logging_the_same_objection_twice_adds_a_single_queue_item(): void
+    {
+        $call = Call::factory()->create();
+        $url = route('deally.calls.objections.store', $call);
+
+        $first = $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => 'Worried about migrating off their legacy tool.'])
+            ->assertOk();
+
+        $second = $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => 'Worried about migrating off their legacy tool.'])
+            ->assertOk();
+
+        $this->assertSame($first->json('gap_id'), $second->json('gap_id'));
+
+        $this->assertSame(1, KnowledgeGap::query()
+            ->where('status', 'pending')
+            ->where('type', 'objection')
+            ->where('text', 'Worried about migrating off their legacy tool.')
+            ->count(), 're-adding the same objection must reuse the queue item');
+
+        $gap = KnowledgeGap::query()->findOrFail($first->json('gap_id'));
+
+        foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
+            $this->assertCount(1, $this->gapNotifications($this->user($email), $gap->id));
+        }
+    }
+
+    public function test_differently_worded_questions_each_get_their_own_queue_item(): void
+    {
+        $call = Call::factory()->create();
+        $url = route('deally.calls.objections.store', $call);
+
+        $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => 'Worried about migrating off their legacy tool.'])
+            ->assertOk();
+
+        $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => 'Is the SLA negotiable?'])
+            ->assertOk();
+
+        $this->assertSame(2, KnowledgeGap::query()
+            ->where('status', 'pending')
+            ->where('type', 'objection')
+            ->count());
+    }
+
+    public function test_the_same_question_from_a_second_call_is_not_re_added(): void
+    {
+        $question = 'Do you support HIPAA?';
+
+        foreach ([1, 2] as $_) {
+            $call = Call::factory()->create();
+            $finding = CallFinding::factory()->create(['call_id' => $call->id, 'body' => $question]);
+
+            $this->actingAs($this->user('alice@example.com'))
+                ->postJson(route('deally.calls.live.finding.feedback', ['call' => $call, 'finding' => $finding]), [
+                    'status' => 'unhelpful',
+                ])
+                ->assertOk();
+        }
+
+        $gap = KnowledgeGap::query()->where('status', 'pending')->where('text', $question)->sole();
+
+        foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
+            $this->assertCount(1, $this->gapNotifications($this->user($email), $gap->id));
+        }
+    }
+
+    public function test_resolving_a_question_retires_its_duplicate_queue_items(): void
+    {
+        $gap = $this->createGapViaFeedback();
+
+        // Simulate the pre-dedupe backlog: the same question standing in the
+        // queue twice before gap creation became text-aware.
+        $duplicate = KnowledgeGap::query()->create([
+            'type' => $gap->type,
+            'text' => $gap->text,
+            'source' => 'Acme Demo · Re-surfaced question',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($this->user('david@example.com'))
+            ->post(route('deally.solutions.gaps.resolve', $gap), [
+                'action' => 'approve',
+                'type' => 'product',
+                'answer' => 'Yes — HIPAA compliance is included.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('live', $gap->refresh()->status);
+        $this->assertSame('resolved', $duplicate->refresh()->status);
+
+        // One answer written once — approving the duplicate copy must not
+        // create a second, identical knowledge base entry.
+        $this->assertSame(1, KnowledgeEntry::query()->where('title', $gap->text)->count());
+
+        foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
+            $this->assertCount(0, $this->gapNotifications($this->user($email), $duplicate->id));
+        }
+    }
+
+    public function test_a_question_reappearing_after_resolution_is_added_again(): void
+    {
+        $gap = $this->createGapViaFeedback();
+
+        $this->actingAs($this->user('david@example.com'))
+            ->post(route('deally.solutions.gaps.resolve', $gap), [
+                'action' => 'approve',
+                'type' => 'product',
+                'answer' => 'Yes — HIPAA compliance is included.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('live', $gap->refresh()->status);
+
+        // The same question resurfacing after the first copy was resolved is a
+        // genuine recurrence, so it becomes a fresh pending queue item again.
+        $call = Call::factory()->create();
+        $finding = CallFinding::factory()->create(['call_id' => $call->id, 'body' => $gap->text]);
+
+        $this->actingAs($this->user('alice@example.com'))
+            ->postJson(route('deally.calls.live.finding.feedback', ['call' => $call, 'finding' => $finding]), [
+                'status' => 'unhelpful',
+            ])
+            ->assertOk();
+
+        $this->assertSame(1, KnowledgeGap::query()
+            ->where('status', 'pending')
+            ->where('text', $gap->text)
+            ->count());
+
+        $this->assertSame(2, KnowledgeGap::query()->where('text', $gap->text)->count());
     }
 
     /* ---------- the Expert Answers nav badge ---------- */

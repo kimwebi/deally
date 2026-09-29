@@ -128,7 +128,9 @@ class SolutionsController extends Controller
         // leave the queue members' inboxes. An edit keeps it pending, so the
         // notification stays.
         if ($data['action'] !== 'edit') {
-            app(KnowledgeGapNotifier::class)->clearResolved($gap);
+            $notifier = app(KnowledgeGapNotifier::class);
+            $notifier->clearResolved($gap);
+            $this->collapseDuplicateQueueItems($gap, $notifier);
         }
 
         return back()->with('toast', $toast);
@@ -160,6 +162,27 @@ class SolutionsController extends Controller
         $gap->update(['status' => 'rejected']);
 
         return 'Gap rejected.';
+    }
+
+    /**
+     * Resolving a question also retires any other pending queue items for the
+     * same question. Gaps used to be created without a text-level dedupe, so a
+     * repeated click on the same objection — or the same question surfacing on
+     * several calls — left the same item in the queue several times and, once
+     * approved, wrote its answer into the knowledge base several times.
+     */
+    protected function collapseDuplicateQueueItems(KnowledgeGap $gap, KnowledgeGapNotifier $notifier): void
+    {
+        KnowledgeGap::query()
+            ->where('id', '!=', $gap->id)
+            ->where('status', 'pending')
+            ->where('type', $gap->type)
+            ->whereRaw('LOWER(text) = ?', [mb_strtolower(trim($gap->text))])
+            ->get()
+            ->each(function (KnowledgeGap $duplicate) use ($notifier): void {
+                $duplicate->update(['status' => 'resolved']);
+                $notifier->clearResolved($duplicate);
+            });
     }
 
     protected function editGap(KnowledgeGap $gap, ?string $text): string

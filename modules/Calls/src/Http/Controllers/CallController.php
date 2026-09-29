@@ -1259,18 +1259,24 @@ class CallController extends Controller
             'status' => 'pending',
             'call_id' => $call->id,
             'transcript_line_id' => $attributes['transcript_line_id'] ?? null,
+            'call_finding_id' => $attributes['call_finding_id'] ?? null,
         ];
 
-        // Only dedupe on a finding id: a null lookup would match every
-        // unlinked gap in the tenant and silently reuse one of them.
-        if (blank($attributes['call_finding_id'] ?? null)) {
-            $gap = KnowledgeGap::query()->create($payload);
-        } else {
-            $gap = KnowledgeGap::query()->firstOrCreate(
-                ['call_finding_id' => $attributes['call_finding_id']],
-                $payload
-            );
-        }
+        // A question already waiting in the queue is not re-added: the same
+        // objection or missing answer repeating would otherwise pile identical
+        // gaps into the Solutions queue and, once approved, identical knowledge
+        // base entries. The lookup is tenant-wide while the question is still
+        // pending — once it leaves the queue, a genuine recurrence creates a
+        // new gap again. Matching on text subsumes the old call-finding dedupe,
+        // because the same finding always reports the same question.
+        $gap = KnowledgeGap::query()
+            ->where('status', 'pending')
+            ->where('type', $payload['type'])
+            ->whereRaw('LOWER(text) = ?', [mb_strtolower(trim($payload['text']))])
+            ->orderBy('id')
+            ->first();
+
+        $gap ??= KnowledgeGap::query()->create($payload);
 
         // A freshly created gap is new in the queue: tell the people who
         // resolve gaps about it. Repeated feedback on the same finding reuses
