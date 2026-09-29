@@ -9,13 +9,31 @@ use Illuminate\Http\Request;
 
 class KnowledgeBaseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorizeDeally('deally.kb.view');
 
+        $search = trim((string) $request->query('search', ''));
+
+        $entries = KnowledgeEntry::query()
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%");
+            }))
+            ->orderBy('type')
+            ->orderBy('title')
+            ->paginate(12)
+            ->withQueryString();
+
+        $gaps = KnowledgeGap::query()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('proposals::pages.knowledge-base', [
-            'entries' => KnowledgeEntry::orderBy('type')->get(),
-            'gaps' => KnowledgeGap::orderBy('created_at', 'desc')->get(),
+            'entries' => $entries,
+            'gaps' => $gaps,
+            'search' => $search,
         ]);
     }
 

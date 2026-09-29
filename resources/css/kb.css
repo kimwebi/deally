@@ -17,6 +17,138 @@
   background: var(--surface-2);
 }
 
+.kb-card-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--violet);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.kb-card:hover .kb-card-view {
+  opacity: 1;
+}
+
+.kb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 0 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  flex: 1;
+  max-width: 340px;
+  min-width: 200px;
+  transition: 0.15s;
+}
+
+.kb-search:focus-within {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 3px var(--violet-soft);
+}
+
+.kb-search > i {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.kb-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 0;
+}
+
+.kb-search input::placeholder {
+  color: var(--text-4);
+}
+
+.kb-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.kb-search-clear {
+  color: var(--text-3);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.kb-search-clear:hover {
+  color: var(--text);
+}
+
+.kb-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 26px;
+  flex-wrap: wrap;
+}
+
+.page-btn,
+.page-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: 0.15s;
+  font-family: inherit;
+}
+
+.page-btn:hover:not(.disabled),
+.page-num:hover:not(.active) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.page-num.active {
+  background: var(--violet-soft);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: var(--violet);
+}
+
+.page-btn.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.page-info {
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.kb-view-desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-2);
+  white-space: pre-line;
+  margin: 0;
+}
+
 .kb-card-type {
   font-size: 10px;
   text-transform: uppercase;
