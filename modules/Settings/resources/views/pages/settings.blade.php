@@ -43,8 +43,17 @@
                 </select>
             </div>
             <div class="settings-row" style="border-top: 1px solid var(--border-soft); padding-top: 16px;">
-                <div class="settings-row-label">Notifications</div>
-                <span class="settings-row-value">Enabled</span>
+                <div class="settings-row-label">
+                    Notifications
+                    <div style="font-size: 12px; color: var(--text-3);">Which notification categories the company receives. Set at company level — not per person.</div>
+                </div>
+                <span class="settings-row-value">
+                    {{ collect($notificationSettings)->filter()->keys()->map(fn ($key) => match ($key) {
+                        'expert_gaps' => 'Expert Answers queue',
+                        'call_reports' => 'Call reports',
+                        default => ucfirst($key),
+                    })->implode(', ') ?: 'None enabled' }}
+                </span>
             </div>
             <div class="settings-row">
                 <div class="settings-row-label">Tenant</div>
@@ -70,6 +79,22 @@
                 <span class="settings-row-value">{{ app(\Deally\Retention\Services\RetentionService::class)->tierLabel() }}</span>
             </div>
 @if ($canManageAccount)
+            <div style="border-top: 1px solid var(--border-soft); margin-top: 16px; padding-top: 16px;">
+                <div class="settings-title" style="margin-bottom: 6px;">Notifications</div>
+                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 12px;">
+                    Decided for the whole company. If a category is off, nobody in the company receives it.
+                </div>
+                @foreach ([
+                    'expert_gaps' => 'Expert Answers queue',
+                    'call_reports' => 'Call reports',
+                ] as $key => $label)
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 8px; cursor: pointer;">
+                        <input type="hidden" name="notifications[{{ $key }}]" value="0">
+                        <input type="checkbox" name="notifications[{{ $key }}]" value="1"
+                            {{ ($notificationSettings[$key] ?? false) ? 'checked' : '' }}> {{ $label }}
+                    </label>
+                @endforeach
+            </div>
             <div style="border-top: 1px solid var(--border-soft); margin-top: 16px; padding-top: 16px;">
                 <div class="settings-title" style="margin-bottom: 6px;">Demand Accounts</div>
                 <div class="field-block">

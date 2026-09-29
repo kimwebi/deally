@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use SaasFoundation\Models\Membership;
 
 class SettingsController extends Controller
 {
@@ -22,6 +23,7 @@ class SettingsController extends Controller
             'timezones' => $this->timezones(),
             'locales' => $this->locales(),
             'accountSetting' => AccountSetting::current(),
+            'notificationSettings' => $this->notificationSettings($membership),
             'canManageAccount' => $this->deallyCan('deally.settings.manage'),
         ]);
     }
@@ -45,7 +47,43 @@ class SettingsController extends Controller
             AccountSetting::current()->update(['demand_pipeline_threshold' => $threshold]);
         }
 
+        if ($this->deallyCan('deally.settings.manage') && $request->has('notifications')) {
+            /* The toggles are backed by hidden 0s, so an unchecked box still
+               submits and is persisted as off. Absent entirely (a request that
+               did not carry the section) leaves the settings untouched. */
+            $prefs = $request->validate([
+                'notifications' => ['nullable', 'array'],
+                'notifications.*' => ['boolean'],
+            ])['notifications'] ?? [];
+
+            $tenant = $this->deallyMembership()?->tenant;
+
+            if ($tenant !== null) {
+                $settings = $tenant->settings ?? [];
+                $settings['notifications'] = [
+                    'expert_gaps' => (bool) ($prefs['expert_gaps'] ?? false),
+                    'call_reports' => (bool) ($prefs['call_reports'] ?? false),
+                ];
+                $tenant->update(['settings' => $settings]);
+            }
+        }
+
         return back()->with('toast', 'Profile updated.');
+    }
+
+    /**
+     * Which notification categories the company has decided to receive.
+     *
+     * @return array{expert_gaps: bool, call_reports: bool}
+     */
+    protected function notificationSettings(?Membership $membership): array
+    {
+        $configured = $membership?->tenant?->settings['notifications'] ?? [];
+
+        return [
+            'expert_gaps' => (bool) ($configured['expert_gaps'] ?? true),
+            'call_reports' => (bool) ($configured['call_reports'] ?? true),
+        ];
     }
 
     /** @return array<string, string> */

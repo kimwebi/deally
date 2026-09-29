@@ -2,6 +2,7 @@
 
 namespace Deally\Tasks\Http\Controllers;
 
+use Closure;
 use Deally\Calls\Models\Call;
 use Deally\Calls\Services\CallReviewBrief;
 use Deally\Core\Http\Controllers\Controller;
@@ -108,7 +109,7 @@ class TaskController extends Controller
             'assignee' => ['nullable', 'string'],
             'assignee_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'linked_company' => ['nullable', 'string'],
-            'due_at' => ['nullable', 'date'],
+            'due_at' => ['required', 'date', $this->requiresDueTime()],
         ]);
 
         $assigneeId = $data['assignee_user_id'] ?? null;
@@ -163,8 +164,39 @@ class TaskController extends Controller
         $this->authorizeDeally('deally.tasks.manage');
         $this->authorizeSeatRecord($task);
 
-        $task->delete();
+        /* Nothing is deleted. Archiving closes the task the same way any other
+           close does, which also keeps the guard: a review task holding an
+           unanswered deal-status flag cannot be archived through here. */
+        if ($task->status !== 'closed') {
+            $blocked = $task->blockedReason();
 
-        return back()->with('toast', 'Task deleted.');
+            if ($blocked !== null) {
+                return back()->with('error', $blocked);
+            }
+        }
+
+        $task->update(['status' => 'closed']);
+
+        app(ActivityLogger::class)->log(
+            'task.archived',
+            "Task '{$task->title}' archived."
+        );
+
+        return back()->with('toast', 'Task archived.');
+    }
+
+    /**
+     * Rule shared by every task-creation surface: a due moment is required and
+     * a calendar date on its own is not enough.
+     *
+     * @return (Closure(string, mixed, Closure(string):void):void)|string
+     */
+    protected function requiresDueTime(): Closure|string
+    {
+        return function ($attribute, $value, $fail): void {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $value)) {
+                $fail('A due time is required — a date on its own is not enough.');
+            }
+        };
     }
 }

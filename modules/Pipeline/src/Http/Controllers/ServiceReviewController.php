@@ -35,14 +35,11 @@ class ServiceReviewController extends Controller
 
         $data = $request->validate([
             'cadence_days' => ['required', 'integer', 'min:1', 'max:365'],
-            'mode' => ['required', 'string', 'in:future,regenerate'],
         ]);
 
-        $reviews->changeCadence($schedule, (int) $data['cadence_days'], $data['mode']);
+        $reviews->changeCadence($schedule, (int) $data['cadence_days']);
 
-        return back()->with('toast', $data['mode'] === 'regenerate'
-            ? 'Cadence updated — upcoming reviews were regenerated.'
-            : 'Cadence updated — existing upcoming reviews kept.');
+        return back()->with('toast', 'Cadence updated — applies to reviews scheduled from now on.');
     }
 
     public function rescheduleSession(Request $request, ServiceReviewSession $session, ServiceReviewService $reviews): RedirectResponse

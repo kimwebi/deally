@@ -213,4 +213,24 @@ class KnowledgeGapNotificationTest extends TestCase
             ->assertOk()
             ->assertSee('Expert Answers <span class="nav-badge alert">'.$pending.'</span>', false);
     }
+
+    /* ---------- notification categories are set at the company level ---------- */
+
+    public function test_when_the_company_turns_off_expert_answers_no_queue_member_is_notified(): void
+    {
+        $tenant = Tenant::query()->where('slug', 'acme-corp')->firstOrFail();
+        $settings = $tenant->settings ?? [];
+        $settings['notifications'] = ['expert_gaps' => false, 'call_reports' => true];
+        $tenant->update(['settings' => $settings]);
+
+        $gap = $this->createGapViaFeedback();
+
+        // The gap is still recorded for the queue itself...
+        $this->assertSame('pending', $gap->refresh()->status);
+
+        // ...but no notification is emitted anywhere in the company.
+        foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
+            $this->assertCount(0, $this->gapNotifications($this->user($email), $gap->id));
+        }
+    }
 }

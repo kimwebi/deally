@@ -208,7 +208,10 @@ It opens in a modal from the tasks list, so a rep can work through their queue w
 place, and it points at the call it is actually about rather than the most recent call for that
 company. It carries what was heard, the objections the model detected kept apart from the ones the
 rep added during review, the actions that were never taken, correctable sentiment and readiness, the
-log of everything already corrected, and the open flags.
+log of everything already corrected, and the open flags. It also shows the **Agent Performance**
+score-card — talk ratio, objections handled, AI suggestions and how many were marked useful — the same
+numbers the Coaching Review derives for that call, so a rep reviewing their own task sees the same
+snapshot a manager reviewing them sees.
 
 **It cannot be closed while a deal-status flag is open** — from the modal or from the list, both of
 which say why. A flag that does not block anything is a note.
@@ -270,7 +273,8 @@ add or correct the knowledge so future analysis and answers handle the same topi
   configurable threshold), open deals, and inactivity. The used tier shows on the pipeline and customer pages,
   with an **at-risk panel** on the customer record.
 - **Service Reviews** — recurring check-in schedules (cadence per account tier) that keep a rolling set
-  of upcoming sessions, with reschedule (time-clash guarded), hold, cancel, catch-up, cadence changes,
+  of upcoming sessions, with reschedule (time-clash guarded), hold, cancel, catch-up, cadence changes
+  that apply **to sessions scheduled from now on only** (existing upcoming reviews are never rewritten),
   and graceful ending — never leaving a next-review gap.
 - **Contacts** — multiple named contacts per customer with a single primary; adding a second contact
   from the same company never duplicates the customer account.
@@ -282,12 +286,80 @@ add or correct the knowledge so future analysis and answers handle the same topi
   bulk-assign, approve); Team Leader/Solutions Lead seats get a fill-the-seat screen; other roles keep
   the inline Remove form.
 - **Notifications** — a real notification system with per-item read toggling ("Mark as read" / green
-  "Read" badge) and a read-all action.
-- **Activity feed** — audit trail of system events (provisioning, transcript failures, etc.).
+  "Read" badge) and a read-all action. Which notification categories the company receives (Expert
+  Answers queue, call reports) is decided **at the company level** in Settings by account managers —
+  never per person.
+- **Activity feed** — audit trail of system events (provisioning, transcript failures, etc.). Each
+  call also carries its own activity history in its detail modal, so the rep who triggered a provider
+  error can see it from the call itself without needing the tenant-wide feed permissions.
 
 ---
 
-## 8. Architecture (a 2-minute version)
+## 8. Product guarantees — the non-negotiables
+
+Every product decision below is load-bearing: the app is engineered so it cannot get out of these,
+and the test suite (plus `docs/ai-llm-integration.md` and `docs/call-lifecycle.md`) documents how each
+is enforced.
+
+1. **AI answers come from the knowledge base.** Research suggestions are grounded in
+   `KnowledgeEntry` rows (type + model gating in `LiveAssistant`); an unanswered request becomes a
+   `KnowledgeGap`, never a made-up answer. Without a knowledge package the assistant says so
+   (`NO_KNOWLEDGE_PACKAGE`).
+2. **The knowledge base is written only through governed paths.** Rows are created solely from the
+   Solutions queue (`deally.kb.manage`) via approve-into-KB, and the KB edit surface is restricted on
+   the knowledge base page. The live assistant can record a gap; it cannot write a KB row.
+3. **Nothing is deleted.** Tasks archive (status → `closed`, row stays), closing a call keeps its
+   transcript and audio, "clear the findings" hides cards without deleting rows, and ending a service
+   review removes only future placeholder sessions. The legacy wholesale-transcript-rewrite endpoint
+   was removed rather than allowed to bulk-delete lines.
+4. **Consent is by invitation.** Recording begins only for a joined call; the deliberate-consent
+   vehicle is the real invitation the rep sends (recorded verbatim on the call), not a checkbox in
+   the app. This is a policy decision, not a code path.
+5. **The live page shows cards, never a raw transcript.** The screen renders findings cards, heard
+   lines and prompts; the conversation text stays in the review.
+6. **The findings shelf is read-only; interaction lives in the AI panel.** Reps engage through the
+   ask / objection / hero buttons and the dot-feedback on cards (`live-call.js`) — no inline editing
+   of what the assistant produced.
+7. **The assistant announces its state.** An idle call shows "DeAlly is listening"; when the
+   assistant asks the rep a question it brings the hero up ("AI Asks You").
+8. **A reassignment plan changes nothing until approved.** `ReassignmentService` builds a draft only;
+   `UserController::approvePlan` applies the transfers and removes the membership.
+9. **DeAlly steers; it does not echo.** Noticed frames are triggered by *customer* lines; analysis
+   of agent lines produces steering recommendations (say/ask/reference), never a parrot of the rep.
+10. **Notifications are decided at the company level.** Notification categories (Expert Answers
+    queue, call reports) are per-tenant toggles in Settings, editable only by account managers; an
+    off category emits nothing for anyone.
+11. **Retention is tier-driven and platform-controlled.** Closed-deal transcripts and proposals
+    archive by the tenant's retention window; only DeAlly Platform Support can change the tier, and
+    the UI says so.
+12. **Errors are visible to the person who triggered them.** Activity rows (`Activity`) — including
+    provider failures — are written with the call as subject and shown on the call's detail modal, so
+    an agent does not need the tenant-wide feed permission to see their own errors.
+13. **Deal-status flags close only inside review surfaces.** Flags resolve from the review-task
+    modal or the full review; the "possible lost" marker on a deal is read-only and links to the
+    tasks that can clear it.
+14. **Paraphrases are tight and never quoted.** Heard lines are capped at 12 words, present tense,
+    no quotation marks, and normalized server-side (`normalizeParaphrase`).
+15. **Ending a call always creates the review task.** `CallController::end()` unconditionally
+    `firstOrCreate`s "Review Call — {company}" due within 24 hours, so no call ends without a
+    follow-up.
+16. **The review task shows the agent performance score.** The same talk-ratio / objections-handled
+    / suggestions / usefulness numbers the Coaching Review shows for any rep appear in the review
+    task — one computation (`CallReviewBrief::agentPerformance()`), one mirror.
+17. **Missed sessions move risk; deal flags move deals.** `RiskService` marks a customer Critical
+    and `at_risk` when a Service Review session is missed, separate from the call-level deal-risk
+    flag, and clears it once the session is held.
+18. **Cadence changes apply to future sessions only.** Changing a review cadence edits the
+    schedule's going-forward interval; already-scheduled upcoming reviews are kept exactly where they
+    are — nothing retroactive is rewritten.
+19. **A task is todo or closed — nothing else.** `scopeOverdue` is computed from
+    `due_at < now()` over the todo set; there is no "done at some point" limbo.
+20. **Every task carries an explicit due time.** A due *moment* is required — a calendar date
+    without a time is rejected with an explanation, on the Tasks form and the home quick-add alike.
+
+---
+
+## 9. Architecture (a 2-minute version)
 
 - **Laravel 13 / PHP 8.4** multi-tenant SaaS on the `kimwebi/saas-foundation` package (installed from GitHub).
 - **Modules** — `modules/<Name>/{src,routes,resources/views}` with PSR-4 autoloading and a
@@ -310,7 +382,7 @@ add or correct the knowledge so future analysis and answers handle the same topi
 
 ---
 
-## 9. Suggested presentation walkthrough (demo script)
+## 10. Suggested presentation walkthrough (demo script)
 
 > All demo users log in with the password `password` (see `README.md`).
 
@@ -349,7 +421,7 @@ add or correct the knowledge so future analysis and answers handle the same topi
 
 ---
 
-## 10. Where to look
+## 11. Where to look
 
 | Topic | File |
 | --- | --- |

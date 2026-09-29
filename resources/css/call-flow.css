@@ -109,6 +109,18 @@
 .call-detail-empty { font-size: 12px; color: var(--text-4); line-height: 1.6; margin: 0; }
 .call-detail-empty code { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
 
+.call-detail-activity {
+  padding: 11px 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.call-detail-activity.is-error { border-left: 3px solid var(--red, #ef4444); }
+.call-detail-activity-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
+.call-detail-activity-event { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+.call-detail-activity-body { font-size: 12px; line-height: 1.5; color: var(--text); }
+.call-detail-activity-meta { margin-top: 5px; font-size: 11px; color: var(--text-4); }
+
 /* ---------- Review task ---------- */
 
 .modal-review-task .modal-body { max-height: 62vh; overflow-y: auto; }

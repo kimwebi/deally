@@ -57,6 +57,50 @@ class NotificationsTest extends TestCase
             ->assertSee('new');
     }
 
+    public function test_tabs_filter_notifications_by_category(): void
+    {
+        $alice = $this->user('alice@example.com');
+
+        app(Notifier::class)->notify($alice, 'Call complete', 'Review one.', 'call');
+        app(Notifier::class)->notify($alice, 'Unanswered question', 'What is your pricing?', 'gap');
+        app(Notifier::class)->notify($alice, 'Task reminder', 'Follow up on Globex.', 'task');
+
+        $this->actingAs($alice)
+            ->get(route('deally.notifications.index'))
+            ->assertOk()
+            ->assertSee('Call complete')
+            ->assertSee('Unanswered question')
+            ->assertSee('Task reminder');
+
+        $this->actingAs($alice)
+            ->get(route('deally.notifications.index', ['tab' => 'gap']))
+            ->assertOk()
+            ->assertSee('Unanswered question')
+            ->assertDontSee('Call complete')
+            ->assertDontSee('Task reminder');
+
+        $this->actingAs($alice)
+            ->get(route('deally.notifications.index', ['tab' => 'call']))
+            ->assertOk()
+            ->assertSee('Call complete')
+            ->assertDontSee('Unanswered question')
+            ->assertDontSee('Task reminder');
+
+        $this->actingAs($alice)
+            ->get(route('deally.notifications.index', ['tab' => 'general']))
+            ->assertOk()
+            ->assertSee('Task reminder')
+            ->assertDontSee('Call complete')
+            ->assertDontSee('Unanswered question');
+
+        $this->actingAs($alice)
+            ->get(route('deally.notifications.index', ['tab' => 'bogus']))
+            ->assertOk()
+            ->assertSee('Call complete')
+            ->assertSee('Unanswered question')
+            ->assertSee('Task reminder');
+    }
+
     public function test_mark_read_and_read_all(): void
     {
         $alice = $this->user('alice@example.com');

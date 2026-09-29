@@ -32,6 +32,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SaasFoundation\Models\Activity;
 use Throwable;
 
 class CallController extends Controller
@@ -89,8 +90,19 @@ class CallController extends Controller
 
         $call->load(['transcriptLines', 'openFlags']);
 
+        /* The call's own activity history, including provider failures. A rep
+           who triggered an error must be able to see it from the call itself,
+           not only from a tenant-wide feed they may not be allowed to open. */
+        $activity = Activity::query()
+            ->where('subject_type', $call->getMorphClass())
+            ->where('subject_id', $call->getKey())
+            ->latest()
+            ->take(8)
+            ->get();
+
         return response()->view('calls::partials.call-detail-modal', [
             'call' => $call,
+            'activity' => $activity,
         ])->header('Content-Type', 'text/html; charset=utf-8');
     }
 
@@ -534,15 +546,22 @@ class CallController extends Controller
         $logger->log('call.ended', "Ended call '{$call->name}' with {$call->company} ({$call->sentiment}).");
 
         $notifier = app(Notifier::class);
-        $notifier->notify(
-            auth()->user(),
-            'Call complete',
-            $task->wasRecentlyCreated
-                ? "A review task for {$call->company} was created and is due within 24 hours."
-                : "The review task for {$call->company} was already open.",
-            'call',
-            route('deally.calls.review', $call)
-        );
+
+        /* Notification categories are decided at the company level; the call
+           report only fires when the account has it enabled. */
+        $prefs = auth()->user()->currentMembership?->tenant?->settings['notifications'] ?? null;
+
+        if ($prefs === null || ($prefs['call_reports'] ?? true)) {
+            $notifier->notify(
+                auth()->user(),
+                'Call complete',
+                $task->wasRecentlyCreated
+                    ? "A review task for {$call->company} was created and is due within 24 hours."
+                    : "The review task for {$call->company} was already open.",
+                'call',
+                route('deally.calls.review', $call)
+            );
+        }
 
         return redirect()->route('deally.calls.summary', $call);
     }
@@ -1295,32 +1314,6 @@ class CallController extends Controller
     protected function gapSource(Call $call): string
     {
         return $call->name.' · '.$call->company.' · '.$call->date->format('M d');
-    }
-
-    public function transcript(Request $request, Call $call)
-    {
-        $this->authorizeDeally('deally.calls.manage');
-        $this->authorizeSeatRecord($call);
-
-        $data = $request->validate([
-            'lines' => ['present', 'array'],
-            'lines.*.speaker' => ['required', 'string'],
-            'lines.*.is_agent' => ['sometimes', 'boolean'],
-            'lines.*.text' => ['required', 'string'],
-            'lines.*.linked_type' => ['nullable', 'string'],
-            'lines.*.linked_text' => ['nullable', 'string'],
-        ]);
-
-        $call->transcriptLines()->delete();
-
-        foreach ($data['lines'] as $index => $line) {
-            TranscriptLine::create($line + [
-                'call_id' => $call->id,
-                'sequence' => $index,
-            ]);
-        }
-
-        return response()->json(['ok' => true]);
     }
 
     public function flag(Request $request, Call $call)

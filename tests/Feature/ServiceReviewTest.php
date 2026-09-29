@@ -82,37 +82,47 @@ class ServiceReviewTest extends TestCase
         $stark = Customer::query()->where('company', 'Stark Industries')->firstOrFail();
         $schedule = app(ServiceReviewService::class)->setup($stark);
 
+        // Age the pre-seeded series so a change that rewrote the calendar would
+        // visibly move sessions.
+        $schedule->sessions()->get()->each(fn (ServiceReviewSession $session, int $i) => $session->update([
+            'scheduled_at' => now()->addYears(3)->addDays($i * 30),
+        ]));
+
         $this->actingAs($charlie)
             ->patch(route('deally.service-reviews.cadence', $schedule), [
                 'cadence_days' => 7,
-                'mode' => 'future',
             ])
             ->assertSessionHas('toast');
 
         $this->assertSame(7, $schedule->fresh()->cadence_days);
         $this->assertSame(3, app(ServiceReviewService::class)->upcomingSessions($schedule->fresh())->count());
+
+        // Existing upcoming reviews are a promise to the customer: the cadence
+        // change must leave them exactly where they were.
+        foreach ($schedule->fresh()->sessions()->get() as $session) {
+            $this->assertTrue($session->scheduled_at->isAfter(now()->addYears(2)));
+        }
     }
 
-    public function test_regenerating_the_cadence_rebuilds_the_upcoming_series(): void
+    public function test_a_cadence_change_never_rewrites_existing_scheduled_sessions(): void
     {
         $stark = Customer::query()->where('company', 'Stark Industries')->firstOrFail();
         $schedule = app(ServiceReviewService::class)->setup($stark);
 
-        // Age the pre-seeded series so regenerating visibly replaces it.
-        $schedule->sessions()->get()->each(fn (ServiceReviewSession $session, int $i) => $session->update([
-            'scheduled_at' => now()->addYears(3)->addDays($i * 30),
-        ]));
+        $before = $schedule->sessions()->get()
+            ->map(fn (ServiceReviewSession $session): string => $session->scheduled_at->toDateTimeString())
+            ->values()
+            ->all();
 
-        app(ServiceReviewService::class)->changeCadence($schedule, 7, 'regenerate');
+        app(ServiceReviewService::class)->changeCadence($schedule, 7);
 
-        $schedule->refresh();
+        $after = $schedule->sessions()->get()
+            ->map(fn (ServiceReviewSession $session): string => $session->scheduled_at->toDateTimeString())
+            ->values()
+            ->all();
 
         $this->assertSame(7, $schedule->cadence_days);
-        $this->assertSame(3, app(ServiceReviewService::class)->upcomingSessions($schedule)->count());
-
-        foreach (app(ServiceReviewService::class)->upcomingSessions($schedule) as $session) {
-            $this->assertTrue($session->scheduled_at->isBefore(now()->addDays(30)));
-        }
+        $this->assertSame($before, $after);
     }
 
     public function test_a_session_can_be_rescheduled_and_time_clashes_are_rejected(): void

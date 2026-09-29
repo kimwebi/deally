@@ -208,4 +208,47 @@ class CallReviewBrief
             ])
             ->all();
     }
+
+    /**
+     * The agent-performance snapshot, shared by the review task and the
+     * coaching review so the two surfaces cannot drift apart.
+     *
+     * @return array{
+     *     agent_pct: int,
+     *     customer_pct: int,
+     *     objection_handled: int,
+     *     objection_total: int,
+     *     ai_suggestions: int,
+     *     helpful: int,
+     *     unhelpful: int,
+     *     readiness: string,
+     * }
+     */
+    public function agentPerformance(): array
+    {
+        $lines = $this->call->transcriptLines()->get();
+
+        $customerLines = $lines->where('is_agent', false)->count();
+        $totalLines = max(1, $lines->count());
+        $customerPct = (int) round($customerLines / $totalLines * 100);
+
+        /* An objection counts as handled when the AI answered it from the
+           knowledge base, which is what the "live" status records. */
+        $objectionHandled = $this->gaps
+            ->concat($this->objections)
+            ->whereIn('type', ['objection', 'gap'])
+            ->where('status', 'live')
+            ->count();
+
+        return [
+            'agent_pct' => 100 - $customerPct,
+            'customer_pct' => $customerPct,
+            'objection_handled' => $objectionHandled,
+            'objection_total' => count($this->objectionLog()),
+            'ai_suggestions' => $this->findings->count(),
+            'helpful' => $this->findings->where('status', 'helpful')->count(),
+            'unhelpful' => $this->findings->where('status', 'unhelpful')->count(),
+            'readiness' => $this->call->effectiveReadiness(),
+        ];
+    }
 }

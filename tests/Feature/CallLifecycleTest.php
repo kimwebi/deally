@@ -6,6 +6,7 @@ use Database\Seeders\DeallyAccessSeeder;
 use Database\Seeders\DemoSeeder;
 use Deally\Calls\Models\Call;
 use Deally\Core\Models\User;
+use Deally\Core\Services\ActivityLogger;
 use Deally\Core\Services\DeallyTenantProvisioner;
 use Deally\Core\Services\TenantConnectionBinder;
 use Deally\Tasks\Models\Task;
@@ -187,6 +188,25 @@ class CallLifecycleTest extends TestCase
             ->assertOk()
             ->assertDontSee('No transcript lines saved yet')
             ->assertSee('legacy tool');
+    }
+
+    public function test_call_detail_surfaces_the_calls_activity_including_errors(): void
+    {
+        [$user, $call] = $this->startCall();
+
+        app(ActivityLogger::class)->log(
+            'call.provider_failed',
+            'The transcription provider failed on the latest chunk.',
+            ['call_id' => $call->id, 'provider' => 'groq', 'status' => 503, 'retryable' => true],
+            'error',
+            $call
+        );
+
+        $this->actingAs($user)
+            ->get(route('deally.calls.detail', $call))
+            ->assertOk()
+            ->assertSee('call.provider_failed')
+            ->assertSee('transcription provider failed');
     }
 
     /**

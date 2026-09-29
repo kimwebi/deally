@@ -410,15 +410,11 @@
                     <input class="input-field" type="number" name="cadence_days" min="1" max="365" value="{{ $schedule->cadence_days }}" required>
                 </div>
                 <div class="field-block">
-                    <div class="field-label">Upcoming sessions</div>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 6px;">
-                        <input type="radio" name="mode" value="future" checked> Apply to future sessions only
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2);">
-                        <input type="radio" name="mode" value="regenerate"> Regenerate all upcoming
-                    </label>
+                    <div class="field-label">How this applies</div>
                     <div style="font-size: 12px; color: var(--text-3); margin-top: 6px;">
-                        Regenerating drops every upcoming slot and restarts the series from today at the new cadence.
+                        The new cadence applies to reviews scheduled from now on. Upcoming sessions
+                        your customer has already been told about are kept unchanged — nothing retroactive
+                        is rewritten.
                     </div>
                 </div>
             </div>

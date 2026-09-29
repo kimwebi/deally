@@ -34,7 +34,11 @@ class WorkspaceController extends Controller
             'type' => ['required', 'string', 'in:deally,external,task'],
             'title' => ['required', 'string'],
             'linked_company' => ['nullable', 'string'],
-            'due_at' => ['nullable', 'date'],
+            'due_at' => ['required', 'date', function ($attribute, $value, $fail): void {
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $value)) {
+                    $fail('A due time is required — a date on its own is not enough.');
+                }
+            }],
         ]);
 
         if ($data['type'] === 'deally') {
@@ -56,7 +60,7 @@ class WorkspaceController extends Controller
         Task::create([
             'title' => $prefix.$data['title'],
             'linked_company' => $data['linked_company'] ?? null,
-            'due_at' => $data['due_at'] ?? null,
+            'due_at' => $data['due_at'],
             'status' => 'todo',
             'owner_user_id' => auth()->id(),
         ]);

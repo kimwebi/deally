@@ -122,6 +122,27 @@
                 @endif
             </div>
         </div>
+
+        @if ($activity->isNotEmpty())
+            <div class="call-detail-section">
+                <div class="call-detail-section-title">
+                    Activity
+                    <span class="call-detail-count">{{ $activity->count() }}</span>
+                </div>
+                @foreach ($activity as $entry)
+                    <div class="call-detail-activity {{ ($entry->properties['level'] ?? 'info') === 'error' ? 'is-error' : '' }}">
+                        <div class="call-detail-activity-head">
+                            <span class="call-detail-activity-event">{{ $entry->event }}</span>
+                            <span class="status-pill {{ ($entry->properties['level'] ?? 'info') === 'error' ? 'rejected' : 'pending' }}">{{ $entry->properties['level'] ?? 'info' }}</span>
+                        </div>
+                        <div class="call-detail-activity-body">{{ $entry->description }}</div>
+                        <div class="call-detail-activity-meta">
+                            {{ $entry->user?->name ?? 'System' }} · {{ $entry->created_at?->diffForHumans() }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     <div class="modal-footer">

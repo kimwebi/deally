@@ -9,7 +9,7 @@
         <div>
             <div class="list-title">Notifications</div>
             <div class="list-subtitle">
-                {{ auth()->user()->unreadNotifications()->count() }} unread · {{ $notifications->count() }} shown
+                {{ auth()->user()->unreadNotifications()->count() }} unread · {{ $visible->count() }} shown
             </div>
         </div>
         @if($notifications->isNotEmpty())
@@ -20,8 +20,20 @@
         @endif
     </div>
 
+    <div class="notif-tabs" role="tablist" aria-label="Notification categories">
+        @foreach (['' => 'All', 'general' => 'General', 'gap' => 'Expert Answers queue', 'call' => 'Call reports'] as $tabKey => $label)
+            <a href="{{ $tabKey === '' ? route('deally.notifications.index') : route('deally.notifications.index', ['tab' => $tabKey]) }}"
+               class="notif-tab {{ $tab === $tabKey ? 'selected' : '' }}"
+               role="tab"
+               aria-selected="{{ $tab === $tabKey ? 'true' : 'false' }}">
+                <span>{{ $label }}</span>
+                <span class="notif-tab-count">{{ $tabCounts[$tabKey === '' ? 'all' : $tabKey] }}</span>
+            </a>
+        @endforeach
+    </div>
+
     <div class="notif-list">
-        @forelse ($notifications as $notification)
+        @forelse ($visible as $notification)
             <div class="notif-card {{ $notification->unread() ? 'accent' : '' }}">
                 <span class="kb-accent" style="background: {{ $notification->unread() ? 'var(--accent)' : 'transparent' }}"></span>
                 <div class="notif-card-main">
@@ -51,7 +63,7 @@
             </div>
         @empty
             <div class="list-page" style="text-align:center; color:var(--text-3); padding: 40px 0;">
-                You're all caught up — no notifications yet.
+                {{ $notifications->isNotEmpty() ? 'Nothing in this tab yet.' : "You're all caught up — no notifications yet." }}
             </div>
         @endforelse
     </div>

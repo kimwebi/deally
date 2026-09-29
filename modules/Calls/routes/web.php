@@ -30,7 +30,6 @@ Route::middleware('deally')
         Route::get('calls/{call}/detail', [CallController::class, 'detail'])->name('calls.detail');
         Route::get('calls/{call}', [CallController::class, 'show'])->name('calls.show');
         Route::post('calls/{call}/end', [CallController::class, 'end'])->name('calls.end');
-        Route::post('calls/{call}/transcript', [CallController::class, 'transcript'])->name('calls.transcript');
         Route::post('calls/{call}/flag', [CallController::class, 'flag'])->name('calls.flag');
         Route::post('ask', [CallController::class, 'ask'])->name('ask');
     });

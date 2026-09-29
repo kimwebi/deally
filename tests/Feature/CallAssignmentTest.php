@@ -100,6 +100,7 @@ class CallAssignmentTest extends TestCase
                 'title' => 'Send pricing to Wayne',
                 'linked_company' => 'Wayne Enterprises',
                 'assignee_user_id' => $charlie->id,
+                'due_at' => now()->addDay()->format('Y-m-d H:i'),
             ])
             ->assertRedirect();
 

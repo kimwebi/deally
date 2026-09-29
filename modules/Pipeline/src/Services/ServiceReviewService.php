@@ -130,22 +130,17 @@ class ServiceReviewService
     }
 
     /**
-     * @param  'future'|'regenerate'  $mode
+     * Change the cadence for sessions scheduled from now on.
+     *
+     * Existing upcoming sessions are deliberately left alone: the cadence is a
+     * promise about future scheduling, not a licence to rewrite the calendar
+     * the customer has already been told about.
      */
-    public function changeCadence(ServiceReviewSchedule $schedule, int $days, string $mode): void
+    public function changeCadence(ServiceReviewSchedule $schedule, int $days): void
     {
         $schedule->update(['cadence_days' => $days]);
 
-        if ($mode === 'regenerate') {
-            // Drop every upcoming slot and restart the series from today at
-            // the new cadence.
-            $schedule->sessions()
-                ->where('status', ServiceReviewSession::STATUS_SCHEDULED)
-                ->where('scheduled_at', '>', now())
-                ->delete();
-
-            $this->ensureSeries($schedule);
-        }
+        $this->ensureSeries($schedule);
     }
 
     /**

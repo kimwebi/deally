@@ -122,6 +122,22 @@
                 </p>
             </div>
 
+            <div class="modal-section">
+                <div class="modal-section-label"><span class="dot"></span>Agent Performance</div>
+                @php $perf = $brief->agentPerformance(); @endphp
+                <div class="score-card">
+                    <div class="score-row"><span class="score-label">Talk ratio</span><span class="score-value {{ $perf['agent_pct'] >= 50 ? 'warn' : 'good' }}">{{ $perf['agent_pct'] }}% agent</span></div>
+                    <div class="talk-bar"><div class="talk-bar-agent" style="flex: {{ $perf['agent_pct'] }};"></div><div class="talk-bar-customer" style="flex: {{ $perf['customer_pct'] }};"></div></div>
+                    <div class="score-row"><span class="score-label">Objections handled</span><span class="score-value {{ $perf['objection_handled'] >= $perf['objection_total'] && $perf['objection_total'] > 0 ? 'good' : 'warn' }}">{{ $perf['objection_total'] > 0 ? $perf['objection_handled'].' of '.$perf['objection_total'] : 'None logged' }}</span></div>
+                    <div class="score-row"><span class="score-label">AI suggestions</span><span class="score-value">{{ $perf['ai_suggestions'] }} cards</span></div>
+                    <div class="score-row"><span class="score-label">Marked useful</span><span class="score-value {{ $perf['helpful'] > 0 ? 'good' : '' }}">{{ $perf['helpful'] }}{{ $perf['unhelpful'] > 0 ? ' · '.$perf['unhelpful'].' not' : '' }}</span></div>
+                    <div class="score-row"><span class="score-label">Overall</span><span class="score-value">{{ ucfirst($perf['readiness']) }}</span></div>
+                </div>
+                <p class="review-task-hint">
+                    The same numbers the coaching review shows for any rep — measured on this call, not on a recorded self-report.
+                </p>
+            </div>
+
             @if ($openFlags->isNotEmpty() || $brief !== null)
                 <div class="modal-section">
                     <div class="modal-section-label"><span class="dot"></span>Deal status</div>

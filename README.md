@@ -149,7 +149,7 @@ The Pipeline module owns customer accounts, contacts, deals, risk tiers, and Ser
 - **Customers page** (`/app/customers`) — account owners, contacts (with a single **primary** contact), an at-risk panel, and a pre-filled Create Deal modal.
 - **Deal engagement log** — each deal page merges the deal's calls, the customer's proposals, and a permanent Activity trail (stage moves, lost reasons, notes) into one chronological log. Moving a deal to **Lost requires a reason**; every stage change and note is logged permanently.
 - **Risk tiers** (`RiskService`) — every customer is assessed as **Critical**, **High**, **Medium**, or **Low**: Critical = a missed Service Review session or a proposal needing action; High = a *demand account* (open pipeline above the tenant threshold) carrying a negotiation-stage deal; Medium = an open deal; Low = no open deals or 60+ days of inactivity. The demand threshold is a tenant-level `AccountSetting` (default **150,000**), editable in Settings by owners/admins. The pipeline and deal pages surface these tiers, and an open deal on a Critical/High account is flagged **possible lost** (linking to Tasks to resolve the underlying review-call task).
-- **Service Reviews** (`ServiceReviewService`) — a recurring per-customer check-in schedule started at the cadence for the account tier (standard 30 / premium 14 / enterprise 7 days). Each schedule keeps a rolling set of **3 upcoming sessions** that top back up when a session is held or cancelled; agents can reschedule (with a time-clash guard), hold, cancel, catch up a missed session, change the cadence (keep future slots or regenerate the series), or end the schedule (removes future sessions only). Creating a deal for a customer without an active schedule prompts to set one up.
+- **Service Reviews** (`ServiceReviewService`) — a recurring per-customer check-in schedule started at the cadence for the account tier (standard 30 / premium 14 / enterprise 7 days). Each schedule keeps a rolling set of **3 upcoming sessions** that top back up when a session is held or cancelled; agents can reschedule (with a time-clash guard), hold, cancel, catch up a missed session, change the cadence (**future sessions only** — already-scheduled upcoming reviews are never rewritten), or end the schedule (removes future sessions only). Creating a deal for a customer without an active schedule prompts to set one up.
 - **Proposal editor** — proposals are editable in place from the engagement log and the Proposals page (name, value, package, quote, status); status changes are logged.
 
 ### Removing a member (reassignment plan)
@@ -181,7 +181,9 @@ The Calls module covers a call from booking to the follow-up it produces.
   proposal was agreed, and a way into the review task.
 - **Review task** — the real work. It opens in a modal from the tasks list and carries what DeAlly
   heard, the objections (detected and rep-added, kept apart), what the call left outstanding,
-  correctable sentiment and readiness, the correction log, and the open flags. It **cannot be closed
+  correctable sentiment and readiness, the correction log, the open flags, and an **Agent
+  Performance** score-card (talk ratio, objections handled, AI suggestions, usefulness) computed by
+  the same source as the Coaching Review. It **cannot be closed
   while a flag is open** — from the modal or the list.
 - **Replay and the full conversation** — every captured window is kept on the private disk *before*
   transcription is attempted, so the review can play the call back and jump to the moment any line was
@@ -220,6 +222,39 @@ Accepted results are stored as `CallFinding` rows, rendered in the live Findings
 
 Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
 
+## Product guarantees (the non-negotiables)
+
+DeAlly is engineered around twenty product invariants; the app is deliberately built so it cannot get
+out of these, and the test suite guards each one. The enforceable-by-code invariants are verified by
+feature tests; the policy-level ones (consent, retention ownership) are enforced by how the surfaces
+are designed and by what the UI states.
+
+| # | Invariant | Enforced by |
+| --- | --- | --- |
+| 1 | AI answers come from the knowledge base | `LiveAssistant` grounding + `NO_KNOWLEDGE_PACKAGE`; unanswered → `KnowledgeGap` |
+| 2 | The knowledge base is written only via governed paths | `kb.manage`-gated KB writes; `approveIntoKb` is the only creation path |
+| 3 | Nothing is deleted | Tasks archive (status `closed`); findings hide, not delete; the wholesale transcript-rewrite endpoint was removed |
+| 4 | Consent is by invitation | Real invitation recorded verbatim; policy-level, not a checkbox |
+| 5 | The live page shows cards, never a raw transcript | Live UI renders findings cards only |
+| 6 | Findings shelf is read-only; interaction lives in the AI panel | Ask/objection/hero/dot-feedback UX |
+| 7 | The assistant announces its state | "DeAlly is listening" idle + "AI Asks You" hero |
+| 8 | Reassignment changes nothing until approved | Draft plan applied only by `approvePlan` |
+| 9 | DeAlly steers, it does not echo | Noticed frames on customer lines; agent lines → steering prompts |
+| 10 | Notifications are set at the company level | Per-tenant toggles in Settings (account-manager only) gate emissions |
+| 11 | Retention is tier-driven, platform-controlled | RetentionService tier; only platform support changes it |
+| 12 | Errors are visible to the person who triggered them | Call-scoped `Activity` history on the call detail modal |
+| 13 | Deal-status flags close only inside review surfaces | Flag resolution from review-task modal / full review only |
+| 14 | Paraphrases are short, present-tense, never quoted | ≤ 12 words + server-side `normalizeParaphrase` |
+| 15 | Ending a call always creates the review task | `CallController::end()` → `firstOrCreate` "Review Call" due +24h |
+| 16 | The review task shows the agent performance score | Same snapshot as Coaching Review via `CallReviewBrief::agentPerformance()` |
+| 17 | Missed sessions move risk; deal flags move deals | `RiskService` Critical/at-risk separate from deal-risk flag |
+| 18 | Cadence changes apply to future sessions only | `changeCadence` never rewrites scheduled sessions |
+| 19 | A task is todo or closed — nothing else | Binary status; `scopeOverdue` computed |
+| 20 | Every task carries an explicit due time | Date-only values rejected on Tasks + quick-add |
+
+The full list with per-invariant notes lives in **Product guarantees** in
+[docs/system-overview.md](docs/system-overview.md).
+
 ## Documentation
 
 | Document | What it covers |
@@ -236,7 +271,7 @@ The same setup notes are also served in-app at `/docs` and `/docs/ai`, reachable
 php artisan test
 ```
 
-The suite runs against an in-memory SQLite central database — 271 tests, 1,075 assertions. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, recording retention, replay streaming, the review page's contents, Groq/OpenAI configuration, and credential non-disclosure. `CallLifecycleTest` covers call completion and the demo-transcript guard, including preserving genuinely captured audio. `CallInitiationAndReviewTest` covers the whole initiation and review lifecycle, and a large part of it asserts that the system does **not** invent things: no join URL without a provider response, no `joined` bot without a confirmation, no fabricated customer-panel signals, no paraphrase wrapped in quotation marks, no foreign transcript line on an objection, no "sent" invitation when delivery failed, and a review task that refuses to close while a deal-status flag is open. It also guards the reverse failure — a record nothing reads: the `heard` cards must appear in both the review task and the review page.
+The suite runs against an in-memory SQLite central database — 292 tests, 1,184 assertions. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, recording retention, replay streaming, the review page's contents, Groq/OpenAI configuration, and credential non-disclosure. `CallLifecycleTest` covers call completion and the demo-transcript guard, including preserving genuinely captured audio. `CallInitiationAndReviewTest` covers the whole initiation and review lifecycle, and a large part of it asserts that the system does **not** invent things: no join URL without a provider response, no `joined` bot without a confirmation, no fabricated customer-panel signals, no paraphrase wrapped in quotation marks, no foreign transcript line on an objection, no "sent" invitation when delivery failed, and a review task that refuses to close while a deal-status flag is open. It also guards the reverse failure — a record nothing reads: the `heard` cards must appear in both the review task and the review page.
 
 Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, call assignment, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
 

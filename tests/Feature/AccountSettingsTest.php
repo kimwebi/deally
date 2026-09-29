@@ -93,6 +93,55 @@ class AccountSettingsTest extends TestCase
         $this->assertSame(150000, AccountSetting::current()->demandThreshold());
     }
 
+    public function test_an_owner_can_set_notification_categories_for_the_company(): void
+    {
+        $alice = $this->user('alice@example.com');
+
+        $this->actingAs($alice)
+            ->put(route('deally.settings.update'), [
+                'name' => $alice->name,
+                'email' => $alice->email,
+                'notifications' => ['expert_gaps' => '0', 'call_reports' => '1'],
+            ])
+            ->assertSessionHas('toast');
+
+        $tenant = $alice->memberships()->active()->with('tenant')->first()->tenant->fresh();
+
+        $this->assertFalse($tenant->settings['notifications']['expert_gaps']);
+        $this->assertTrue($tenant->settings['notifications']['call_reports']);
+    }
+
+    public function test_a_sales_agent_cannot_change_notification_categories(): void
+    {
+        $charlie = $this->user('charlie@example.com');
+
+        $this->actingAs($charlie)
+            ->put(route('deally.settings.update'), [
+                'name' => $charlie->name,
+                'email' => $charlie->email,
+                'notifications' => ['expert_gaps' => '0', 'call_reports' => '0'],
+            ])
+            ->assertSessionHas('toast');
+
+        // Unchanged from the seeded default of on.
+        $tenant = $charlie->memberships()->active()->with('tenant')->first()->tenant->fresh();
+
+        $this->assertTrue($tenant->settings['notifications']['expert_gaps'] ?? true);
+    }
+
+    public function test_the_settings_page_lists_notification_categories_for_everyone(): void
+    {
+        $charlie = $this->user('charlie@example.com');
+
+        $this->actingAs($charlie)
+            ->get(route('deally.settings.index'))
+            ->assertOk()
+            ->assertSee('Expert Answers queue')
+            ->assertSee('Call reports')
+            // ...but the toggles themselves are account managers' controls.
+            ->assertDontSee('notifications[expert_gaps]');
+    }
+
     private function user(string $email): User
     {
         return User::query()->where('email', $email)->firstOrFail();

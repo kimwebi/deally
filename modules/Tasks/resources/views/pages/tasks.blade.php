@@ -56,7 +56,7 @@
                         <form method="POST" action="{{ route('deally.tasks.destroy', $task) }}" style="display: inline;">
                             @csrf
                             @method('DELETE')
-                            <button class="row-action" type="submit" onclick="return confirm('Delete this task?')">✕</button>
+                            <button class="row-action" type="submit" onclick="return confirm('Archive this task? It stays on the closed list.')" title="Archive (close)">🗄</button>
                         </form>
                     </td>
                 </tr>

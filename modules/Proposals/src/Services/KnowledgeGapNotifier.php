@@ -39,6 +39,12 @@ class KnowledgeGapNotifier
             return;
         }
 
+        /* Notification categories are decided at the company level; if the
+           account turned the Expert Answers queue off, nobody is pinged. */
+        if (! ($tenant->settings['notifications']['expert_gaps'] ?? true)) {
+            return;
+        }
+
         $users = User::query()
             ->whereIn('id', $this->queueUserIds($tenant->id))
             ->get();

@@ -5,10 +5,18 @@ namespace Deally\Core\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    /**
+     * Notification types that get their own tab; everything else lands in General.
+     *
+     * @var array<int, string>
+     */
+    private const SPECIFIC_TABS = ['gap', 'call'];
+
     public function index(Request $request): View
     {
         $notifications = $request->user()
@@ -17,7 +25,51 @@ class NotificationController extends Controller
             ->take(100)
             ->get();
 
-        return view('core::pages.notifications.index', ['notifications' => $notifications]);
+        $tab = $this->resolveTab($request);
+
+        $visible = match ($tab) {
+            'general' => $notifications->reject(
+                fn (DatabaseNotification $notification): bool => in_array($notification->type, self::SPECIFIC_TABS, true)
+            ),
+            'gap', 'call' => $notifications->where('type', $tab),
+            default => $notifications,
+        };
+
+        return view('core::pages.notifications.index', [
+            'notifications' => $notifications,
+            'visible' => $visible,
+            'tab' => $tab,
+            'tabCounts' => $this->tabCounts($notifications),
+        ]);
+    }
+
+    protected function resolveTab(Request $request): string
+    {
+        $tab = (string) $request->query('tab', 'all');
+
+        if (! in_array($tab, ['all', 'general', ...self::SPECIFIC_TABS], true)) {
+            return 'all';
+        }
+
+        return $tab;
+    }
+
+    /**
+     * @param  Collection<int, DatabaseNotification>  $notifications
+     * @return array<string, int>
+     */
+    protected function tabCounts(Collection $notifications): array
+    {
+        $general = $notifications->reject(
+            fn (DatabaseNotification $notification): bool => in_array($notification->type, self::SPECIFIC_TABS, true)
+        );
+
+        return [
+            'all' => $notifications->count(),
+            'general' => $general->count(),
+            'gap' => $notifications->where('type', 'gap')->count(),
+            'call' => $notifications->where('type', 'call')->count(),
+        ];
     }
 
     public function read(Request $request, DatabaseNotification $notification): RedirectResponse
