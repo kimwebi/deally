@@ -193,66 +193,28 @@ class CallInitiationAndReviewTest extends TestCase
         $this->assertNull($call->meeting_platform);
     }
 
-    public function test_scheduling_a_call_picks_the_customer_role_from_the_offerings(): void
+    public function test_scheduling_a_call_stores_the_customer_job_title_verbatim(): void
     {
         $this->actingAs($this->alice())
             ->post(route('deally.calls.store'), [
                 'name' => 'Discovery',
                 'company' => 'Acme Corp',
-                'contact_role' => 'CTO',
+                'contact_role' => 'VP Engineering',
             ])
             ->assertRedirect();
 
         $call = Call::query()->where('company', 'Acme Corp')->latest('id')->firstOrFail();
 
-        $this->assertSame('CTO', $call->contact_role);
+        $this->assertSame('VP Engineering', $call->contact_role);
     }
 
-    public function test_the_other_marker_never_stores_as_a_role(): void
-    {
-        $this->actingAs($this->alice())
-            ->post(route('deally.calls.store'), [
-                'name' => 'Discovery',
-                'company' => 'Acme Corp',
-                'contact_role' => Call::CONTACT_ROLE_OTHER,
-                'contact_role_other' => 'Security Officer',
-            ])
-            ->assertRedirect();
-
-        $call = Call::query()->where('company', 'Acme Corp')->latest('id')->firstOrFail();
-
-        $this->assertSame('Security Officer', $call->contact_role);
-    }
-
-    public function test_a_blank_custom_role_does_not_store_the_marker(): void
-    {
-        $this->actingAs($this->alice())
-            ->post(route('deally.calls.store'), [
-                'name' => 'Discovery',
-                'company' => 'Acme Corp',
-                'contact_role' => Call::CONTACT_ROLE_OTHER,
-                'contact_role_other' => '   ',
-            ])
-            ->assertRedirect();
-
-        $call = Call::query()->where('company', 'Acme Corp')->latest('id')->firstOrFail();
-
-        $this->assertNull($call->contact_role);
-    }
-
-    public function test_the_new_call_form_offers_the_common_customer_roles(): void
+    public function test_the_new_call_form_asks_for_the_customer_job_title_not_a_role(): void
     {
         $this->actingAs($this->alice())
             ->get(route('deally.calls.index'))
             ->assertOk()
-            ->assertSee('Contact role')
-            ->assertSee('CTO')
-            ->assertSee('Solutions Admin')
-            ->assertSee('Other…');
-
-        $this->assertContains('CTO', Call::contactRoles());
-        $this->assertContains('Manager', Call::contactRoles());
-        $this->assertContains('Solutions Admin', Call::contactRoles());
+            ->assertSee('Contact job title')
+            ->assertSee('e.g. CTO, VP Engineering');
     }
 
     public function test_admitting_the_bot_reports_unavailable_rather_than_claiming_success(): void

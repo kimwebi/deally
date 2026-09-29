@@ -179,12 +179,10 @@ querying the model, as `CallController::store()` does, and scope the check to th
   "assignee_user_id": 3
 }
 ```
-`contact_role` is the customer's job title. It is picked from a list of common
-roles in the New Call form (CTO, Manager, Finance, Solutions Admin, …) or typed
-via **Other…**; the value is stored verbatim, so the live-call context card and
-call detail can show the title the rep chose. A request carrying the
-`__other__` marker is mapped by the server to the typed `contact_role_other`
-value, so the marker itself never lands on a call.
+`contact_role` is the customer's job title, typed by the rep at scheduling —
+CTO, VP Engineering, Head of Procurement, anything. It is explicitly not a value
+from the account's access-role system; it is free text, stored verbatim, and
+shown on the live-call context card and call detail as the title the rep chose.
 
 What the endpoint does:
 
