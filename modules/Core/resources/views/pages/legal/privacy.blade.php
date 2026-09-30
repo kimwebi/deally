@@ -32,8 +32,8 @@
         <div class="docs-section">
             <div class="docs-heading">1 · Overview</div>
             <p class="docs-text">
-                This Privacy Policy explains what Wyzone Labs ("we", "us") collects when your
-                organization uses DeAlly (the "Service"), why we collect it, and the choices you
+                This Privacy Policy explains what Wyzone Labs collects when your
+                organization uses DeAlly, why we collect it, and the choices you
                 have. "You" means the organization that runs a DeAlly workspace and the people
                 invited into it.
             </p>

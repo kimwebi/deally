@@ -32,8 +32,7 @@
         <div class="docs-section">
             <div class="docs-heading">1 · Agreement</div>
             <p class="docs-text">
-                These Terms of Service ("Terms") govern your access to and use of DeAlly (the
-                "Service"), operated by Wyzone Labs ("we", "us", "our"). By creating an account,
+                These Terms of Service govern your access to and use of DeAlly, operated by Wyzone Labs. By creating an account,
                 you agree to these Terms. If you use the Service on behalf of an organization,
                 you agree to these Terms on its behalf and confirm that you are authorized to do so.
             </p>
@@ -42,8 +41,8 @@
         <div class="docs-section">
             <div class="docs-heading">2 · The Service</div>
             <p class="docs-text">
-                DeAlly is a sales enablement platform that pairs sales tools — calls, pipeline,
-                tasks, proposals — with a live AI assistant. During a call it can record audio,
+                DeAlly is a sales enablement platform that pairs sales tools like calls, pipeline,
+                tasks, proposals with a live AI assistant. During a call it can record audio,
                 transcribe the conversation, analyze it for signals (buying intent, objections,
                 competitors, risks, knowledge gaps), and suggest knowledge-grounded replies drawn
                 from your organization's knowledge base.
@@ -90,7 +89,7 @@
                 conversation so far. AI output is generated and can be wrong, outdated, or
                 inappropriate. It is decision support, not legal, financial, or compliance advice.
                 You are responsible for what is said on your calls, and you should confirm any
-                claim — especially about pricing and commitments — before making it to a customer.
+                claim, especially about pricing and commitments, before making it to a customer.
                 Transcription and analysis are provided by third-party AI providers; see our
                 <a href="{{ route('legal.privacy') }}" style="color: var(--violet);">Privacy Policy</a>.
             </p>
