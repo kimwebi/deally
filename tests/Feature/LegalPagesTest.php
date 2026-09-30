@@ -33,6 +33,14 @@ class LegalPagesTest extends TestCase
             ->assertSee(route('legal.terms'));
     }
 
+    public function test_legal_pages_render_copyright_footer(): void
+    {
+        $footer = '© '.date('Y').' DeAlly · AI-powered sales enablement · Wyzone Labs';
+
+        $this->get(route('legal.terms'))->assertOk()->assertSee($footer);
+        $this->get(route('legal.privacy'))->assertOk()->assertSee($footer);
+    }
+
     public function test_sign_in_page_links_to_terms_and_privacy(): void
     {
         $this->get(route('login'))

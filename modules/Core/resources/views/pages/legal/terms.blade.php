@@ -171,6 +171,10 @@
             </p>
         </div>
     </div>
+
+    <footer class="system-footer">
+        <span class="system-footer-copy">© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
+    </footer>
 </div>
 
 </body>
