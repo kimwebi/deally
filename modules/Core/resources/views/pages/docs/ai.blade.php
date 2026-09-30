@@ -143,13 +143,14 @@
                     <tr><td><span class="font-mono">LIVE_AI_DRIVER</span></td><td><span class="font-mono">auto</span></td><td>auto · groq · openai · dummy</td></tr>
                     <tr><td><span class="font-mono">GROQ_API_KEY</span></td><td>—</td><td>Enables the Groq driver.</td></tr>
                     <tr><td><span class="font-mono">GROQ_TRANSCRIPTION_MODEL</span></td><td><span class="font-mono">whisper-large-v3-turbo</span></td><td>Audio transcription.</td></tr>
-                    <tr><td><span class="font-mono">GROQ_CHAT_MODEL</span></td><td><span class="font-mono">openai/gpt-oss-20b</span></td><td>Suggested replies &amp; answers.</td></tr>
+                    <tr><td><span class="font-mono">GROQ_CHAT_MODEL</span></td><td><span class="font-mono">openai/gpt-oss-20b</span></td><td>Suggested replies, answers &amp; default analysis model.</td></tr>
                     <tr><td><span class="font-mono">GROQ_TIMEOUT</span></td><td><span class="font-mono">45</span></td><td>Request timeout (seconds).</td></tr>
                     <tr><td><span class="font-mono">GROQ_CA_BUNDLE</span></td><td>—</td><td>Path to a CA bundle used to verify Groq's certificate.</td></tr>
                     <tr><td><span class="font-mono">OPENAI_CA_BUNDLE</span></td><td>—</td><td>Same, for the OpenAI driver.</td></tr>
                     <tr><td><span class="font-mono">OPENAI_API_KEY</span></td><td>—</td><td>Enables the OpenAI driver.</td></tr>
                     <tr><td><span class="font-mono">OPENAI_TRANSCRIPTION_MODEL</span></td><td><span class="font-mono">whisper-1</span></td><td>Audio transcription.</td></tr>
-                    <tr><td><span class="font-mono">OPENAI_CHAT_MODEL</span></td><td><span class="font-mono">gpt-4o-mini</span></td><td>Suggested replies &amp; answers.</td></tr>
+                    <tr><td><span class="font-mono">OPENAI_CHAT_MODEL</span></td><td><span class="font-mono">gpt-4o-mini</span></td><td>Suggested replies, answers &amp; default analysis model.</td></tr>
+                    <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_MODEL</span></td><td>provider chat model</td><td>Optional override for the findings analysis — set one with stronger factual recall for more direct answers.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_WINDOW</span></td><td><span class="font-mono">8</span></td><td>Transcript lines sent for analysis.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_ANALYSIS_MIN_INTERVAL</span></td><td><span class="font-mono">10</span></td><td>Minimum seconds between analysis runs.</td></tr>
                     <tr><td><span class="font-mono">LIVE_AI_SHELF_LIMIT</span></td><td><span class="font-mono">10</span></td><td>Newest findings rendered in the shelf; older ones stay saved.</td></tr>
@@ -159,6 +160,14 @@
             <p class="docs-text" style="margin-top:10px;">After changing these, run <span class="font-mono">php artisan config:clear</span>.<br>
                 If suggestions stay empty, your Groq key or the configured chat model may not be available on your
                 account — try a broadly available model such as <span class="font-mono">llama-3.3-70b-versatile</span>.</p>
+            <p class="docs-text" style="margin-top:10px;">
+                For more factual findings, run a model with stronger factual recall. The default
+                <span class="font-mono">openai/gpt-oss-20b</span> answers everyday how-tos well but hedges on niche facts
+                ("Let me confirm and I'll get back to you"). Set
+                <span class="font-mono">LIVE_AI_ANALYSIS_MODEL=llama-3.3-70b-versatile</span> to strengthen only the
+                findings cards, or raise <span class="font-mono">GROQ_CHAT_MODEL=openai/gpt-oss-120b</span> to also improve
+                suggested replies and Ask answers — both are broadly available on Groq. Change in
+                <span class="font-mono">.env</span>, then run <span class="font-mono">php artisan config:clear</span>.</p>
             <div class="docs-section">
                 <div class="docs-heading">When nothing transcribes</div>
                 <p class="docs-text">The browser console showing <span class="font-mono">transcription_unavailable</span>

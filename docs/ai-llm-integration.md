@@ -205,6 +205,27 @@ After configuration changes, clear Laravel's cached configuration in a deployed 
 php artisan config:clear
 ```
 
+### Choosing the analysis model for more factual findings
+
+Findings come from a chat model: `GROQ_CHAT_MODEL` by default, or `LIVE_AI_ANALYSIS_MODEL` when that override is set. The default `openai/gpt-oss-20b` is a compact model — fine for everyday how-tos and commonsense questions, but on niche facts (a product launch date, an obscure geography or history fact) it hedges into `knowledge_gap` ("let me confirm and I'll get back to you") rather than risk a wrong answer. If findings keep deflecting questions that do have an answer, route the findings pass at a model with stronger factual recall:
+
+```env
+# Targets only the structured analysis pass that creates findings
+LIVE_AI_ANALYSIS_MODEL=llama-3.3-70b-versatile
+```
+
+or lift the shared chat model to also improve the spoken suggestions and Ask DeAlly answers:
+
+```env
+GROQ_CHAT_MODEL=openai/gpt-oss-120b
+```
+
+- `LIVE_AI_ANALYSIS_MODEL` is the surgical knob: transcription and the cheap default stay put, only the cards get the bigger brain.
+- `GROQ_CHAT_MODEL` (and `OPENAI_CHAT_MODEL` on the OpenAI driver) is the default analysis model when no override is set, and also powers suggested replies and Ask answers — raising it improves facts everywhere at a slightly higher cost and latency per call.
+- On Groq, `llama-3.3-70b-versatile` and `openai/gpt-oss-120b` are broadly available with better factual recall than the 20B default. Bigger models hedge less but answer slightly slower and cost more per call — worth it when factual answers are the point of the findings.
+- The grounding guard is unchanged regardless of model: this company's own prices and features must still come from the knowledge base, and every model answer stays labelled `answered from model knowledge — verify before quoting`.
+- Change the value in `.env` and run `php artisan config:clear`; new calls pick it up immediately.
+
 ## Endpoints
 
 All live-call mutation routes use the `deally` middleware group and therefore require authentication, a valid CSRF token, the `deally.calls.manage` permission, and seat access to the call. Provider credentials are read only from Laravel configuration.
