@@ -150,7 +150,7 @@
                     <input id="obj-input" class="obj-input" placeholder="What did they push back on?" hidden>
                     <div class="chat-input-inner">
                         <span class="chat-input-icon"><i class="bi bi-stars"></i></span>
-                        <input id="query-input" class="chat-input" placeholder="Ask DeAlly — pricing, comparison, feature check…">
+                        <textarea id="query-input" class="chat-input" rows="1" maxlength="4000" placeholder="Ask DeAlly — pricing, comparison, feature check… (Enter to send, Shift+Enter for a new line)"></textarea>
                         <button class="chat-send" id="query-send">→</button>
                     </div>
                 </div>

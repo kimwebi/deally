@@ -44,7 +44,13 @@
 </div>
 
 <div class="auth-footer">
-    <span>© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
+    <span class="auth-legal">
+        <span>© {{ date('Y') }} DeAlly · AI-powered sales enablement · Wyzone Labs</span>
+        <span class="auth-legal-sep">·</span>
+        <a href="{{ route('legal.terms') }}">Terms</a>
+        <span class="auth-legal-sep">·</span>
+        <a href="{{ route('legal.privacy') }}">Privacy</a>
+    </span>
     <div class="auth-docs" id="auth-docs">
         <button class="auth-docs-toggle" id="auth-docs-toggle" type="button" aria-expanded="false" aria-controls="auth-docs-list">
             Docs <i class="bi bi-chevron-up"></i>

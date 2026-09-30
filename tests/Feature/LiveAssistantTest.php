@@ -1324,6 +1324,25 @@ class LiveAssistantTest extends TestCase
         });
     }
 
+    public function test_a_long_paragraph_question_is_accepted_and_answered(): void
+    {
+        Http::fake([
+            'api.openai.com/v1/chat/completions*' => Http::response([
+                'choices' => [['message' => ['content' => 'Break the rollout into regional pilots with staggered go-live dates.']]],
+            ]),
+        ]);
+
+        $call = Call::factory()->create(['company' => 'Acme Corp']);
+
+        // ~2,600 characters — comfortably beyond the old 1,000-char cap.
+        $longQuestion = implode(' ', array_fill(0, 25, 'How does the rollout work across multiple regions with staggered pilot timelines and approval gates?'));
+
+        $this->actingAs($this->alice())
+            ->postJson(route('deally.calls.live.query', $call), ['text' => $longQuestion])
+            ->assertOk()
+            ->assertJsonPath('answer', 'Break the rollout into regional pilots with staggered go-live dates.');
+    }
+
     public function test_global_ask_returns_a_knowledge_grounded_answer(): void
     {
         Http::fake([

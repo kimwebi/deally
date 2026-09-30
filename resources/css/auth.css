@@ -114,6 +114,17 @@
   color: var(--violet);
 }
 
+.auth-legal {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-legal-sep {
+  color: var(--text-4);
+}
+
 .auth-docs {
   position: relative;
   padding-left: 16px;

@@ -763,11 +763,16 @@
   min-width: 0;
   background: transparent;
   border: none;
-  padding: 6px 0;
+  padding: 8px 0;
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
+  resize: none;
+  line-height: 1.45;
+  overflow-y: auto;
+  max-height: 120px;
+  field-sizing: content;
 }
 .chat-input::placeholder { color: var(--text-4); }
 

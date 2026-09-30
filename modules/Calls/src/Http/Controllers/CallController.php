@@ -1298,7 +1298,7 @@ class CallController extends Controller
                resistance without the words to describe it. Making the text
                required made the empty branch below unreachable, so the button
                422'd and the objection was silently lost. */
-            'text' => ['nullable', 'string', 'max:1000'],
+            'text' => ['nullable', 'string', 'max:4000'],
         ]);
 
         $assistant = $this->assistant();
@@ -1403,7 +1403,7 @@ class CallController extends Controller
         $this->authorizeDeally('deally.calls.view');
 
         $data = $request->validate([
-            'text' => ['required', 'string', 'max:1000'],
+            'text' => ['required', 'string', 'max:4000'],
         ]);
 
         $text = trim((string) $data['text']);

@@ -1630,7 +1630,10 @@ export function initLiveAssistant() {
         };
         querySend.addEventListener('click', chatSubmit);
         queryInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') chatSubmit();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatSubmit();
+            }
         });
     }
 
