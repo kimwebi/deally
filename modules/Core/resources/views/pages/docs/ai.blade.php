@@ -61,9 +61,10 @@
                 already reported, so the shelf shows what is new.
             </p>
             <p class="docs-text">
-                General questions are answered from the model's own knowledge — geography, industry norms,
-                definitions, how a product category works — because a visible non-answer costs you credibility
-                with a customer who can already tell the question is answerable. Anything about
+                General questions are answered from the model's own knowledge — geography, history, industry
+                norms, definitions, how a product category works, and everyday how-tos like setting up data on a
+                customer's own phone — because a visible non-answer costs you credibility with a customer who can
+                already tell the question is answerable. Anything about
                 <strong>our commercial terms</strong> is different: prices, discounts, contract wording, seat
                 limits, SLAs, timelines, and certifications are never guessed. A model answer is labelled
                 <span class="font-mono">answered from model knowledge — verify before quoting</span>, so you

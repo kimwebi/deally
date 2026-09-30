@@ -1197,6 +1197,13 @@ class LiveAssistantTest extends TestCase
         // from inventing our own commercial terms.
         $this->assertStringContainsString('from your own knowledge', $prompt);
         $this->assertStringNotContainsString('Never answer from your own', $prompt);
+
+        // Everyday how-tos about the customer's own devices (e.g. "how do I turn
+        // on data roaming on a Samsung S24 Ultra?") are model knowledge too — only
+        // the company's own commercial terms may not be invented.
+        $this->assertStringContainsString('everyday how-tos and support', $prompt);
+        $this->assertStringContainsString("customer's own devices", $prompt);
+        $this->assertStringContainsString('well-documented answer is not a gap', $prompt);
     }
 
     public function test_findings_are_restored_on_the_live_page(): void
