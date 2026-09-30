@@ -40,7 +40,10 @@
                 real time.
             </p>
             <p class="docs-text">
-                Audio is captured in 4-second windows, and every window is transcribed. Filler that
+                Audio is captured in 4-second windows, and every window is transcribed. Because each
+                window is transcribed on its own and analysis reads the last eight lines, a customer
+                question that runs across several windows — or pauses mid-question — still reaches the
+                assistant whole rather than being cut off at the window boundary. Filler that
                 speech-to-text models invent for audio with no speech is discarded server-side, so the
                 transcript only holds what was actually said. Only genuinely silent windows are skipped;
                 if you speak quietly, your words are still transcribed. If a source stops being loud enough
@@ -214,7 +217,7 @@
             <div class="code-block mono"><span class="code-method">POST</span> /app/calls/{call}/live/transcribe</div>
             <p class="docs-text">Multipart upload, <span class="font-mono">audio</span> field (max 10 MB). Returns the transcript, any new findings, and the stream's cards.</p>
             <div class="code-block mono" style="margin-top:10px;"><span class="code-method">POST</span> /app/calls/{call}/live/query</div>
-            <p class="docs-text">JSON body with <span class="font-mono">text</span> (max 1000 chars). Returns an answer plus cards.</p>
+            <p class="docs-text">JSON body with <span class="font-mono">text</span> (max 4000 chars). Returns an answer plus cards. The Ask box grows with the question — Enter sends, Shift+Enter starts a new line — so a long ask is typed and read back in full.</p>
         </div>
     </div>
 

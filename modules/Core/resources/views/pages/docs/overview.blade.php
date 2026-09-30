@@ -78,10 +78,11 @@
                 <li><b>Service Reviews</b> — recurring account check-ins with reschedule, hold, and catch-up.</li>
                 <li><b>Tasks</b> — follow-up tasks with one-click completion; the per-call review task opens in a modal.</li>
                 <li><b>Proposals</b> — documents tied to calls and opportunities, editable in place.</li>
-                <li><b>Knowledge Base</b> — the source of truth the AI answers from.</li>
+                <li><b>Knowledge Base</b> — the source of truth the AI answers from; a searchable, paginated flashcard library where each card opens to a full view.</li>
                 <li><b>Reporting</b> — team performance, account, coaching, and task reporting.</li>
                 <li><b>Admin</b> — users, roles, and teams scoped to the tenant, with a reassignment plan for removed sales agents.</li>
                 <li><b>Ask DeAlly</b> — a global command bar (⌘K) that answers any question from the knowledge base.</li>
+                <li><b>Legal</b> — public Terms of Service and Privacy Policy pages, linked from the login footer next to the docs.</li>
             </ul>
         </div>
 
@@ -90,10 +91,10 @@
             <p class="docs-text">The agent opens the live call screen, presses Start, and DeAlly takes over the busywork:</p>
             <ol class="docs-list">
                 <li><b>Listen</b> — the mic, and the shared meeting audio, stream short audio chunks to the server as two independent sources.</li>
-                <li><b>Transcribe</b> — each chunk becomes a transcript line (Groq or OpenAI Whisper). Silence is a no-op, not an invented line.</li>
+                <li><b>Transcribe</b> — each 4-second chunk becomes a transcript line (Groq or OpenAI Whisper). A long question that runs across several chunks is assembled in full rather than cut off; silence is a no-op, not an invented line.</li>
                 <li><b>Analyse</b> — every few seconds the recent conversation is scanned for buying signals, intent, objections, competitors, risk, and knowledge gaps, and for short grounded replies.</li>
                 <li><b>Show</b> — findings land on the Findings panel, and a one-line paraphrase of what was just said appears in the stream beside it.</li>
-                <li><b>Ask</b> — the agent can type any ad-hoc question and get a plain-English answer to read to the customer.</li>
+                <li><b>Ask</b> — the agent can type any ad-hoc question and get a plain-English answer to read to the customer. The box grows with the question (up to 4,000 characters; Enter sends, Shift+Enter starts a new line), so a long ask is never cut off.</li>
                 <li><b>Object</b> — flag an objection; if the AI can't answer confidently it opens a knowledge gap, alerts the Solutions Lead, and tells the agent what to ask.</li>
                 <li><b>End</b> — press End Call; the transcript, the recording, and a short summary are ready automatically.</li>
             </ol>

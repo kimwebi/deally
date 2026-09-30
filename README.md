@@ -12,7 +12,7 @@ The application is split into feature modules, each with its own `routes/`, `res
 | `Calls` | `Deally\Calls` | `/app/calls` | `calls::` | Call initiation, dual-stream live AI capture, ephemeral stream, replay, review, corrections, and post-call summary |
 | `Pipeline` | `Deally\Pipeline` | `/app/pipeline` | `pipeline::` | Sales pipeline (list/board), customer accounts & contacts, deals, risk tiers, service reviews |
 | `Tasks` | `Deally\Tasks` | `/app/tasks` | `tasks::` | Task management, including the per-call review task and its deal-status gate |
-| `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and knowledge base |
+| `Proposals` | `Deally\Proposals` | `/app/proposals` | `proposals::` | Proposals and a searchable, paginated knowledge base |
 | `Solutions` | `Deally\Solutions` | `/app/solutions` | `solutions::` | Solutions lead: gap queue, corrections, VOC trends |
 | `Settings` | `Deally\Settings` | `/app/account` | `settings::` | User account settings, roles, teams, users, integrations |
 | `Workspace` | `Deally\Workspace` | `/app/home` | `workspace::` | Workspace dashboard |
@@ -220,6 +220,13 @@ Analysis deliberately runs on agent lines too. Gating it to customer lines produ
 
 Accepted results are stored as `CallFinding` rows, rendered in the live Findings shelf, restored after reloading, and linked to the source transcript line. Every card in the stream is also written to `call_ephemerals` before the response returns, so "clear the findings" hides cards without deleting rows, and the review task and review page read those rows back. Reps can mark findings **unhelpful**; that feedback creates a deduplicated gap for the Solutions workflow.
 
+**Long transcriptions and questions.** Audio is transcribed in independent 4-second windows rather
+than one long file, and analysis always draws on the most recent eight transcript lines — so a
+customer question that runs across several windows, or pauses in the middle, still reaches the model
+whole. The live Ask box is an auto-growing textarea capped at 4,000 characters; **Enter** sends and
+**Shift+Enter** starts a new line, so a rep can paste or type a long question without losing the
+input or cutting it off.
+
 Provider credentials and requests stay on the server. `LIVE_AI_DRIVER` accepts `auto`, `groq`, `openai`, or `dummy`; `auto` prefers Groq, then OpenAI, and only uses the deterministic demo driver outside production. Configure the matching `GROQ_*` or `OPENAI_*` variables in `.env.example`. Completed calls reject new audio, chunk retries are idempotent, silence is handled without a fake transcript, and the browser drains both upload queues before ending a call.
 
 ## Product guarantees (the non-negotiables)
@@ -263,7 +270,7 @@ The full list with per-invariant notes lives in **Product guarantees** in
 | [docs/ai-llm-integration.md](docs/ai-llm-integration.md) | Browser capture, transcription, the structured schema, the ephemeral stream, endpoints, configuration, persistence, and provider extension |
 | [docs/system-overview.md](docs/system-overview.md) | The product presentation view of DeAlly, with a demo script |
 
-The same setup notes are also served in-app at `/docs` and `/docs/ai`, reachable from the login footer.
+The same setup notes are also served in-app at `/docs` and `/docs/ai`. The login footer links those docs together with the public **Terms of Service** (`/terms`) and **Privacy Policy** (`/privacy`) pages.
 
 ## Tests
 
@@ -271,9 +278,9 @@ The same setup notes are also served in-app at `/docs` and `/docs/ai`, reachable
 php artisan test
 ```
 
-The suite runs against an in-memory SQLite central database — 292 tests, 1,184 assertions. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, recording retention, replay streaming, the review page's contents, Groq/OpenAI configuration, and credential non-disclosure. `CallLifecycleTest` covers call completion and the demo-transcript guard, including preserving genuinely captured audio. `CallInitiationAndReviewTest` covers the whole initiation and review lifecycle, and a large part of it asserts that the system does **not** invent things: no join URL without a provider response, no `joined` bot without a confirmation, no fabricated customer-panel signals, no paraphrase wrapped in quotation marks, no foreign transcript line on an objection, no "sent" invitation when delivery failed, and a review task that refuses to close while a deal-status flag is open. It also guards the reverse failure — a record nothing reads: the `heard` cards must appear in both the review task and the review page.
+The suite runs against an in-memory SQLite central database — 313 tests, 1,310 assertions. `DeallySmokeTest` seeds the demo data, provisions the Acme Corp tenant database, and covers guest login, authentication, all module pages, and the call detail/live/summary pages. `LiveAssistantTest` covers dual-stream transcription, long-question handling, speaker metadata, idempotent retries, provider failures, silence, lifecycle timestamps, throttled structured analysis, untrusted-output validation, persisted findings, knowledge-gap feedback, recording retention, replay streaming, the review page's contents, Groq/OpenAI configuration, and credential non-disclosure. `CallLifecycleTest` covers call completion and the demo-transcript guard, including preserving genuinely captured audio. `CallInitiationAndReviewTest` covers the whole initiation and review lifecycle, and a large part of it asserts that the system does **not** invent things: no join URL without a provider response, no `joined` bot without a confirmation, no fabricated customer-panel signals, no paraphrase wrapped in quotation marks, no foreign transcript line on an objection, no "sent" invitation when delivery failed, and a review task that refuses to close while a deal-status flag is open. It also guards the reverse failure — a record nothing reads: the `heard` cards must appear in both the review task and the review page.
 
-Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, call assignment, the proposal editor, the pipeline board/customer picker, the account demand threshold, and the reassignment-plan workflow. Tenant SQLite files are cleaned up after each test.
+Other feature tests cover the deal engagement log (stage moves, required lost reason, notes, possible-lost flag), risk tiers, Service Reviews (setup, cadence, reschedule, hold/cancel, catch-up, end, time clashes, missed → Critical), contacts, call assignment, the proposal editor, the pipeline board/customer picker, the account demand threshold, the reassignment-plan workflow, knowledge-base pagination/search/view (`KnowledgeBaseBrowseTest`), and the public Terms & Privacy pages (`LegalPagesTest`). Tenant SQLite files are cleaned up after each test.
 
 ## Formatting
 

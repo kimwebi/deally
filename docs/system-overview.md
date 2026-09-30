@@ -52,13 +52,14 @@ be built, tested, and shipped independently.
 | **Service Reviews** | Recurring per-customer check-in schedule with reschedule, hold, cancel, and catch-up. |
 | **Tasks** | Personal/team follow-up tasks with one-click toggle; the per-call review task opens in a modal and cannot be closed while a deal-status flag is open. |
 | **Proposals** | Build and edit proposals tied to calls, opportunities, and the knowledge base. |
-| **Knowledge Base (KB)** | The single source of truth the AI answers from (pricing, features, processes). |
+| **Knowledge Base (KB)** | The single source of truth the AI answers from (pricing, features, processes); a searchable, paginated flashcard library with a one-card detail view. |
 | **Reporting** | Team performance, account-level, coaching, and task reporting. |
 | **Activity** | Audit-style activity feed of important system events. |
 | **Notifications** | In-app call/lifecycle notifications with read state; pending AI gaps also surface in Workspace and the Solutions queue. |
 | **Settings** | Profile/preferences, the demand-account threshold, and admin (users, roles, teams) for tenant owners. |
 | **Tenant Management** | Platform admin: create, edit, and clone tenant instances. |
-| **Docs** | Public AI setup documentation page (also reachable from the login footer). |
+| **Docs** | Public AI setup documentation page. |
+| **Legal** | Public Terms of Service (`/terms`) and Privacy Policy (`/privacy`) pages. Docs, Terms and Privacy are all reachable from the login footer. |
 
 ---
 
@@ -79,7 +80,8 @@ findings and knowledge-grounded guidance.
 3. **Continuous server-side transcription** — `MediaRecorder` combines each source into 4-second
    chunks. Silent windows are dropped in the browser before upload, and DeAlly sends the rest to the
    configured provider, stores usable text as a `TranscriptLine`, and treats silence as a normal
-   no-op rather than inventing a line.
+   no-op rather than inventing a line. Each window is transcribed on its own, so a question that
+   spans several windows — or a long pause in the middle — is never cut off at the chunk boundary.
 4. **Structured conversation analysis** — after any chunk, whichever side spoke, a throttled
    rolling-window request (eight recent lines by default, no more often than every 10 seconds per
    call) detects buying signals, intent, objections, competitors, deal risk, and knowledge gaps.
@@ -96,7 +98,9 @@ findings and knowledge-grounded guidance.
 8. **Feedback improves the workflow** — the agent can mark a persisted finding **unhelpful**. That
    status is stored and a linked correction gap enters the Solutions queue.
 9. **Ask or flag on demand** — the agent can ask DeAlly a free-form question or flag an objection;
-   both use the recent transcript and Knowledge Base context. Missing answers become knowledge
+   both use the recent transcript and Knowledge Base context. The Ask box is an auto-growing
+   textarea that accepts up to 4,000 characters (**Enter** sends, **Shift+Enter** starts a new line),
+   so a long question is typed, pasted or read back in full. Missing answers become knowledge
    gaps rather than unsupported claims.
 10. **End without losing the tail** — End Call stops both recorders, flushes their final chunks,
     waits for both upload queues, then completes the call and opens its summary/review flow.
@@ -254,6 +258,12 @@ DeAlly turns three kinds of uncertainty into actionable Solutions work:
 Each gap can point back to the exact call, transcript line, and finding. The Solutions Lead can then
 add or correct the knowledge so future analysis and answers handle the same topic more confidently.
 
+**The queue never holds the same question twice.** A pending gap is keyed by its trimmed,
+case-insensitive text, so a repeated objection — or the same missing answer surfacing on several
+calls — is not re-added to the Solutions queue. Resolving one instance (approve, reject, or any
+non-edit action) also retires the sibling pending gaps for the same question, so an answer is never
+approved into the knowledge base (and never notified about) several times.
+
 ---
 
 ## 7. Product highlights across modules
@@ -280,6 +290,9 @@ add or correct the knowledge so future analysis and answers handle the same topi
   from the same company never duplicates the customer account.
 - **Proposals** — docs tied to opportunities and calls, archived per the retention policy; editable
   in place from the engagement log and the Proposals page.
+- **Knowledge Base** — a searchable, paginated flashcard library. Entries are served 12 at a time,
+  ordered by type then title; a search box filters by title, description or type with the query kept
+  across pages, and clicking any card opens a one-card detail view.
 - **Reporting** — team performance, per-account breakdowns, coaching review per call, and task progress.
 - **Admin** — users (with roles/seats), roles, and teams; all scoped to the tenant. Removing a **sales
   agent** routes through a **reassignment plan** (suggested least-loaded owners, per-customer override,
@@ -386,7 +399,8 @@ is enforced.
 
 > All demo users log in with the password `password` (see `README.md`).
 
-1. **Landing / login** — show the modern login, note the public **AI setup docs** link in the footer.
+1. **Landing / login** — show the modern login, note the public **Docs**, **Terms** and **Privacy**
+   links in the footer.
 2. **Home dashboard** — the user lands in their workspace after login.
 3. **Calls → schedule a call** — pick a platform, a session type, and a date. Read out that the
    platform says it is enabled but not connected, and that the invitation says the joining details
@@ -413,8 +427,8 @@ is enforced.
 10. **Pipeline / account health** — flip **List ↔ Board**, open a deal to show the **engagement log**,
     then open the customer to show its **risk tier** and **Service Review** schedule; set up a review on
     a customer that lacks one.
-11. **Knowledge Base / Solutions** — show the entries that ground every answer and the linked gap or
-    correction work created during the call.
+11. **Knowledge Base / Solutions** — browse the searchable, paginated flashcards, run a keyword
+    search, open a card to view it in full, then show the gap or correction work the call created.
 12. **Admin** — manage a user, role, or team; deactivate a sales agent to walk the **reassignment plan**
     (override, bulk-assign, approve); show tenant isolation.
 13. **Reporting** — team performance + coaching view tying it all together.

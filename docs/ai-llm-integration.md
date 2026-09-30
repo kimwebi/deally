@@ -388,7 +388,7 @@ JSON body:
 { "status": "unhelpful" }
 ```
 
-Allowed statuses are `helpful` and `unhelpful`. The finding must belong to the call in the URL. Marking a finding `unhelpful` creates or reuses a linked `KnowledgeGap` for the Solutions workflow, so repeated feedback does not create duplicate gaps.
+Allowed statuses are `helpful` and `unhelpful`. The finding must belong to the call in the URL. Marking a finding `unhelpful` creates or reuses a linked `KnowledgeGap` for the Solutions workflow, so repeated feedback does not create duplicate gaps. The same text-level dedupe applies across the whole queue: a pending gap is keyed by its trimmed, case-insensitive `type` + `text`, so the same objection or missing answer is never re-added, and resolving one instance also retires sibling pending gaps for the same question.
 
 Successful response:
 
@@ -406,7 +406,10 @@ JSON body:
 { "text": "What does the enterprise tier include?" }
 ```
 
-`text` is required and limited to 1,000 characters. A successful response contains a knowledge-grounded answer and up to two suggestion cards:
+`text` is required and limited to 4,000 characters. The Ask box is an auto-growing textarea —
+**Enter** sends and **Shift+Enter** starts a new line — so a long question is never collapsed to a
+single cramped line, and the cap matches a pasted or dictated paragraph rather than a one-liner. A
+successful response contains a knowledge-grounded answer and up to two suggestion cards:
 
 ```json
 {
@@ -477,6 +480,7 @@ The browser drains both source queues before submitting this form.
 - `calls.last_analyzed_at` records the latest attempt. This prevents a provider outage from causing every subsequent chunk to make another immediate request.
 - The default 4-second source chunks and 10-second analysis interval are tuned for a responsive findings cadence while keeping two-stream steady-state usage within the expected Groq request budget. Two streams at 4 seconds is roughly 30 transcription requests a minute, so a plan's rate limit is the binding constraint, not this default. These are not a global concurrency control: multiple simultaneous calls can exceed a provider account's limits. Raise `CHUNK_MS` in `resources/js/live-call.js` or `LIVE_AI_ANALYSIS_MIN_INTERVAL` if your account budget is tight.
 - `CHUNK_MS` is also a transcription-quality trade-off, not only a cost one. A window has to be long enough to contain a whole sentence with its context, and too long a window delays the first card. Below roughly 3 seconds, Whisper starts returning fragments; above roughly 8 seconds, a question that starts late in the window is cut off. 4 seconds sits inside that band.
+- **Long transcriptions and questions.** Because each window is transcribed on its own and analysis reads the last `LIVE_AI_ANALYSIS_WINDOW` (default 8) stored lines, a customer question that runs across several windows — or pauses in the middle — still reaches the model whole; the chunk boundary never cuts a sentence off mid-thought. The same principle applies to typed asks: the Ask input accepts up to 4,000 characters in an auto-growing textarea, so the full question is sent rather than a truncated opener.
 
 ### Signal and recommendation schema
 
@@ -723,13 +727,13 @@ A call with `started_at` or any real captured transcript is never overwritten by
 
 The primary coverage is in:
 
-- `tests/Feature/LiveAssistantTest.php` — driver selection, dual-stream upload, speaker labeling, idempotency, sequencing, silence, controlled failures, lifecycle timestamps, analysis throttling, strict provider output validation, findings persistence, knowledge gaps, feedback, Groq configuration, credential non-disclosure, query behavior, and authorization. It also covers recording retention across provider failures, replay streaming and its cross-call guard, the review page's contents, and the assistant's half of the downloaded transcript.
+- `tests/Feature/LiveAssistantTest.php` — driver selection, dual-stream upload, speaker labeling, idempotency, sequencing, silence, controlled failures, lifecycle timestamps, analysis throttling, strict provider output validation, findings persistence, knowledge gaps, long-question handling, feedback, Groq configuration, credential non-disclosure, query behavior, and authorization. It also covers recording retention across provider failures, replay streaming and its cross-call guard, the review page's contents, and the assistant's half of the downloaded transcript.
 - `tests/Feature/CallLifecycleTest.php` — call completion and demo transcript guards, including preserving genuinely captured audio.
 - `tests/Feature/CallInitiationAndReviewTest.php` — the `analyze()` contract's new scalars, the uniform silence response, the ephemeral stream's persistence, and the whole initiation and review lifecycle. See [call-lifecycle.md](call-lifecycle.md).
 
 Tests fake provider HTTP responses, so the suite does not require or make real AI provider calls. They also do not fake mail: the invitation is really rendered through the `log` mailer, so a change that breaks the mailable template fails the suite.
 
-The whole suite is 271 tests and 1,075 assertions. Run the narrowest relevant tests while developing, then the full suite:
+The whole suite is 313 tests and 1,310 assertions. Run the narrowest relevant tests while developing, then the full suite:
 
 ```bash
 php artisan test --compact
