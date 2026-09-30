@@ -231,6 +231,29 @@ class KnowledgeGapNotificationTest extends TestCase
         }
     }
 
+    public function test_wording_variants_of_the_same_question_share_a_single_queue_item(): void
+    {
+        $call = Call::factory()->create();
+        $url = route('deally.calls.objections.store', $call);
+
+        $first = $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => 'Worried about migrating off their legacy tool.'])
+            ->assertOk();
+
+        // Same question, different case, punctuation and spacing: it must reuse
+        // the pending queue item rather than adding another copy.
+        $second = $this->actingAs($this->user('alice@example.com'))
+            ->postJson($url, ['text' => '  WORRIED about MIGRATING off their legacy tool! '])
+            ->assertOk();
+
+        $this->assertSame($first->json('gap_id'), $second->json('gap_id'));
+
+        $this->assertSame(1, KnowledgeGap::query()
+            ->where('status', 'pending')
+            ->where('type', 'objection')
+            ->count());
+    }
+
     public function test_differently_worded_questions_each_get_their_own_queue_item(): void
     {
         $call = Call::factory()->create();
@@ -303,6 +326,34 @@ class KnowledgeGapNotificationTest extends TestCase
         foreach (['alice@example.com', 'bob@example.com', 'david@example.com'] as $email) {
             $this->assertCount(0, $this->gapNotifications($this->user($email), $duplicate->id));
         }
+    }
+
+    public function test_resolving_a_question_retires_wording_variant_duplicates(): void
+    {
+        $gap = $this->createGapViaFeedback();
+
+        // A re-phrased copy (case + punctuation) of the same question still
+        // standing in the queue must retire together with the resolved one,
+        // so the answer is written into the knowledge base only once.
+        $duplicate = KnowledgeGap::query()->create([
+            'type' => $gap->type,
+            'text' => strtoupper($gap->text).'!!',
+            'source' => 'Acme Demo · Re-surfaced question',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($this->user('david@example.com'))
+            ->post(route('deally.solutions.gaps.resolve', $gap), [
+                'action' => 'approve',
+                'type' => 'product',
+                'answer' => 'Yes — HIPAA compliance is included.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('live', $gap->refresh()->status);
+        $this->assertSame('resolved', $duplicate->refresh()->status);
+
+        $this->assertSame(1, KnowledgeEntry::query()->where('title', $gap->text)->count());
     }
 
     public function test_a_question_reappearing_after_resolution_is_added_again(): void

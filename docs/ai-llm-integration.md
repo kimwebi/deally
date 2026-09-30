@@ -388,7 +388,7 @@ JSON body:
 { "status": "unhelpful" }
 ```
 
-Allowed statuses are `helpful` and `unhelpful`. The finding must belong to the call in the URL. Marking a finding `unhelpful` creates or reuses a linked `KnowledgeGap` for the Solutions workflow, so repeated feedback does not create duplicate gaps. The same text-level dedupe applies across the whole queue: a pending gap is keyed by its trimmed, case-insensitive `type` + `text`, so the same objection or missing answer is never re-added, and resolving one instance also retires sibling pending gaps for the same question.
+Allowing a `knowledge_gap` finding to fire again does not stack cards: once a gap is created it stays the only pending copy of that question until it is resolved. Allowed statuses are `helpful` and `unhelpful`, and the finding must belong to the call in the URL. Marking a finding `unhelpful` creates or reuses a linked `KnowledgeGap` for the Solutions workflow, so repeated feedback does not create duplicate gaps. The same text-aware dedupe applies across the whole queue: a pending gap is keyed by its `type` and a canonical form of the text (lowercased, punctuation and whitespace ignored), so re-worded copies the model rephrased between passes or calls — "Do you support HIPAA?" vs "do you support hipaa !" — share one queue item instead of piling up, and resolving one instance also retires sibling pending gaps for the same question.
 
 Successful response:
 

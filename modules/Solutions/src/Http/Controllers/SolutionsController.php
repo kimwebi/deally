@@ -177,8 +177,8 @@ class SolutionsController extends Controller
             ->where('id', '!=', $gap->id)
             ->where('status', 'pending')
             ->where('type', $gap->type)
-            ->whereRaw('LOWER(text) = ?', [mb_strtolower(trim($gap->text))])
             ->get()
+            ->filter(fn (KnowledgeGap $duplicate): bool => KnowledgeGap::canonicalText($duplicate->text) === KnowledgeGap::canonicalText($gap->text))
             ->each(function (KnowledgeGap $duplicate) use ($notifier): void {
                 $duplicate->update(['status' => 'resolved']);
                 $notifier->clearResolved($duplicate);

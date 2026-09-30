@@ -1267,14 +1267,15 @@ class CallController extends Controller
         // gaps into the Solutions queue and, once approved, identical knowledge
         // base entries. The lookup is tenant-wide while the question is still
         // pending — once it leaves the queue, a genuine recurrence creates a
-        // new gap again. Matching on text subsumes the old call-finding dedupe,
-        // because the same finding always reports the same question.
+        // new gap again. Matching on canonical text (case, punctuation and
+        // whitespace insensitive) also catches wording variants the model
+        // rephrased between passes and calls, instead of queueing each copy.
         $gap = KnowledgeGap::query()
             ->where('status', 'pending')
             ->where('type', $payload['type'])
-            ->whereRaw('LOWER(text) = ?', [mb_strtolower(trim($payload['text']))])
             ->orderBy('id')
-            ->first();
+            ->get()
+            ->first(fn (KnowledgeGap $existing): bool => KnowledgeGap::canonicalText($existing->text) === KnowledgeGap::canonicalText($payload['text']));
 
         $gap ??= KnowledgeGap::query()->create($payload);
 

@@ -27,4 +27,16 @@ class KnowledgeGap extends Model
         'transcript_line_id',
         'call_finding_id',
     ];
+
+    /**
+     * Lowercase a question and strip everything but letters and digits, so
+     * wording variants that only differ by case, punctuation, or whitespace
+     * ("Do you support HIPAA?" vs "do you support hipaa !") compare equal.
+     */
+    public static function canonicalText(string $text): string
+    {
+        $collapsed = preg_replace('/[^\p{L}\p{N}]+/u', ' ', mb_strtolower($text));
+
+        return trim((string) preg_replace('/\s+/u', ' ', $collapsed ?? ''));
+    }
 }
