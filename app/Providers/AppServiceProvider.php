@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Deally\Core\Http\Controllers\BrochureController;
 use Deally\Core\Http\Controllers\DocsController;
 use Deally\Core\Http\Controllers\LegalController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
         Route::get('docs', [DocsController::class, 'index'])->name('docs.index');
         Route::get('terms', [LegalController::class, 'terms'])->name('legal.terms');
         Route::get('privacy', [LegalController::class, 'privacy'])->name('legal.privacy');
+        Route::get('brochure.pdf', BrochureController::class)->name('brochure.pdf');
     }
 
     public function boot(): void {}

@@ -1,0 +1,6 @@
+# dompdf runtime cache — regenerated on demand, never commit
+installed-fonts.json
+*.ufm
+*.ufm.json
+*.afm.json
+ibm_plex_*.ttf

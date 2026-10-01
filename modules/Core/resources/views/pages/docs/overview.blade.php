@@ -28,6 +28,7 @@
             <a href="{{ route('docs.overview') }}" class="btn-sm {{ request()->routeIs('docs.overview') ? 'primary' : '' }}">Product Overview</a>
             <a href="{{ route('docs.calls') }}" class="btn-sm {{ request()->routeIs('docs.calls') ? 'primary' : '' }}">Call Lifecycle</a>
             <a href="{{ route('docs.ai') }}" class="btn-sm {{ request()->routeIs('docs.ai') ? 'primary' : '' }}">Live AI Assistant</a>
+            <a href="{{ route('brochure.pdf') }}" class="btn-sm">Download Brochure (PDF)</a>
         </div>
 
         <div class="docs-section">
