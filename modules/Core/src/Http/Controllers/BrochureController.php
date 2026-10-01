@@ -15,7 +15,9 @@ class BrochureController extends Controller
      */
     public function __invoke()
     {
-        $pdf = Pdf::loadView('core::pages.brochure')
+        $pdf = Pdf::loadView('core::pages.brochure', [
+            'stylesheet' => file_get_contents(resource_path('css/brochure.css')),
+        ])
             ->setPaper('a4', 'portrait')
             ->output();
 

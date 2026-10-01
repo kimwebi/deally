@@ -1,0 +1,177 @@
+/* ---------------------------------------------------------------------------
+ * DeAlly marketing brochure — print stylesheet (dompdf).
+ *
+ * NOTE: this file is inlined into the PDF template by BrochureController.
+ * It is NOT part of the Vite bundle and must never be @import-ed by app.css —
+ * the selectors here are dompdf-safe (no CSS variables, no grid, no flex) and
+ * would clash with the live app if they ever shipped to the browser.
+ *
+ * Colours mirror the app's design tokens (resources/css/tokens.css), inlined
+ * as literals because dompdf does not support CSS custom properties.
+ * ------------------------------------------------------------------------- */
+
+@page { size: A4 portrait; margin: 18mm 16mm 18mm 16mm; }
+
+/* NOTE: never use a universal `* { margin: 0 }` reset here — dompdf applies it
+   to the page box itself, which silently cancels the @page margins above.
+   Reset only the elements this template actually uses. */
+* { box-sizing: border-box; }
+body,
+h1, h2, h3,
+p, ul, li,
+table, td, th,
+div, span { margin: 0; padding: 0; }
+
+body {
+    font-family: 'ibm-plex-sans', ui-monospace;
+    font-size: 8.5pt;
+    line-height: 1.34;
+    color: #e8ecf0;
+    background: #14171c;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Page shell — the footer is pinned to the bottom of every page so short
+   pages end on a rule instead of trailing off into dead space.
+   min-height must stay comfortably under the 261mm content box (297mm page
+   less the 18mm top/bottom @page margins); overshoot it and dompdf spills
+   every page onto a second, blank sheet. */
+.page {
+    position: relative;
+    min-height: 250mm;
+    padding: 0 2mm 2mm;
+    page-break-after: always;
+}
+.page.last { page-break-after: auto; }
+.pagefoot {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-top: 1pt solid #2e343d;
+    padding-top: 3pt;
+    font-family: 'ibm-plex-mono', fangsong;
+    font-size: 6pt;
+    color: #757575;
+}
+.pagefoot .right { text-align: right; color: #4a5059; }
+
+.mono { font-family: 'ibm-plex-mono', fangsong; }
+.label {
+    font-family: 'ibm-plex-mono', fangsong;
+    font-size: 7.5pt;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #00a2ed;
+    margin-bottom: 4pt;
+}
+h1 { font-size: 25pt; font-weight: 700; line-height: 1.12; letter-spacing: -0.01em; }
+h2 { font-size: 13.5pt; font-weight: 700; color: #e8ecf0; }
+h3 { font-size: 10.5pt; font-weight: 600; color: #e8ecf0; }
+p.lede { font-size: 11pt; color: #a8b0bc; margin-top: 8pt; }
+.text-2 { color: #a8b0bc; }
+.primary { color: #00a2ed; }
+.green { color: #4ade80; }
+.amber { color: #e8a22b; }
+.violet { color: #a78bfa; }
+.small { font-size: 8pt; }
+
+/* Brand header */
+.brandbar { border-bottom: 1pt solid #2e343d; padding-bottom: 8pt; margin-bottom: 14pt; }
+.wordmark {
+    font-family: 'ibm-plex-mono', fangsong; font-size: 17pt; font-weight: 400; color: #e8ecf0; letter-spacing: .02em; }
+.wordmark b { color: #00a2ed; font-weight: 400; }
+.brandsub { text-align: right; font-size: 8pt; color: #757575;
+    font-family: 'ibm-plex-mono', fangsong; }
+
+/* Hero */
+.hero .tag { margin-bottom: 10pt; }
+.cta-band {
+    background: #00a2ed;
+    color: #0b2b3d;
+    border-radius: 8pt;
+    padding: 10pt 14pt;
+    margin-top: 14pt;
+    font-family: 'ibm-plex-mono', monospace;
+    font-size: 8.5pt;
+    letter-spacing: .06em;
+}
+.cta-band b { color: #08181f; }
+
+/* Tiles in a table grid */
+table.grid { width: 100%; border-collapse: separate; border-spacing: 6pt 6pt; margin: 0 -6pt; }
+table.grid td { vertical-align: top; padding: 0; }
+.tile {
+    background: #1c2027;
+    border: 1pt solid #2e343d;
+    border-radius: 8pt;
+    padding: 9pt 10pt;
+    page-break-inside: avoid;
+}
+.tile .tile-title { font-size: 10pt; font-weight: 700; color: #e8ecf0; margin-bottom: 3pt; }
+.tile .tile-title .num { color: #00a2ed;
+    font-family: 'ibm-plex-mono', ui-sans-serif; margin-right: 4pt; }
+.tile p { color: #a8b0bc; font-size: 8.8pt; }
+
+/* Stat strip */
+.stats { background: #232830; border: 1pt solid #2e343d; border-radius: 8pt; padding: 7pt 12pt; margin-top: 10pt; }
+.stats .stat {
+    font-family: 'ibm-plex-mono', monospace; font-size: 7.5pt; color: #a8b0bc; }
+.stats .stat b { color: #00a2ed; font-size: 12pt; display: block; margin-bottom: 1pt; }
+
+/* Sections */
+.section { margin-top: 11pt; }
+.section h2 { border-left: 3pt solid #00a2ed; padding-left: 8pt; }
+.section .sub { color: #a8b0bc; margin: 4pt 0 8pt; font-size: 9.5pt; }
+
+ul.list { list-style: none; }
+ul.list li { margin: 3pt 0; padding-left: 12pt; position: relative; color: #c9d0d9; }
+ul.list li:before { content: ">"; color: #00a2ed; position: absolute; left: 0;
+    font-family: 'ibm-plex-mono', fangsong; }
+ul.list li b { color: #e8ecf0; }
+ul.list li em { color: #757575; font-size: 8.5pt; }
+
+/* Card types */
+.chips { margin: 8pt 0; }
+.chip {
+    display: inline-block;
+    font-family: 'ibm-plex-mono', ui-rounded;
+    font-size: 7.5pt;
+    letter-spacing: .05em;
+    border: 1pt solid #2e343d;
+    border-radius: 999pt;
+    padding: 2.5pt 7pt;
+    margin: 0 4pt 4pt 0;
+    color: #a8b0bc;
+}
+.chip.say { color: #4ade80; border-color: #2f5a3a; }
+.chip.ask { color: #a78bfa; border-color: #4b3f6e; }
+.chip.reference { color: #e8a22b; border-color: #5c4a26; }
+.chip.waiting { color: #a8b0bc; }
+.chip.objection { color: #f87171; border-color: #5c2f38; }
+
+/* Timeline */
+.timeline { margin: 8pt 0 2pt; }
+.timeline .step {
+    font-family: 'ibm-plex-mono', fangsong; font-size: 7.5pt; color: #e8ecf0; background: #1c2027; border: 1pt solid #2e343d; border-radius: 6pt; padding: 5pt 6pt; text-align: center; }
+.timeline .arrow { color: #00a2ed;
+    font-family: 'ibm-plex-mono', ui-monospace; font-size: 10pt; text-align: center; padding: 0 2pt; }
+
+/* Seats table */
+table.seats { width: 100%; border-collapse: collapse; margin-top: 8pt; }
+table.seats th {
+    font-family: 'ibm-plex-mono', fangsong; font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase;
+    color: #00a2ed; text-align: left; padding: 5pt 8pt; border-bottom: 1pt solid #2e343d;
+}
+table.seats td { padding: 6pt 8pt; border-bottom: 1pt solid #262b33; font-size: 8.8pt; color: #c9d0d9; vertical-align: top; }
+table.seats td:first-child { color: #e8ecf0; font-weight: 600; white-space: nowrap; }
+
+/* Guarantee row */
+.guarantee { margin: 6pt 0; }
+.guarantee b { color: #4ade80;
+    font-family: 'ibm-plex-mono', fangsong; font-size: 8pt; letter-spacing: .03em; }
+.guarantee span { color: #c9d0d9; font-size: 9pt; }
+
+/* CTA bottom */
+.cta-end { background: #00a2ed; color: #0b2b3d; border-radius: 8pt; padding: 12pt 14pt; margin-top: 14pt; }
+.cta-end .big { font-size: 12pt; font-weight: 700; color: #08181f; }
+.cta-end .mono { font-size: 8pt; color: #0b2b3d; }

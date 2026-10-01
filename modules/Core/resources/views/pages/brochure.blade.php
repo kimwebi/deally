@@ -2,151 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <title></title>
     <style>
-        /* DeAlly design tokens, resolved for dompdf (no CSS variables) */
-        @page { size: A4 portrait; margin: 15mm 14mm 16mm 14mm; }
-
+        /* Font paths must stay absolute and server-resolved, so they are built
+           here rather than in resources/css/brochure.css. */
         @font-face { font-family: 'ibm-plex-sans'; font-style: normal; font-weight: 400; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-Regular.ttf')) }}') format('truetype'); }
         @font-face { font-family: 'ibm-plex-sans'; font-style: normal; font-weight: 600; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-SemiBold.ttf')) }}') format('truetype'); }
         @font-face { font-family: 'ibm-plex-sans'; font-style: normal; font-weight: 700; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-Bold.ttf')) }}') format('truetype'); }
         @font-face { font-family: 'ibm-plex-sans'; font-style: italic; font-weight: 400; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-Italic.ttf')) }}') format('truetype'); }
         @font-face { font-family: 'ibm-plex-mono'; font-style: normal; font-weight: 400; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexMono-Regular.ttf')) }}') format('truetype'); }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'ibm-plex-sans';
-            font-size: 9pt;
-            line-height: 1.38;
-            color: #e8ecf0;
-            background: #14171c;
-            -webkit-font-smoothing: antialiased;
-        }
-        .page { page-break-after: always; padding: 0 1mm 3mm; position: relative; }
-        .page.last { page-break-after: auto; }
-        .cover { min-height: 265mm; }
-        .cover .pagefoot { position: absolute; bottom: 0; width: 100%; }
-        .mono { font-family: 'ibm-plex-mono'; }
-        .label {
-            font-family: 'ibm-plex-mono';
-            font-size: 7.5pt;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: #00a2ed;
-            margin-bottom: 4pt;
-        }
-        h1 { font-size: 25pt; font-weight: 700; line-height: 1.12; letter-spacing: -0.01em; }
-        h2 { font-size: 13.5pt; font-weight: 700; color: #e8ecf0; }
-        h3 { font-size: 10.5pt; font-weight: 600; color: #e8ecf0; }
-        p.lede { font-size: 11pt; color: #a8b0bc; margin-top: 8pt; }
-        .text-2 { color: #a8b0bc; }
-        .primary { color: #00a2ed; }
-        .green { color: #4ade80; }
-        .amber { color: #e8a22b; }
-        .violet { color: #a78bfa; }
-        .small { font-size: 8pt; }
-
-        /* Brand header */
-        .brandbar { border-bottom: 1pt solid #2e343d; padding-bottom: 8pt; margin-bottom: 14pt; }
-        .wordmark { font-family: 'ibm-plex-mono'; font-size: 17pt; font-weight: 400; color: #e8ecf0; letter-spacing: .02em; }
-        .wordmark b { color: #00a2ed; font-weight: 400; }
-        .brandsub { text-align: right; font-size: 8pt; color: #757575; font-family: 'ibm-plex-mono'; }
-
-        /* Hero */
-        .hero .tag { margin-bottom: 10pt; }
-        .cta-band {
-            background: #00a2ed;
-            color: #0b2b3d;
-            border-radius: 8pt;
-            padding: 10pt 14pt;
-            margin-top: 14pt;
-            font-family: 'ibm-plex-mono';
-            font-size: 8.5pt;
-            letter-spacing: .06em;
-        }
-        .cta-band b { color: #08181f; }
-
-        /* Tiles in a table grid */
-        table.grid { width: 100%; border-collapse: separate; border-spacing: 6pt 6pt; margin: 0 -6pt; }
-        table.grid td { vertical-align: top; padding: 0; }
-        .tile {
-            background: #1c2027;
-            border: 1pt solid #2e343d;
-            border-radius: 8pt;
-            padding: 10pt 11pt;
-            page-break-inside: avoid;
-        }
-        .tile .tile-title { font-size: 10pt; font-weight: 700; color: #e8ecf0; margin-bottom: 3pt; }
-        .tile .tile-title .num { color: #00a2ed; font-family: 'ibm-plex-mono'; margin-right: 4pt; }
-        .tile p { color: #a8b0bc; font-size: 8.8pt; }
-
-        /* Stat strip */
-        .stats { background: #232830; border: 1pt solid #2e343d; border-radius: 8pt; padding: 8pt 12pt; margin-top: 12pt; }
-        .stats .stat { font-family: 'ibm-plex-mono'; font-size: 7.5pt; color: #a8b0bc; }
-        .stats .stat b { color: #00a2ed; font-size: 12pt; display: block; margin-bottom: 1pt; }
-
-        /* Sections */
-        .section { margin-top: 11pt; }
-        .section h2 { border-left: 3pt solid #00a2ed; padding-left: 8pt; }
-        .section .sub { color: #a8b0bc; margin: 4pt 0 8pt; font-size: 9.5pt; }
-
-        ul.list { list-style: none; }
-        ul.list li { margin: 3pt 0; padding-left: 12pt; position: relative; color: #c9d0d9; }
-        ul.list li:before { content: "\203A"; color: #00a2ed; position: absolute; left: 0; font-family: 'ibm-plex-mono'; }
-        ul.list li b { color: #e8ecf0; }
-        ul.list li em { color: #757575; font-size: 8.5pt; }
-
-        /* Card types */
-        .chips { margin: 8pt 0; }
-        .chip {
-            display: inline-block;
-            font-family: 'ibm-plex-mono';
-            font-size: 7.5pt;
-            letter-spacing: .05em;
-            border: 1pt solid #2e343d;
-            border-radius: 999pt;
-            padding: 2.5pt 7pt;
-            margin: 0 4pt 4pt 0;
-            color: #a8b0bc;
-        }
-        .chip.say { color: #4ade80; border-color: #2f5a3a; }
-        .chip.ask { color: #a78bfa; border-color: #4b3f6e; }
-        .chip.reference { color: #e8a22b; border-color: #5c4a26; }
-        .chip.waiting { color: #a8b0bc; }
-        .chip.objection { color: #f87171; border-color: #5c2f38; }
-
-        /* Timeline */
-        .timeline { margin: 8pt 0 2pt; }
-        .timeline .step { font-family: 'ibm-plex-mono'; font-size: 7.5pt; color: #e8ecf0; background: #1c2027; border: 1pt solid #2e343d; border-radius: 6pt; padding: 5pt 6pt; text-align: center; }
-        .timeline .arrow { color: #00a2ed; font-family: 'ibm-plex-mono'; font-size: 10pt; text-align: center; padding: 0 2pt; }
-
-        /* Seats table */
-        table.seats { width: 100%; border-collapse: collapse; margin-top: 8pt; }
-        table.seats th {
-            font-family: 'ibm-plex-mono'; font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase;
-            color: #00a2ed; text-align: left; padding: 5pt 8pt; border-bottom: 1pt solid #2e343d;
-        }
-        table.seats td { padding: 6pt 8pt; border-bottom: 1pt solid #262b33; font-size: 8.8pt; color: #c9d0d9; vertical-align: top; }
-        table.seats td:first-child { color: #e8ecf0; font-weight: 600; white-space: nowrap; }
-
-        /* Guarantee row */
-        .guarantee { margin: 6pt 0; }
-        .guarantee b { color: #4ade80; font-family: 'ibm-plex-mono'; font-size: 8pt; letter-spacing: .03em; }
-        .guarantee span { color: #c9d0d9; font-size: 9pt; }
-
-        /* Page footer */
-        .pagefoot { border-top: 1pt solid #2e343d; margin-top: 10pt; padding-top: 4pt; font-family: 'ibm-plex-mono'; font-size: 6.5pt; color: #757575; }
-        .pagefoot .right { text-align: right; color: #4a5059; }
-
-        /* CTA bottom */
-        .cta-end { background: #00a2ed; color: #0b2b3d; border-radius: 8pt; padding: 12pt 14pt; margin-top: 14pt; }
-        .cta-end .big { font-size: 12pt; font-weight: 700; color: #08181f; }
-        .cta-end .mono { font-size: 8pt; color: #0b2b3d; }
+        {!! $stylesheet !!}
     </style>
 </head>
 <body>
 
     <!-- ===================== PAGE 1 · COVER ===================== -->
-    <div class="page cover">
+    <div class="page">
         <div class="brandbar">
             <table style="width:100%"><tr>
                 <td><div class="wordmark">De<b>Ally</b></div></td>
@@ -158,10 +30,9 @@
             <div class="label">The sales platform with a live AI copilot</div>
             <h1>Every sales call, captured.<br>Every AI answer, <span style="color:#00a2ed">grounded</span>.</h1>
             <p class="lede">
-                DeAlly is a multi-tenant sales workspace and a real-time AI assistant in one.
-                From the first knock to the review task, calls, pipeline, proposals and knowledge
-                live in a single place — and the AI that listens mid-call never puts words in your
-                mouth it can&rsquo;t back up.
+                DeAlly is a multi-tenant sales workspace and a real-time AI assistant in one — calls,
+                pipeline, proposals and knowledge in a single place, and an AI that never puts words in
+                your mouth it can&rsquo;t back up.
             </p>
             <div class="cta-band">LIVE AI COPILOT&nbsp;&nbsp;·&nbsp;&nbsp;REAL-TIME TRANSCRIPTION&nbsp;&nbsp;·&nbsp;&nbsp;
                 KNOWLEDGE-GROUNDED ANSWERS&nbsp;&nbsp;·&nbsp;&nbsp;<b>NOTHING INVENTED</b></div>
@@ -216,28 +87,14 @@
             </table>
         </div>
 
-        <div class="section" style="margin-top:14pt">
+        <div class="section" style="margin-top:12pt">
             <div class="label">Who it&rsquo;s for</div>
-            <table class="grid" style="margin-top:2pt">
-                <tr>
-                    <td style="width:25%"><div class="tile">
-                        <div class="tile-title">Sales reps</div>
-                        <p>Live script assistance, instant answers and objection handling, mid-call.</p>
-                    </div></td>
-                    <td style="width:25%"><div class="tile">
-                        <div class="tile-title">Sales leadership</div>
-                        <p>Coaching review, pipeline health and proposal reporting for the team.</p>
-                    </div></td>
-                    <td style="width:25%"><div class="tile">
-                        <div class="tile-title">Solutions teams</div>
-                        <p>The knowledge base that grounds every AI answer — and the gap queue that grows it.</p>
-                    </div></td>
-                    <td style="width:25%"><div class="tile">
-                        <div class="tile-title">Tenant owners</div>
-                        <p>Users, roles, teams and data retention, scoped seat by seat.</p>
-                    </div></td>
-                </tr>
-            </table>
+            <div class="chips" style="margin-top:6pt">
+                <span class="chip">SALES REPS</span>
+                <span class="chip">SALES LEADERSHIP</span>
+                <span class="chip">SOLUTIONS TEAMS</span>
+                <span class="chip">TENANT OWNERS</span>
+            </div>
         </div>
 
         <div class="pagefoot">
