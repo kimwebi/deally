@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         /* DeAlly design tokens, resolved for dompdf (no CSS variables) */
-        @page { size: A4 portrait; margin: 11mm 11mm 13mm 11mm; }
+        @page { size: A4 portrait; margin: 15mm 14mm 16mm 14mm; }
 
         @font-face { font-family: 'ibm-plex-sans'; font-style: normal; font-weight: 400; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-Regular.ttf')) }}') format('truetype'); }
         @font-face { font-family: 'ibm-plex-sans'; font-style: normal; font-weight: 600; src: url('{{ str_replace('\\', '/', storage_path('fonts/IBMPlexSans-SemiBold.ttf')) }}') format('truetype'); }
@@ -15,14 +15,16 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'ibm-plex-sans';
-            font-size: 9.5pt;
-            line-height: 1.42;
+            font-size: 9pt;
+            line-height: 1.38;
             color: #e8ecf0;
             background: #14171c;
             -webkit-font-smoothing: antialiased;
         }
-        .page { page-break-after: always; padding: 1mm 0 3mm; }
+        .page { page-break-after: always; padding: 0 1mm 3mm; position: relative; }
         .page.last { page-break-after: auto; }
+        .cover { min-height: 265mm; }
+        .cover .pagefoot { position: absolute; bottom: 0; width: 100%; }
         .mono { font-family: 'ibm-plex-mono'; }
         .label {
             font-family: 'ibm-plex-mono';
@@ -132,7 +134,7 @@
         .guarantee span { color: #c9d0d9; font-size: 9pt; }
 
         /* Page footer */
-        .pagefoot { border-top: 1pt solid #2e343d; margin-top: 16pt; padding-top: 7pt; font-family: 'ibm-plex-mono'; font-size: 7pt; color: #757575; }
+        .pagefoot { border-top: 1pt solid #2e343d; margin-top: 10pt; padding-top: 4pt; font-family: 'ibm-plex-mono'; font-size: 6.5pt; color: #757575; }
         .pagefoot .right { text-align: right; color: #4a5059; }
 
         /* CTA bottom */
@@ -144,7 +146,7 @@
 <body>
 
     <!-- ===================== PAGE 1 · COVER ===================== -->
-    <div class="page">
+    <div class="page cover">
         <div class="brandbar">
             <table style="width:100%"><tr>
                 <td><div class="wordmark">De<b>Ally</b></div></td>
@@ -192,6 +194,50 @@
                 <td style="width:25%"><span class="stat"><b>5</b>live findings card kinds</span></td>
                 <td style="width:25%"><span class="stat"><b>2</b>audio streams per call</span></td>
             </tr></table>
+        </div>
+
+        <div class="section" style="margin-top:14pt">
+            <div class="label">How DeAlly works — in under a minute</div>
+            <table class="grid" style="margin-top:2pt">
+                <tr>
+                    <td><div class="tile">
+                        <div class="tile-title"><span class="num">01</span>Listen</div>
+                        <p>Dual audio streams transcribed live — the mic and the meeting — with silence dropped and nothing fabricated.</p>
+                    </div></td>
+                    <td><div class="tile">
+                        <div class="tile-title"><span class="num">02</span>Recommend</div>
+                        <p>Grounded answers and findings cards surface as they matter — prices, terms and facts are never invented.</p>
+                    </div></td>
+                    <td><div class="tile">
+                        <div class="tile-title"><span class="num">03</span>Loop</div>
+                        <p>Unresolved questions become knowledge-base answers, so the next call is smarter automatically.</p>
+                    </div></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section" style="margin-top:14pt">
+            <div class="label">Who it&rsquo;s for</div>
+            <table class="grid" style="margin-top:2pt">
+                <tr>
+                    <td style="width:25%"><div class="tile">
+                        <div class="tile-title">Sales reps</div>
+                        <p>Live script assistance, instant answers and objection handling, mid-call.</p>
+                    </div></td>
+                    <td style="width:25%"><div class="tile">
+                        <div class="tile-title">Sales leadership</div>
+                        <p>Coaching review, pipeline health and proposal reporting for the team.</p>
+                    </div></td>
+                    <td style="width:25%"><div class="tile">
+                        <div class="tile-title">Solutions teams</div>
+                        <p>The knowledge base that grounds every AI answer — and the gap queue that grows it.</p>
+                    </div></td>
+                    <td style="width:25%"><div class="tile">
+                        <div class="tile-title">Tenant owners</div>
+                        <p>Users, roles, teams and data retention, scoped seat by seat.</p>
+                    </div></td>
+                </tr>
+            </table>
         </div>
 
         <div class="pagefoot">
