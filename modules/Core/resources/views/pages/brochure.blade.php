@@ -19,6 +19,7 @@
 
     <!-- ===================== PAGE 1 · COVER ===================== -->
     <div class="page">
+        <div class="page-bg"></div>
         <div class="brandbar">
             <table style="width:100%"><tr>
                 <td><div class="wordmark">De<b>Ally</b></div></td>
@@ -107,6 +108,7 @@
 
     <!-- ===================== PAGE 2 · THE PRODUCT ===================== -->
     <div class="page">
+        <div class="page-bg"></div>
         <div class="brandbar">
             <table style="width:100%"><tr>
                 <td><div class="wordmark">De<b>Ally</b></div></td>
@@ -187,6 +189,7 @@
 
     <!-- ===================== PAGE 3 · PLATFORM & TRUST ===================== -->
     <div class="page last">
+        <div class="page-bg"></div>
         <div class="brandbar">
             <table style="width:100%"><tr>
                 <td><div class="wordmark">De<b>Ally</b></div></td>

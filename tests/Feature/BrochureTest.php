@@ -33,4 +33,32 @@ class BrochureTest extends TestCase
 
         $this->assertCount(3, $matches[0]);
     }
+
+    public function test_the_brochure_paints_the_page_margins_dark(): void
+    {
+        $pdf = (string) $this->get(route('brochure.pdf'))->getContent();
+
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+
+        $pages = 0;
+
+        foreach ($streams[1] as $stream) {
+            $content = @gzuncompress($stream);
+
+            if ($content === false || ! str_contains($content, 'BT')) {
+                continue;
+            }
+
+            $pages++;
+            preg_match('/^0\.000 0\.000 595\.\d+ 841\.\d+ re f$/m', $content, $sheet, PREG_OFFSET_CAPTURE);
+            preg_match('/^BT /m', $content, $text, PREG_OFFSET_CAPTURE);
+
+            $this->assertNotEmpty($sheet, 'Expected a full-sheet background fill so the margins are not white.');
+            // dompdf paints absolutely positioned frames last, so without a
+            // negative z-index this fill buries the brochure under flat #14171c.
+            $this->assertLessThan($text[0][1], $sheet[0][1], 'The page background is painted over the content.');
+        }
+
+        $this->assertSame(3, $pages);
+    }
 }

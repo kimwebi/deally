@@ -55,6 +55,24 @@ body {
 }
 .pagefoot .right { text-align: right; color: #4a5059; }
 
+/* Full-bleed page background.
+   dompdf paints the body background only inside the page content box, so the
+   @page margins would print as bare white paper. This rect covers the whole
+   sheet instead: the negative offsets mirror the @page margins above.
+
+   z-index: -1 is required, not cosmetic. dompdf paints absolutely-positioned
+   frames in a layer above in-flow content, which would bury the brochure under
+   a sheet of flat #14171c; a negative z-index puts the fill back underneath. */
+.page-bg {
+    position: absolute;
+    top: -18mm;
+    left: -16mm;
+    width: 210mm;
+    height: 297mm;
+    background: #14171c;
+    z-index: -1;
+}
+
 .mono { font-family: 'ibm-plex-mono', fangsong; }
 .label {
     font-family: 'ibm-plex-mono', fangsong;
